@@ -38,11 +38,10 @@ The installer may install the following packages with pacman:
 * inotify-tools
 * ttf-jetbrains-mono-nerd
 * hyprshot
-* waypaper
 * waybar
 * nwg-displays
 
-Additionally, it may install wlogout with yay <br>
+Additionally, it may install wlogout and waypaper with yay <br>
 *Info: The installer also installs a slightly modified version of an already existing Waybar config.
 The original configuration is here: https://github.com/victordantasdev/waybar*
 
