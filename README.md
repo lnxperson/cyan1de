@@ -39,7 +39,9 @@ The installer may install the following packages with pacman:
 * ttf-jetbrains-mono-nerd
 * hyprshot
 
-Additionally, it may install wlogout with yay
+Additionally, it may install wlogout with yay <br>
+*Info: The installer also installs a slightly modified version of an already existing Waybar config.
+The original configuration is here: https://github.com/victordantasdev/waybar*
 
 ## Keybindings
 
