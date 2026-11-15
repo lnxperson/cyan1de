@@ -13,10 +13,10 @@ while true; do
         echo "Starting installation..."
         sudo pacman -S hyprland alacritty nemo xdg-desktop-portal-hyprland fuzzel swayosd hyprlock hypridle pavucontrol inotify-tools ttf-jetbrains-mono-nerd hyprshot --noconfirm;
         yay -S wlogout waypaper;
-	sudo cp -r ./config/hypr ~/.config;
-	sudo cp -r ./config/waybar ~/.config;
-	sudo cp -r ./config/alacritty ~/.config;
-	sudo cp -r ./config/fuzzel ~/.config;
+	 	cp -r ./config/hypr ~/.config;
+		cp -r ./config/waybar ~/.config;
+		cp -r ./config/alacritty ~/.config;
+		cp -r ./config/fuzzel ~/.config;
         break
     elif [[ "$choice" == "2" || "${choice,,}" == "quit" ]]; then
         echo "Exiting."
