@@ -11,7 +11,7 @@ while true; do
 
     if [[ "$choice" == "1" || "${choice,,}" == "install" ]]; then
         echo "Starting installation..."
-        sudo pacman -S hyprland alacritty nemo xdg-desktop-portal-hyprland fuzzel swayosd hyprlock hypridle pavucontrol inotify-tools ttf-jetbrains-mono-nerd hyprshot --noconfirm;
+        sudo pacman -S hyprland alacritty nemo xdg-desktop-portal-hyprland fuzzel swayosd hyprlock hypridle pavucontrol inotify-tools ttf-jetbrains-mono-nerd hyprshot waypaper --noconfirm;
         yay -S wlogout;
 	sudo cp -r ./config/hypr ~/.config;
 	sudo cp -r ./config/waybar ~/.config;
