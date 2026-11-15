@@ -5,7 +5,7 @@
 
 hl.config({
     input = {
-        kb_layout  = "de", -- Keyboard layout
+        kb_layout  = "en", -- Keyboard layout
         kb_variant = "",
         kb_model   = "",
         kb_options = "",
