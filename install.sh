@@ -12,7 +12,7 @@ while true; do
 
     if [[ "$choice" == "1" || "${choice,,}" == "install" ]]; then
         echo "Starting installation..."
-        sudo pacman -S hyprland alacritty nemo xdg-desktop-portal-hyprland fuzzel swayosd hyprlock hypridle pavucontrol inotify-tools ttf-jetbrains-mono-nerd hyprshot --noconfirm;
+        sudo pacman -S hyprland alacritty nemo xdg-desktop-portal-hyprland fuzzel swayosd hyprlock hypridle pavucontrol inotify-tools ttf-jetbrains-mono-nerd hyprshot waybar --noconfirm;
         yay -S wlogout waypaper;
 	 	cp -r ./config/hypr ~/.config;
 		cp -r ./config/waybar ~/.config;
@@ -21,7 +21,7 @@ while true; do
         break
     elif [[ "$choice" == "2" || "${choice,,}" == "remove" ]]; then
         echo "Removing dotfiles (You must remove Hyprland and alacritty yourself)"
-        sudo pacman -Rns nemo xdg-desktop-portal-hyprland fuzzel swayosd hyprlock hypridle pavucontrol inotify-tools ttf-jetbrains-mono-nerd hyprshot --noconfirm;
+        sudo pacman -Rns nemo xdg-desktop-portal-hyprland fuzzel swayosd hyprlock hypridle pavucontrol inotify-tools ttf-jetbrains-mono-nerd hyprshot waybar --noconfirm;
         rm -rf ~/.config/hypr
         rm -rf ~/.config/waybar
         rm -rf ~/.config/alacritty
