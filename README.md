@@ -12,7 +12,7 @@ Very simple and straightforward dotfiles for Hyprland.
 1. **Run** the following commands:
 
 ```bash
-git clone https://github.com
+git clone https://github.com/lnxperson/s1mpledots
 cd s1mpledots
 chmod +x install.sh
 ./install.sh
