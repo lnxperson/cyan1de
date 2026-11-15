@@ -17,9 +17,7 @@ local mainMod = "SUPER" -- Super/Windows Key
 hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd(terminal))
 local closeWindowBind = hl.bind(mainMod .. " + Q", hl.dsp.window.close())
 
--- System power menu / session exit
-hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"))
-
+-- System power menu
 hl.bind(mainMod .. " + E",     hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + V",     hl.dsp.window.float({ action = "toggle" })) -- Toggle Floating state
 hl.bind(mainMod .. " + SPACE", hl.dsp.exec_cmd(menu))                     -- Open app launcher
