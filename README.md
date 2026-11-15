@@ -38,6 +38,7 @@ The installer may install the following packages with pacman:
 * inotify-tools
 * ttf-jetbrains-mono-nerd
 * hyprshot
+* waypaper
 
 Additionally, it may install wlogout with yay <br>
 *Info: The installer also installs a slightly modified version of an already existing Waybar config.
