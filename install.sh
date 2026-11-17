@@ -23,7 +23,7 @@ while true; do
         echo "Starting installation..."
         sudo pacman -S hyprland alacritty gnome-text-editor loupe nautilus pavucontrol ttf-jetbrains-mono-nerd-font hyprshot nwg-displays quickshell --noconfirm
         	cp -r ./qs_config/hypr ~/.config
-        	cp -r ./qs-config/quickshell ~/.config
+        	cp -r ./qs_config/quickshell ~/.config
         break
     elif [[ "$choice" == "3" || "${choice,,}" == "remove" ]]; then
         echo "Removing dotfiles (You must remove Hyprland and Alacritty yourself)"
