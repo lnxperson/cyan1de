@@ -4,8 +4,7 @@ Very simple and straightforward dotfiles for Hyprland.
 ## Prerequisites
 
 * You must be on Arch Linux or on an Arch based distribution (e.g. CachyOS, Manjaro, EndeavourOS)
-* You must have yay and git installed
-* You do not have to have Hyprland installed before running the installer
+* You must have git installed
 
 ## How to install
 
@@ -24,26 +23,16 @@ chmod +x install.sh
 
 ## What packages are installed?
 
-The installer may install the following packages with pacman:
+The installer may install the following packages:
 
 * Hyprland
-* Alacritty
-* Nemo
-* xdg-desktop-portal-hyprland
-* fuzzel
-* swayosd
-* hyprlock
-* hypridle
-* pavucontrol
-* inotify-tools
-* ttf-jetbrains-mono-nerd
-* hyprshot
-* waybar
-* nwg-displays
-
-Additionally, it may install wlogout and waypaper with yay <br>
-*Info: The installer also installs a slightly modified version of an already existing Waybar config.
-The original configuration is here: https://github.com/victordantasdev/waybar*
+* Alacritty                        (Terminal)
+* gnome-text-editor                (Text editor)
+* loupe                            (Image viewer)
+* xdg-desktop-portal-hyprland      (Bridge between apps and Wayland)
+* pavucontrol                      (Volume control)
+* ttf-jetbrains-mono-nerd          (System Font)
+* hyprshot                         (Screenshot tool)
 
 ## Keybindings
 
@@ -58,7 +47,7 @@ The original configuration is here: https://github.com/victordantasdev/waybar*
 * Super + J: Toggle window split direction
 * Super + W: Internet browser
 * Super + L: Lock screen
-* Super + C: View hyprland.lua
+* Super + Comma: Settings
 
 **Screenshots:**
 
