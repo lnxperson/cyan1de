@@ -1,0 +1,29 @@
+{
+  "wallpaper": "/home/fish/Pictures/Sollee.png",
+  "wallpaperMode": "crop",
+  "bar": {
+    "accent": "#7cc7f5",
+    "accentAlt": "#68e0c8",
+    "surface": "#11141b",
+    "pill": "#121722",
+    "pillBorder": "#2b3547",
+    "text": "#cdd6e6",
+    "pillHeight": 32,
+    "pillRadius": 7,
+    "sideMargin": 10,
+    "fontSize": 12,
+    "iconSize": 15,
+    "pillOpacity": 1
+  },
+  "hypr": {
+    "border1": "#0292e3",
+    "border2": "#01d6be",
+    "gradient": true,
+    "angle": 45,
+    "inactive": "#0f3246",
+    "borderSize": 1,
+    "rounding": 5,
+    "gapsIn": 5,
+    "gapsOut": 5
+  }
+}
