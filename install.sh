@@ -12,8 +12,8 @@ while true; do
     if [[ "$choice" == "1" || "${choice,,}" == "install" ]]; then
         echo "Starting installation..."
         sudo pacman -S hyprland alacritty quickshell xdg-desktop-portal-hyprland nautilus loupe gnome-text-editor pavucontrol ttf-jetbrains-mono-nerd hyprshot --noconfirm;
-        	cp -r ./config/hypr ~/.config;
-			cp -r ./config/quickshell ~/.config;
+        	cp -r ./qs_config/hypr ~/.config;
+			cp -r ./qs_config/quickshell ~/.config;
         break
     elif [[ "$choice" == "2" || "${choice,,}" == "remove" ]]; then
         echo "Removing Dotfiles..."
