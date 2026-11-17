@@ -33,6 +33,8 @@ The installer may install the following packages:
 * pavucontrol                      (Volume control)
 * ttf-jetbrains-mono-nerd          (System Font)
 * hyprshot                         (Screenshot tool)
+* nautilus                         (File explorer)
+* quickshell                       (For UI elements)
 
 ## Keybindings
 
