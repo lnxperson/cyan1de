@@ -5,7 +5,7 @@ echo         s1mpledots installer
 echo -------------------------------------
 while true; do
     echo "1) Install (Standard config)"
-    echo "2) Install (Quickshell config)
+    echo "2) Install (Quickshell config)"
     echo "3) Remove"
     echo "4) Quit"
     read -p "Choose an option [1-4]: " choice
