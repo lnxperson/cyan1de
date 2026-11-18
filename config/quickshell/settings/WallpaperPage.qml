@@ -141,78 +141,88 @@ ColumnLayout {
                 }
             }
 
-            Flow {
+            ScrollView {
                 Layout.fillWidth: true
-                Layout.preferredHeight: Math.max(1, implicitHeight)
-                spacing: 10
+                Layout.preferredHeight: 104
+                clip: true
+                contentWidth: wallpaperRow.implicitWidth
+                contentHeight: wallpaperRow.height
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOn
+                ScrollBar.vertical.policy: ScrollBar.AlwaysOff
 
-                Repeater {
-                    model: root.app.wallpapers
+                Row {
+                    id: wallpaperRow
+                    height: 94
+                    spacing: 10
 
-                    delegate: Rectangle {
-                        required property string modelData
+                    Repeater {
+                        model: root.app.wallpapers
 
-                        width: 172
-                        height: 98
-                        radius: 9
-                        color: Theme.bg
-                        border.width: root.app.wallpaperPath === modelData ? 2 : 1
-                        border.color: root.app.wallpaperPath === modelData ? Theme.accent : Theme.border
-                        clip: true
+                        delegate: Rectangle {
+                            required property string modelData
 
-                        Image {
-                            anchors.fill: parent
-                            source: "file://" + root.app.resolveWallpaperPath(modelData)
-                            sourceSize.width: 344
-                            sourceSize.height: 196
-                            fillMode: Image.PreserveAspectCrop
-                            asynchronous: true
-                            cache: true
-                            smooth: true
-                        }
+                            width: 150
+                            height: 84
+                            radius: 9
+                            color: Theme.bg
+                            border.width: root.app.wallpaperPath === modelData ? 2 : 1
+                            border.color: root.app.wallpaperPath === modelData ? Theme.accent : Theme.border
+                            clip: true
 
-                        Rectangle {
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.bottom: parent.bottom
-                            height: 22
-                            color: "#bb05070a"
-
-                            Text {
+                            Image {
                                 anchors.fill: parent
-                                anchors.leftMargin: 7
-                                anchors.rightMargin: 7
-                                verticalAlignment: Text.AlignVCenter
-                                text: modelData.split("/").pop()
-                                font.family: Theme.mono
-                                font.pixelSize: 9
-                                color: Theme.subtext
-                                elide: Text.ElideMiddle
+                                source: "file://" + root.app.resolveWallpaperPath(modelData)
+                                sourceSize.width: 300
+                                sourceSize.height: 168
+                                fillMode: Image.PreserveAspectCrop
+                                asynchronous: true
+                                cache: true
+                                smooth: true
                             }
-                        }
 
-                        Rectangle {
-                            visible: root.app.wallpaperPath === modelData
-                            anchors.top: parent.top
-                            anchors.right: parent.right
-                            anchors.margins: 6
-                            width: 20
-                            height: 20
-                            radius: 10
-                            color: Theme.accent
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.bottom: parent.bottom
+                                height: 20
+                                color: "#bb05070a"
 
-                            Text {
-                                anchors.centerIn: parent
-                                text: "✓"
-                                font.pixelSize: 11
-                                color: Theme.bg
+                                Text {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 6
+                                    anchors.rightMargin: 6
+                                    verticalAlignment: Text.AlignVCenter
+                                    text: modelData.split("/").pop()
+                                    font.family: Theme.mono
+                                    font.pixelSize: 9
+                                    color: Theme.subtext
+                                    elide: Text.ElideMiddle
+                                }
                             }
-                        }
 
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.app.selectWallpaper(modelData)
+                            Rectangle {
+                                visible: root.app.wallpaperPath === modelData
+                                anchors.top: parent.top
+                                anchors.right: parent.right
+                                anchors.margins: 5
+                                width: 18
+                                height: 18
+                                radius: 9
+                                color: Theme.accent
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "✓"
+                                    font.pixelSize: 10
+                                    color: Theme.bg
+                                }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.app.selectWallpaper(modelData)
+                            }
                         }
                     }
                 }

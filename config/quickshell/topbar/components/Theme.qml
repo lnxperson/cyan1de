@@ -28,16 +28,41 @@ QtObject {
         );
     }
 
-    // Palette shared by every Quickshell panel.
-    readonly property color bg: "#0a0c11"
+    readonly property bool lightMode: data.themeMode === "light"
+
+    readonly property color darkBg: "#0a0c11"
+    readonly property color darkSubtext: "#8b96ab"
+    readonly property color darkDim: "#5f6a80"
+    readonly property color accentInk: "#0b3b5a"
+    readonly property color baseSurface: barData.surface || "#11141b"
+    readonly property color baseSurfaceAlt: barData.pill || "#171b24"
+    readonly property color basePill: barData.pill || "#121722"
+    readonly property color baseBorder: barData.pillBorder || "#232a37"
+    readonly property color basePillBorder: barData.pillBorder || "#2b3547"
+    readonly property color baseAccent: barData.accent || "#7cc7f5"
+    readonly property color baseText: barData.text || "#cdd6e6"
+
+    // Palette shared by every Quickshell panel. Dark mode uses the saved
+    // colours as-is; light mode derives soft paper tones from them so the
+    // existing colour controls still affect both modes.
     readonly property color white: "#ffffff"
-    readonly property color surface: barData.surface || "#11141b"
-    readonly property color surfaceAlt: barData.pill || "#171b24"
-    readonly property color border: barData.pillBorder || "#232a37"
-    readonly property color text: barData.text || "#cdd6e6"
-    readonly property color subtext: "#8b96ab"
-    readonly property color dim: "#5f6a80"
-    readonly property color accent: barData.accent || "#7cc7f5"
+    readonly property color lightBg: mixColor(darkBg, white, 0.94)
+    readonly property color lightSurface: baseSurface
+    readonly property color lightSurfaceAlt: basePill
+    readonly property color lightBorder: mixColor(baseBorder, white, 0.62)
+    readonly property color lightText: "#1c2430"
+    readonly property color lightSubtext: "#4b5563"
+    readonly property color lightDim: "#6b7280"
+    readonly property color lightAccent: mixColor(baseAccent, accentInk, 0.42)
+
+    readonly property color bg: lightMode ? lightBg : darkBg
+    readonly property color surface: lightMode ? lightSurface : baseSurface
+    readonly property color surfaceAlt: lightMode ? lightSurfaceAlt : baseSurfaceAlt
+    readonly property color border: lightMode ? lightBorder : baseBorder
+    readonly property color text: lightMode ? lightText : baseText
+    readonly property color subtext: lightMode ? lightSubtext : darkSubtext
+    readonly property color dim: lightMode ? lightDim : darkDim
+    readonly property color accent: lightMode ? lightAccent : baseAccent
     readonly property color accentSoft: mixColor(accent, white, 0.45)
     readonly property color accentAlt: mixColor(accent, white, 0.20)
     readonly property color hover: Qt.lighter(surfaceAlt, 1.14)
@@ -54,9 +79,9 @@ QtObject {
     readonly property int iconSize: barData.iconSize !== undefined ? barData.iconSize : 15
     readonly property int barFontSize: barData.fontSize !== undefined ? barData.fontSize : 12
     readonly property real pillOpacity: barData.pillOpacity !== undefined ? barData.pillOpacity : 1.0
-    readonly property color pill: barData.pill || "#121722"
+    readonly property color pill: lightMode ? lightSurfaceAlt : basePill
     readonly property color pillFill: Qt.rgba(pill.r, pill.g, pill.b, pillOpacity)
-    readonly property color pillBorder: barData.pillBorder || "#2b3547"
+    readonly property color pillBorder: lightMode ? lightBorder : basePillBorder
     readonly property int barHeight: Math.max(44, pillHeight + 10)
 
     // Pill positions, stored as fractions of the available bar width.

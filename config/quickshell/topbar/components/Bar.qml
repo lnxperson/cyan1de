@@ -25,7 +25,8 @@ PanelWindow {
     implicitHeight: Theme.barHeight
     exclusiveZone: Theme.barHeight
     color: "transparent"
-    focusable: false
+    // OnDemand focus lets the QtWidgets tray menu receive keyboard input.
+    focusable: true
 
     // Same layer as the software dimmer so the bar dims with the monitor.
     WlrLayershell.layer: WlrLayer.Top

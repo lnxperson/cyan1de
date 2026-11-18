@@ -14,6 +14,12 @@ ColumnLayout {
     // Pull the two outer fields slightly inward so they don't sit flush
     // against the preview edges.
     readonly property int fieldInset: 10
+
+    readonly property var darkSurfacePresets: ["#0a0c11", "#11141b", "#171b24", "#1a202b", "#202634"]
+    readonly property var lightSurfacePresets: ["#ffffff", "#f8fafc", "#f1f5f9", "#e8edf3", "#dde3ea", "#e6e8eb"]
+    readonly property var darkPillPresets: ["#0a0c11", "#11141b", "#121722", "#171b24", "#1d2433"]
+    readonly property var lightPillPresets: ["#ffffff", "#f8fafc", "#f1f5f9", "#e9edf2", "#dfe4ea", "#eef1f5"]
+
     property string draggingPill: ""
     property int activeSlot: -1
 
@@ -72,7 +78,7 @@ ColumnLayout {
     spacing: 14
 
     Text {
-        text: "Quickshell"
+        text: "Appearance"
         font.family: Theme.mono
         font.pixelSize: 20
         font.weight: Font.DemiBold
@@ -80,12 +86,25 @@ ColumnLayout {
     }
 
     Text {
-        text: "Everything here updates Quickshell panels instantly and is saved automatically. Pills only sit in the three marked spots; drop onto an occupied spot to swap pills."
+        text: "Wallpaper, Quickshell panels, and Hyprland look & feel. Quickshell changes are instant; window values apply with Apply. Pills only sit in the three marked spots."
         font.family: Theme.mono
         font.pixelSize: 11
         color: Theme.subtext
         wrapMode: Text.WordWrap
         Layout.fillWidth: true
+    }
+
+    SectionCard {
+        Layout.fillWidth: true
+        title: "THEME"
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "Light mode"
+            hint: "Quickshell, GTK and Qt"
+            checked: root.app.themeMode === "light"
+            onToggled: value => root.app.setThemeMode(value ? "light" : "dark")
+        }
     }
 
     // ---- Live preview -------------------------------------------------
@@ -95,7 +114,7 @@ ColumnLayout {
         Layout.fillWidth: true
         implicitHeight: 86
         radius: Theme.panelRadius
-        color: "#05070a"
+        color: Theme.bg
         border.width: 1
         border.color: Theme.border
 
@@ -136,9 +155,9 @@ ColumnLayout {
             width: root.previewPillWidth
             height: root.app.barPillHeight
             radius: root.app.barPillRadius
-            color: root.app.barPill
+            color: Theme.pillFill
             border.width: 1
-            border.color: root.app.barPillBorder
+            border.color: Theme.pillBorder
             clip: true
 
             Rectangle {
@@ -159,7 +178,7 @@ ColumnLayout {
                         radius: 4
                         color: index === 1 ? Theme.active : "transparent"
                         border.width: index === 1 ? 1 : 0
-                        border.color: root.app.barAccent
+                        border.color: Theme.accent
                         Text {
                             anchors.centerIn: parent
                             text: index + 1
@@ -195,9 +214,9 @@ ColumnLayout {
             width: root.previewPillWidth
             height: root.app.barPillHeight
             radius: root.app.barPillRadius
-            color: root.app.barPill
+            color: Theme.pillFill
             border.width: 1
-            border.color: root.app.barPillBorder
+            border.color: Theme.pillBorder
             clip: true
 
             Rectangle {
@@ -238,9 +257,9 @@ ColumnLayout {
             width: root.previewPillWidth
             height: root.app.barPillHeight
             radius: root.app.barPillRadius
-            color: root.app.barPill
+            color: Theme.pillFill
             border.width: 1
-            border.color: root.app.barPillBorder
+            border.color: Theme.pillBorder
             clip: true
 
             Rectangle {
@@ -257,7 +276,7 @@ ColumnLayout {
                     text: "󰂯"
                     font.family: Theme.font
                     font.pixelSize: root.app.barFontSize
-                    color: root.app.barAccent
+                    color: Theme.accent
                 }
                 Text {
                     text: "󰤨  WiFi"
@@ -281,7 +300,7 @@ ColumnLayout {
                     text: "⏻"
                     font.family: Theme.font
                     font.pixelSize: root.app.barFontSize + 1
-                    color: root.app.barAccent
+                    color: Theme.accent
                 }
             }
 
@@ -331,7 +350,7 @@ ColumnLayout {
                 Layout.fillWidth: true
                 label: "Accent"
                 value: root.app.barAccent
-                presets: ["#7cc7f5", "#68e0c8", "#c6a0e8", "#f5a3c7", "#e6c384", "#9bd48b", "#e78a8a"]
+                presets: ["#7cc7f5", "#8ab4f8", "#60a5fa", "#38bdf8", "#68e0c8", "#5eead4", "#b9e6ff", "#9bd48b", "#e6c384", "#fbbf24", "#fb923c", "#e78a8a", "#f5a3c7", "#c6a0e8", "#a78bfa"]
                 onEdited: value => { root.app.barAccent = value; root.app.queueSave() }
             }
 
@@ -339,23 +358,23 @@ ColumnLayout {
                 Layout.fillWidth: true
                 label: "Popup surface"
                 value: root.app.barSurface
-                presets: ["#0a0c11", "#11141b", "#171b24", "#1a202b", "#202634"]
-                onEdited: value => { root.app.barSurface = value; root.app.queueSave() }
+                presets: root.app.themeMode === "light" ? root.lightSurfacePresets : root.darkSurfacePresets
+                onEdited: value => root.app.setBarColor("surface", value)
             }
 
             ColorField {
                 Layout.fillWidth: true
-                label: "Pill background"
+                label: "Background"
                 value: root.app.barPill
-                presets: ["#0a0c11", "#11141b", "#121722", "#171b24", "#1d2433"]
-                onEdited: value => { root.app.barPill = value; root.app.queueSave() }
+                presets: root.app.themeMode === "light" ? root.lightPillPresets : root.darkPillPresets
+                onEdited: value => root.app.setBarColor("pill", value)
             }
 
             ColorField {
                 Layout.fillWidth: true
-                label: "Pill border"
+                label: "Border"
                 value: root.app.barPillBorder
-                presets: ["#232a37", "#2b3547", "#3a4a63", "#4c6485", "#68e0c8"]
+                presets: ["#232a37", "#2b3547", "#33415c", "#3a4a63", "#465a78", "#4c6485", "#5b7fa6", "#1f4a5c", "#235f63", "#2e7d78", "#3f6f8f", "#68e0c8"]
                 onEdited: value => { root.app.barPillBorder = value; root.app.queueSave() }
             }
         }
@@ -448,4 +467,123 @@ ColumnLayout {
             }
         }
     }
+
+    WallpaperPage {
+        Layout.fillWidth: true
+        app: root.app
+    }
+
+    SectionCard {
+        Layout.fillWidth: true
+        title: "WINDOW BORDERS"
+
+        ColorField {
+            Layout.fillWidth: true
+            label: "Active border"
+            value: root.app.hyprBorder1
+            presets: ["#0292e3", "#01d6be", "#7cc7f5", "#c6a0e8", "#e78a8a", "#e6c384"]
+            onEdited: value => root.app.hyprBorder1 = value
+        }
+
+        ColorField {
+            Layout.fillWidth: true
+            label: "Gradient end"
+            value: root.app.hyprBorder2
+            presets: ["#01d6be", "#0292e3", "#68e0c8", "#b9e6ff", "#c6a0e8"]
+            onEdited: value => root.app.hyprBorder2 = value
+        }
+
+        ColorField {
+            Layout.fillWidth: true
+            label: "Inactive border"
+            value: root.app.hyprInactive
+            presets: ["#0f3246", "#1a202b", "#232a37", "#2b3547", "#3a4a63"]
+            onEdited: value => root.app.hyprInactive = value
+        }
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "Gradient border"
+            checked: root.app.hyprGradient
+            onToggled: value => root.app.hyprGradient = value
+        }
+
+        SliderField {
+            Layout.fillWidth: true
+            label: "Gradient angle"
+            from: 0
+            to: 90
+            value: root.app.hyprAngle
+            suffix: "°"
+            enabled: root.app.hyprGradient
+            opacity: enabled ? 1 : 0.45
+            onMoved: value => root.app.hyprAngle = Math.round(value)
+        }
+
+        SliderField {
+            Layout.fillWidth: true
+            label: "Border size"
+            from: 0
+            to: 5
+            value: root.app.hyprBorderSize
+            suffix: "px"
+            onMoved: value => root.app.hyprBorderSize = Math.round(value)
+        }
+    }
+
+    SectionCard {
+        Layout.fillWidth: true
+        title: "WINDOW SHAPE & GAPS"
+
+        SliderField {
+            Layout.fillWidth: true
+            label: "Corner rounding"
+            from: 0
+            to: 20
+            value: root.app.hyprRounding
+            suffix: "px"
+            onMoved: value => root.app.hyprRounding = Math.round(value)
+        }
+
+        SliderField {
+            Layout.fillWidth: true
+            label: "Inner gaps"
+            from: 0
+            to: 20
+            value: root.app.hyprGapsIn
+            suffix: "px"
+            onMoved: value => root.app.hyprGapsIn = Math.round(value)
+        }
+
+        SliderField {
+            Layout.fillWidth: true
+            label: "Outer gaps"
+            from: 0
+            to: 20
+            value: root.app.hyprGapsOut
+            suffix: "px"
+            onMoved: value => root.app.hyprGapsOut = Math.round(value)
+        }
+    }
+
+    RowLayout {
+        Layout.fillWidth: true
+        spacing: 10
+
+        SettingsButton {
+            icon: "󰉋"
+            text: "Open config folder"
+            onClicked: root.app.openHyprFolder()
+        }
+
+        Item { Layout.fillWidth: true }
+
+        Text {
+            text: "hyprland/ui_overrides.lua"
+            font.family: Theme.mono
+            font.pixelSize: 10
+            color: Theme.dim
+        }
+    }
+
 }

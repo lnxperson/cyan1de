@@ -119,5 +119,67 @@ PopupWindow {
                 }
             }
         }
+
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 1
+            color: Theme.border
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 8
+
+            Text {
+                text: "󱩌"
+                font.family: Theme.font
+                font.pixelSize: Theme.iconSize + 1
+                color: NightLight.enabled ? Theme.yellow : Theme.dim
+            }
+
+            Text {
+                text: "Night light"
+                font.family: Theme.mono
+                font.pixelSize: 12
+                color: Theme.subtext
+            }
+
+            Item { Layout.fillWidth: true }
+
+            Text {
+                text: !NightLight.available
+                    ? "Unavailable"
+                    : (NightLight.enabled
+                        ? NightLight.intensity + "% · " + NightLight.temperature + " K"
+                        : "Off")
+                font.family: Theme.mono
+                font.pixelSize: 11
+                color: !NightLight.available
+                    ? Theme.red
+                    : (NightLight.enabled ? Theme.text : Theme.dim)
+            }
+
+            ToggleSwitch {
+                checked: NightLight.enabled
+                onToggled: function (checked) { NightLight.setEnabled(checked); }
+            }
+        }
+
+        SliderRow {
+            Layout.fillWidth: true
+            visible: NightLight.enabled
+            icon: "󰃚"
+            label: "Intensity"
+            accent: Theme.yellow
+            showMute: false
+            value: NightLight.intensity / 100
+
+            onMoved: function (value) {
+                NightLight.previewIntensity(value * 100);
+            }
+            onCommitted: function (value) {
+                NightLight.setIntensity(value * 100);
+            }
+        }
     }
 }

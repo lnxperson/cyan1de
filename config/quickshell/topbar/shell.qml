@@ -1,3 +1,5 @@
+//@ pragma UseQApplication
+// Required: system-tray right-click menus use QtWidgets QMenu.
 import QtQuick
 import Quickshell
 import "components"

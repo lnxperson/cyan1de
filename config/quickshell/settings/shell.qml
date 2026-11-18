@@ -25,6 +25,11 @@ ShellRoot {
     property string wallpaperPath: ""
     readonly property string resolvedWallpaperPath: resolveWallpaperPath(wallpaperPath)
     property string wallpaperMode: "crop"
+    property string themeMode: "dark"
+    property var themeColors: ({
+        dark: { surface: "#11141b", pill: "#121722" },
+        light: { surface: "#f5f6f8", pill: "#ffffff" }
+    })
     property var wallpapers: []
 
     // Bar
@@ -151,6 +156,11 @@ ShellRoot {
     // ---------------------------------------------------------------------
     function defaults() {
         return {
+            themeMode: "dark",
+            themeColors: {
+                dark: { surface: "#11141b", pill: "#121722" },
+                light: { surface: "#f5f6f8", pill: "#ffffff" }
+            },
             wallpaper: "",
             wallpaperMode: "crop",
             bar: {
@@ -278,10 +288,25 @@ ShellRoot {
             || (s && s.wallpaperMode === "stretch")
             || (s && s.wallpaperMode === "crop")
             ? s.wallpaperMode : d.wallpaperMode;
+        themeMode = (s && s.themeMode === "light") ? "light" : d.themeMode;
+
+        const savedColors = (s && s.themeColors) || ({});
+        const savedDark = savedColors.dark || ({});
+        const savedLight = savedColors.light || ({});
+        themeColors = {
+            dark: {
+                surface: asText(savedDark.surface, asText(b.surface, d.themeColors.dark.surface)),
+                pill: asText(savedDark.pill, asText(b.pill, d.themeColors.dark.pill))
+            },
+            light: {
+                surface: asText(savedLight.surface, d.themeColors.light.surface),
+                pill: asText(savedLight.pill, d.themeColors.light.pill)
+            }
+        };
 
         barAccent = asText(b.accent, d.bar.accent);
-        barSurface = asText(b.surface, d.bar.surface);
-        barPill = asText(b.pill, d.bar.pill);
+        barSurface = themeColors[themeMode].surface;
+        barPill = themeColors[themeMode].pill;
         barPillBorder = asText(b.pillBorder, d.bar.pillBorder);
         barPillHeight = asInt(b.pillHeight, d.bar.pillHeight);
         barPillRadius = asInt(b.pillRadius, d.bar.pillRadius);
@@ -316,6 +341,8 @@ ShellRoot {
 
     function buildSettings() {
         return {
+            themeMode: themeMode,
+            themeColors: themeColors,
             wallpaper: wallpaperPath,
             wallpaperMode: wallpaperMode,
             bar: {
@@ -367,6 +394,70 @@ ShellRoot {
         saveDebounce.restart();
     }
 
+    function themeGtkName(mode) {
+        return mode === "light" ? "Adwaita" : "Adwaita-dark";
+    }
+
+    function themeScheme(mode) {
+        return mode === "light" ? "prefer-light" : "prefer-dark";
+    }
+
+    function themedAutostart(mode) {
+        const gtk = themeGtkName(mode);
+        const scheme = themeScheme(mode);
+        return autostart.map(command => {
+            if (command.indexOf("gsettings set org.gnome.desktop.interface gtk-theme") === 0)
+                return "gsettings set org.gnome.desktop.interface gtk-theme '" + gtk + "'";
+            if (command.indexOf("gsettings set org.gnome.desktop.interface color-scheme") === 0)
+                return "gsettings set org.gnome.desktop.interface color-scheme '" + scheme + "'";
+            return command;
+        });
+    }
+
+    function applyGtkTheme(mode) {
+        Quickshell.execDetached(["sh", "-c",
+            "gsettings set org.gnome.desktop.interface gtk-theme '" + themeGtkName(mode) + "' && "
+            + "gsettings set org.gnome.desktop.interface color-scheme '" + themeScheme(mode) + "'"]);
+    }
+
+    function updateAutostartTheme(mode) {
+        autostart = themedAutostart(mode);
+        const encoded = b64Utf8(generateAutostart());
+        Quickshell.execDetached(["sh", "-c",
+            "printf '%s' '" + encoded + "' | base64 -d > '" + hyprDir + "/autostart.lua'"]);
+    }
+
+    function setThemeMode(mode) {
+        const next = (mode === "light") ? "light" : "dark";
+        if (themeMode === next)
+            return;
+        themeColors[themeMode].surface = barSurface;
+        themeColors[themeMode].pill = barPill;
+        themeMode = next;
+        barSurface = themeColors[next].surface;
+        barPill = themeColors[next].pill;
+        saveSettings();
+        updateAutostartTheme(next);
+        applyGtkTheme(next);
+        status = next === "light" ? "Light theme enabled" : "Dark theme enabled";
+        statusColor = Theme.green;
+        statusTimer.restart();
+    }
+
+    function setBarColor(which, value) {
+        const mode = (themeMode === "light") ? "light" : "dark";
+        if (which === "surface") {
+            barSurface = value;
+            themeColors[mode].surface = value;
+        } else if (which === "pill") {
+            barPill = value;
+            themeColors[mode].pill = value;
+        } else {
+            return;
+        }
+        queueSave();
+    }
+
     function setBarPillPosition(which, value) {
         const target = barPillSnapSlot(value);
         const previous = barPillFraction(which);
@@ -412,6 +503,7 @@ ShellRoot {
         }
         applySettings(parsed || defaults());
         parseAutostart();
+        autostart = themedAutostart(themeMode);
         parseEnv();
 
         inputText = inputFile.text() || "";
@@ -1336,6 +1428,8 @@ ShellRoot {
         applySettings(defaults());
         saveDebounce.stop();
         saveSettings();
+        updateAutostartTheme("dark");
+        applyGtkTheme("dark");
         status = "Defaults restored — press Apply for Hyprland";
         statusColor = Theme.yellow;
         statusTimer.restart();
@@ -1405,14 +1499,15 @@ ShellRoot {
         function toggle(): void { root.toggle() }
         function apply(): void { root.applyAll() }
         function reset(): void { root.resetAll() }
+        function theme(mode: string): void { root.setThemeMode(mode) }
         function section(index: int): void {
-            root.page = Math.max(0, Math.min(9, index));
+            root.page = Math.max(0, Math.min(8, index));
             root.open();
         }
         // Kept as an alias for existing scripts: Hyprland tab 0..7 now
-        // corresponds to top-level pages 1..8.
+        // corresponds to top-level pages 0..7.
         function hsection(index: int): void {
-            root.page = Math.max(1, Math.min(8, index + 1));
+            root.page = Math.max(0, Math.min(7, index));
             root.open();
         }
     }
@@ -1650,82 +1745,74 @@ ShellRoot {
 
                         NavItem {
                             Layout.fillWidth: true
-                            icon: "󰒓"
-                            label: "Quickshell"
+                            icon: "󰖲"
+                            label: "Appearance"
                             active: root.page === 0
                             onClicked: root.page = 0
                         }
 
                         NavItem {
                             Layout.fillWidth: true
-                            icon: "󰖲"
-                            label: "Appearance"
+                            icon: ""
+                            label: "Input"
                             active: root.page === 1
                             onClicked: root.page = 1
                         }
 
                         NavItem {
                             Layout.fillWidth: true
-                            icon: "󰇳"
-                            label: "Input"
+                            icon: "󰌋"
+                            label: "Keybindings"
                             active: root.page === 2
                             onClicked: root.page = 2
                         }
 
                         NavItem {
                             Layout.fillWidth: true
-                            icon: "󰌋"
-                            label: "Keybindings"
+                            icon: "󰒲"
+                            label: "Autostart"
                             active: root.page === 3
                             onClicked: root.page = 3
                         }
 
                         NavItem {
                             Layout.fillWidth: true
-                            icon: "󰒲"
-                            label: "Autostart"
+                            icon: "󰀻"
+                            label: "Programs"
                             active: root.page === 4
                             onClicked: root.page = 4
                         }
 
                         NavItem {
                             Layout.fillWidth: true
-                            icon: "󰆧"
-                            label: "Programs"
+                            icon: "󰫧"
+                            label: "Environment"
                             active: root.page === 5
                             onClicked: root.page = 5
                         }
 
                         NavItem {
                             Layout.fillWidth: true
-                            icon: "󰘓"
-                            label: "Environment"
+                            icon: "󰍹"
+                            label: "Monitors"
                             active: root.page === 6
                             onClicked: root.page = 6
                         }
 
                         NavItem {
                             Layout.fillWidth: true
-                            icon: "󰓻"
-                            label: "Monitors"
+                            icon: "󰰞"
+                            label: "Rules"
                             active: root.page === 7
                             onClicked: root.page = 7
                         }
 
                         NavItem {
                             Layout.fillWidth: true
-                            icon: "󰕇"
-                            label: "Rules"
+                            icon: "󰎟"
+                            label: "Notifications"
                             active: root.page === 8
                             onClicked: root.page = 8
-                        }
-
-                        NavItem {
-                            Layout.fillWidth: true
-                            icon: "󰅐"
-                            label: "Notifications"
-                            active: root.page === 9
-                            onClicked: root.page = 9
                         }
 
                         Item { Layout.fillHeight: true }
@@ -1776,9 +1863,9 @@ ShellRoot {
                                 y: 16
                                 width: parent.width - 32
                                 sourceComponent: [
-                                    barPage, appearancePage, inputPage, keybindingsPage,
-                                    autostartPage, programsPage, environmentPage,
-                                    monitorsPage, rulesPage, notificationsPage
+                                    barPage, inputPage, keybindingsPage, autostartPage,
+                                    programsPage, environmentPage, monitorsPage,
+                                    rulesPage, notificationsPage
                                 ][root.page]
                             }
                         }
@@ -1831,11 +1918,6 @@ ShellRoot {
     Component {
         id: barPage
         BarPage { app: root }
-    }
-
-    Component {
-        id: appearancePage
-        AppearancePage { app: root }
     }
 
     Component {

@@ -1,4 +1,15 @@
 {
+  "themeMode": "dark",
+  "themeColors": {
+    "dark": {
+      "surface": "#11141b",
+      "pill": "#121722"
+    },
+    "light": {
+      "surface": "#f5f6f8",
+      "pill": "#ffffff"
+    }
+  },
   "wallpaper": "",
   "wallpaperMode": "crop",
   "bar": {

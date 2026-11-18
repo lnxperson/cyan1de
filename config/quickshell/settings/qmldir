@@ -10,7 +10,6 @@ WallpaperPage 1.0 WallpaperPage.qml
 TextFieldRow 1.0 TextFieldRow.qml
 ToggleRow 1.0 ToggleRow.qml
 SectionCard 1.0 SectionCard.qml
-AppearancePage 1.0 AppearancePage.qml
 InputPage 1.0 InputPage.qml
 KeybindingsPage 1.0 KeybindingsPage.qml
 KeyCapture 1.0 KeyCapture.qml
