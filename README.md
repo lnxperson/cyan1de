@@ -61,4 +61,8 @@ Hyprland works flawlessly on both NVIDIA and AMD graphics cards. NVIDIA cards ma
 ```bash
 sudo pacman -S nvidia-open
 ```
-AMD cards don't necessarily require any drivers as they're built in. 
+AMD cards don't necessarily require any drivers as they're built in.
+
+## Power Management
+
+Support for power-profiles-daemon is coming soon although tlp is recommended.
