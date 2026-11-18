@@ -61,4 +61,4 @@ Hyprland works flawlessly on both NVIDIA and AMD graphics cards. NVIDIA cards ma
 ```bash
 sudo pacman -S nvidia-open
 ```
-AMD cards don't necessarily require any drivers as they're built in to the kernel. 
+AMD cards don't necessarily require any drivers as they're built in. 
