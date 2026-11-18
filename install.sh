@@ -19,6 +19,7 @@ PACKAGES=(
     brightnessctl
     ddcutil
     hyprshot
+    hyprsunset
     playerctl
     fprintd
     bluez
@@ -31,6 +32,7 @@ PACKAGES=(
     ttf-jetbrains-mono-nerd
     python
     xdg-utils
+    ripgrep
 )
 
 privileged() {
@@ -108,6 +110,16 @@ backup_dir() {
     echo "Backed up: $target -> $saved"
 }
 
+make_scripts_executable() {
+    local dir="$1" count=0
+    [ -d "$dir" ] || return 0
+    while IFS= read -r -d '' script; do
+        chmod +x -- "$script"
+        count=$((count + 1))
+    done < <(find "$dir" -type f -name '*.sh' -print0)
+    echo "Made $count shell script(s) executable in $dir"
+}
+
 install_config() {
     [ -d "$SRC/hypr" ] || { echo "Missing: $SRC/hypr" >&2; return 1; }
     [ -d "$SRC/quickshell" ] || { echo "Missing: $SRC/quickshell" >&2; return 1; }
@@ -142,6 +154,10 @@ install_config() {
     backup_dir "$CONFIG_HOME/quickshell"
     cp -a -- "$SRC/hypr" "$CONFIG_HOME/hypr"
     cp -a -- "$SRC/quickshell" "$CONFIG_HOME/quickshell"
+
+    # cp -a preserves the shipped mode bits, but enforce executability here so
+    # every Quickshell helper works even if an archive/transfer dropped +x.
+    make_scripts_executable "$CONFIG_HOME/quickshell"
 
     echo "Installed cyan1de."
     echo "Reload Hyprland or log out and back in."
