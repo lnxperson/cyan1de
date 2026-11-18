@@ -53,7 +53,7 @@ The installer may install the following packages:
 
 Upon starting Hyprland, you will be greeted by the welcome panel. Here you can see all of the core keybindings. By going into the settings panel you can customize a bunch of settings. These settings include top panel, wallpaper, appearance, input, keybindings, autostart, default programs, environment variables, monitors, window rules and notifications.
 
-*Note: The lock screen is set to autostart by default. You can disable this by going to *Settings > Autostart > Remove line "~/.config/quickshell/lockscreen/lock.sh"*.
+*Note: The lock screen is set to autostart by default. You can disable this by going to "Settings > Autostart > Remove line "~/.config/quickshell/lockscreen/lock.sh".*
 
 ## Compatibility
 
