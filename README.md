@@ -12,7 +12,7 @@ Very simple and straightforward dotfiles for Hyprland.
 
 ```bash
 git clone https://github.com/lnxperson/cyan1de
-cd s1mpledots
+cd cyan1de
 chmod +x install.sh
 ./install.sh
 ```
