@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 echo -------------------------------------
-echo         s1mpledots installer
+echo          cyan1de installer
 echo -------------------------------------
 while true; do
     echo "1) Install"
