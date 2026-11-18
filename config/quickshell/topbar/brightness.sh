@@ -10,6 +10,37 @@ store_path() {
     printf '%s/.config/quickshell/soft-brightness.json\n' "$HOME"
 }
 
+# BACKLIGHT_ROOT exists only so display detection can be tested with a fake
+# sysfs tree; normal use always reads /sys/class/backlight.
+backlight_root() {
+    printf '%s\n' "${BACKLIGHT_ROOT:-/sys/class/backlight}"
+}
+
+backlight_device_exists() {
+    for dir in "$(backlight_root)"/*; do
+        [ -e "$dir" ] || continue
+        return 0
+    done
+    return 1
+}
+
+is_internal_connector() {
+    case "$1" in
+        eDP-*|LVDS-*|DSI-*) return 0 ;;
+    esac
+    return 1
+}
+
+# ddcutil labels laptop panels by the panel maker (CMN, BOE, LGD, ...), which
+# can look like a second monitor next to the real backlight entry.
+is_internal_panel_label() {
+    maker=${1%%[ :]*}
+    case "$maker" in
+        CMN|BOE|LGD|AUO|SDC|SEC|IVO|INX) return 0 ;;
+    esac
+    return 1
+}
+
 soft_get() {
     key=$1
     path=$(store_path)
@@ -60,7 +91,7 @@ PY
 
 list_backlights() {
     command -v brightnessctl >/dev/null 2>&1 || return 0
-    for dir in /sys/class/backlight/*; do
+    for dir in "$(backlight_root)"/*; do
         [ -e "$dir" ] || continue
         name=$(basename "$dir")
         cur=$(brightnessctl -d "$name" get 2>/dev/null) || continue
@@ -119,6 +150,22 @@ list_ddc() {
             *"Monitor:"*)
                 monitor=$(printf '%s\n' "$line" | sed -e 's/^.*Monitor:[[:space:]]*//' | clean_monitor_label)
                 [ -n "$monitor" ] || continue
+
+                # ddcutil often reports the laptop panel as an "Invalid
+                # display" (CMN/BOE/... on eDP-1). The backlight entry above
+                # already controls that same screen, so don't add a second
+                # software-dimming slider for it.
+                if backlight_device_exists; then
+                    if is_internal_connector "$connector" || \
+                       { [ -z "$connector" ] && is_internal_panel_label "$monitor"; }; then
+                        id=""
+                        valid=0
+                        connector=""
+                        bus=""
+                        monitor=""
+                        continue
+                    fi
+                fi
 
                 label="$monitor"
                 [ -n "$connector" ] && label="$label ($connector)"

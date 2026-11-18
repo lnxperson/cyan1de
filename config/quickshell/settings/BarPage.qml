@@ -566,6 +566,51 @@ ColumnLayout {
         }
     }
 
+    SectionCard {
+        Layout.fillWidth: true
+        title: "BLUR"
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "Hyprland blur"
+            hint: "Blur behind transparent windows"
+            checked: root.app.hyprBlur
+            onToggled: value => root.app.hyprBlur = value
+        }
+
+        SliderField {
+            Layout.fillWidth: true
+            label: "Blur radius"
+            from: 1
+            to: 20
+            value: root.app.hyprBlurSize
+            suffix: "px"
+            enabled: root.app.hyprBlur
+            opacity: enabled ? 1 : 0.45
+            onMoved: value => root.app.hyprBlurSize = Math.round(value)
+        }
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "Alacritty blur"
+            hint: "Transparent terminal shows the desktop blur"
+            checked: root.app.alacrittyBlur
+            onToggled: value => root.app.alacrittyBlur = value
+        }
+
+        SliderField {
+            Layout.fillWidth: true
+            label: "Alacritty blur strength"
+            from: 0
+            to: 100
+            value: root.app.alacrittyBlurStrength
+            suffix: "%"
+            enabled: root.app.alacrittyBlur
+            opacity: enabled ? 1 : 0.45
+            onMoved: value => root.app.alacrittyBlurStrength = Math.round(value)
+        }
+    }
+
     RowLayout {
         Layout.fillWidth: true
         spacing: 10

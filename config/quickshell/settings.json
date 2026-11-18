@@ -39,7 +39,11 @@
     "borderSize": 1,
     "rounding": 5,
     "gapsIn": 5,
-    "gapsOut": 5
+    "gapsOut": 5,
+    "blur": true,
+    "blurSize": 5,
+    "alacrittyBlur": true,
+    "alacrittyBlurStrength": 60
   },
   "notifications": {
     "position": "top-right",

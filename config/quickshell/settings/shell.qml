@@ -69,6 +69,13 @@ ShellRoot {
     property int hyprRounding: 5
     property int hyprGapsIn: 5
     property int hyprGapsOut: 5
+    property bool hyprBlur: true
+    property int hyprBlurSize: 5
+    property bool alacrittyBlur: true
+    property int alacrittyBlurStrength: 60
+
+    // Raw alacritty.toml, kept verbatim so only the opacity line is patched.
+    property string alacrittyText: ""
 
     // Lists
     property var autostart: []
@@ -190,7 +197,11 @@ ShellRoot {
                 borderSize: 1,
                 rounding: 5,
                 gapsIn: 5,
-                gapsOut: 5
+                gapsOut: 5,
+                blur: true,
+                blurSize: 5,
+                alacrittyBlur: true,
+                alacrittyBlurStrength: 60
             },
             notifications: {
                 position: "top-right",
@@ -328,6 +339,11 @@ ShellRoot {
         hyprRounding = asInt(h.rounding, d.hypr.rounding);
         hyprGapsIn = asInt(h.gapsIn, d.hypr.gapsIn);
         hyprGapsOut = asInt(h.gapsOut, d.hypr.gapsOut);
+        hyprBlur = asBool(h.blur, d.hypr.blur);
+        hyprBlurSize = Math.max(1, Math.min(20, asInt(h.blurSize, d.hypr.blurSize)));
+        alacrittyBlur = asBool(h.alacrittyBlur, d.hypr.alacrittyBlur);
+        alacrittyBlurStrength = Math.max(0, Math.min(100,
+            asInt(h.alacrittyBlurStrength, d.hypr.alacrittyBlurStrength)));
 
         notifyPosition = ["top-left", "top-right", "bottom-left", "bottom-right"]
             .indexOf(n.position) >= 0 ? n.position : d.notifications.position;
@@ -372,7 +388,11 @@ ShellRoot {
                 borderSize: hyprBorderSize,
                 rounding: hyprRounding,
                 gapsIn: hyprGapsIn,
-                gapsOut: hyprGapsOut
+                gapsOut: hyprGapsOut,
+                blur: hyprBlur,
+                blurSize: hyprBlurSize,
+                alacrittyBlur: alacrittyBlur,
+                alacrittyBlurStrength: alacrittyBlurStrength
             },
             notifications: {
                 position: notifyPosition,
@@ -492,6 +512,7 @@ ShellRoot {
         monitorsFile.reload();
         keybindingsFile.reload();
         rulesFile.reload();
+        alacrittyFile.reload();
 
         let parsed = null;
         try {
@@ -511,6 +532,7 @@ ShellRoot {
         monitorsText = monitorsFile.text() || "";
         keybindingsText = keybindingsFile.text() || "";
         rulesText = rulesFile.text() || "";
+        alacrittyText = alacrittyFile.text() || "";
         parseInput();
         parsePrograms();
         detectMonitors();
@@ -1264,8 +1286,42 @@ ShellRoot {
             + "    },\n"
             + "    decoration = {\n"
             + "        rounding = " + hyprRounding + ",\n"
+            + "        blur = {\n"
+            + "            enabled = " + luaBool(hyprBlur) + ",\n"
+            + "            size = " + hyprBlurSize + ",\n"
+            + "        },\n"
             + "    },\n"
             + "})\n";
+    }
+
+    // Alacritty has no blur of its own: transparency lets Hyprland's blur
+    // show through. Strength 0 keeps the terminal opaque; 100 is the most
+    // transparent (and therefore the most visibly blurred) setting.
+    function alacrittyOpacity() {
+        const strength = Math.max(0, Math.min(100, alacrittyBlurStrength));
+        return alacrittyBlur ? (1 - strength / 200) : 1;
+    }
+
+    function generateAlacritty() {
+        let text = String(alacrittyText || "");
+        if (text.trim().length === 0)
+            text = "[font]\n"
+                + "normal = { family = \"JetBrainsMono Nerd Font\", style = \"Regular\" }\n"
+                + "bold = { family = \"JetBrainsMono Nerd Font\", style = \"Bold\" }\n"
+                + "italic = { family = \"JetBrainsMono Nerd Font\", style = \"Italic\" }\n"
+                + "size = 11.0\n"
+                + "[window]\n";
+
+        const opacity = alacrittyOpacity().toFixed(2);
+        const re = /^([ \t]*opacity[ \t]*=[ \t]*)([^\n]*)$/m;
+        if (re.test(text)) {
+            text = text.replace(re, "$1" + opacity);
+        } else if (/^[ \t]*\[window\][ \t]*$/m.test(text)) {
+            text = text.replace(/^([ \t]*\[window\][ \t]*)$/m, "$1\nopacity = " + opacity);
+        } else {
+            text = text.replace(/\s*$/, "\n\n[window]\nopacity = " + opacity + "\n");
+        }
+        return text;
     }
 
     // Machine-owned files are regenerated in full from the in-memory state.
@@ -1451,10 +1507,11 @@ ShellRoot {
             [hyprDir + "/input.lua", generateInput()],
             [hyprDir + "/programs.lua", generatePrograms()],
             [hyprDir + "/monitors.lua", generateMonitors()],
-            [hyprDir + "/keybindings.lua", generateKeybindings()]
+            [hyprDir + "/keybindings.lua", generateKeybindings()],
+            [home + "/.config/alacritty/alacritty.toml", generateAlacritty()]
         ];
 
-        let script = "";
+        let script = "mkdir -p '" + home + "/.config/alacritty'\n";
         for (let i = 0; i < files.length; i++) {
             const encoded = b64Utf8(files[i][1]);
             script += "printf '%s' '" + encoded + "' | base64 -d > '" + files[i][0] + "'\n";
@@ -1594,6 +1651,14 @@ ShellRoot {
     FileView {
         id: rulesFile
         path: root.hyprDir + "/rules.lua"
+        preload: true
+        blockLoading: true
+        printErrors: false
+    }
+
+    FileView {
+        id: alacrittyFile
+        path: root.home + "/.config/alacritty/alacritty.toml"
         preload: true
         blockLoading: true
         printErrors: false
