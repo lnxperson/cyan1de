@@ -1,0 +1,42 @@
+{
+  "wallpaper": "",
+  "wallpaperMode": "crop",
+  "bar": {
+    "accent": "#7cc7f5",
+    "surface": "#11141b",
+    "pill": "#121722",
+    "pillBorder": "#2b3547",
+    "text": "#cdd6e6",
+    "pillHeight": 34,
+    "pillRadius": 12,
+    "sideMargin": 10,
+    "fontSize": 12,
+    "iconSize": 15,
+    "pillOpacity": 1,
+    "pills": {
+      "left": 0,
+      "center": 0.5,
+      "right": 1
+    }
+  },
+  "hypr": {
+    "border1": "#0292e3",
+    "border2": "#01d6be",
+    "gradient": true,
+    "angle": 45,
+    "inactive": "#0f3246",
+    "borderSize": 1,
+    "rounding": 5,
+    "gapsIn": 5,
+    "gapsOut": 5
+  },
+  "notifications": {
+    "position": "top-right",
+    "timeout": 5000,
+    "maxVisible": 4,
+    "pauseOnHover": true,
+    "persistent": false,
+    "showAppIcon": true,
+    "showAppName": true
+  }
+}

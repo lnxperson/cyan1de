@@ -1,0 +1,22 @@
+singleton Theme 1.0 Theme.qml
+BarPage 1.0 BarPage.qml
+ColorField 1.0 ColorField.qml
+NavItem 1.0 NavItem.qml
+OptionCombo 1.0 OptionCombo.qml
+Segmented 1.0 Segmented.qml
+SettingsButton 1.0 SettingsButton.qml
+SliderField 1.0 SliderField.qml
+WallpaperPage 1.0 WallpaperPage.qml
+TextFieldRow 1.0 TextFieldRow.qml
+ToggleRow 1.0 ToggleRow.qml
+SectionCard 1.0 SectionCard.qml
+AppearancePage 1.0 AppearancePage.qml
+InputPage 1.0 InputPage.qml
+KeybindingsPage 1.0 KeybindingsPage.qml
+KeyCapture 1.0 KeyCapture.qml
+AutostartPage 1.0 AutostartPage.qml
+ProgramsPage 1.0 ProgramsPage.qml
+EnvironmentPage 1.0 EnvironmentPage.qml
+MonitorsPage 1.0 MonitorsPage.qml
+RulesPage 1.0 RulesPage.qml
+NotificationsPage 1.0 NotificationsPage.qml
