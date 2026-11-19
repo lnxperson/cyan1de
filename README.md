@@ -65,4 +65,4 @@ AMD cards don't necessarily require any drivers as they're built in.
 
 ## Power Management
 
-Support for power-profiles-daemon is coming soon although tlp is recommended.
+Power-profiles-daemon is supported. TLP works fine, too.
