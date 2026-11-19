@@ -43,6 +43,7 @@ ShellRoot {
     property int barFontSize: 12
     property int barIconSize: 15
     property real barPillOpacity: 1.0
+    property bool calendarMedia: true
     property real barPillLeft: 0
     property real barPillCenter: 0.5
     property real barPillRight: 1
@@ -58,6 +59,9 @@ ShellRoot {
     property bool notifyPersistent: false
     property bool notifyShowAppIcon: true
     property bool notifyShowAppName: true
+    property bool calendarNotifications: true
+    property bool lowBatteryEnabled: true
+    property int lowBatteryThreshold: 20
 
     // Hyprland look & feel
     property string hyprBorder1: "#0292e3"
@@ -73,6 +77,14 @@ ShellRoot {
     property int hyprBlurSize: 5
     property bool alacrittyBlur: true
     property int alacrittyBlurStrength: 60
+
+    // Idle handling (hypridle.conf is generated on Apply)
+    property bool idleEnabled: true
+    property bool idleDimEnabled: true
+    property int idleDimTimeout: 150
+    property int idleDimLevel: 10
+    property bool idleLockEnabled: true
+    property int idleLockTimeout: 300
 
     // Raw alacritty.toml, kept verbatim so only the opacity line is patched.
     property string alacrittyText: ""
@@ -182,6 +194,7 @@ ShellRoot {
                 fontSize: 12,
                 iconSize: 15,
                 pillOpacity: 1.0,
+                calendarMedia: true,
                 pills: {
                     left: 0,
                     center: 0.5,
@@ -203,6 +216,14 @@ ShellRoot {
                 alacrittyBlur: true,
                 alacrittyBlurStrength: 60
             },
+            idle: {
+                enabled: true,
+                dim: true,
+                dimTimeout: 150,
+                dimLevel: 10,
+                lock: true,
+                lockTimeout: 300
+            },
             notifications: {
                 position: "top-right",
                 timeout: 5000,
@@ -210,7 +231,10 @@ ShellRoot {
                 pauseOnHover: true,
                 persistent: false,
                 showAppIcon: true,
-                showAppName: true
+                showAppName: true,
+                calendarNotifications: true,
+                lowBatteryEnabled: true,
+                lowBatteryThreshold: 20
             }
         };
     }
@@ -292,6 +316,7 @@ ShellRoot {
         const b = (s && s.bar) || ({});
         const p = b.pills || ({});
         const h = (s && s.hypr) || ({});
+        const idle = (s && s.idle) || ({});
         const n = (s && s.notifications) || ({});
 
         wallpaperPath = asText(s && s.wallpaper, d.wallpaper);
@@ -325,6 +350,7 @@ ShellRoot {
         barFontSize = asInt(b.fontSize, d.bar.fontSize);
         barIconSize = asInt(b.iconSize, d.bar.iconSize);
         barPillOpacity = asReal(b.pillOpacity, d.bar.pillOpacity);
+        calendarMedia = asBool(b.calendarMedia, d.bar.calendarMedia);
         barPillLeft = barPillSnapSlot(asFraction(p.left, d.bar.pills.left));
         barPillCenter = barPillSnapSlot(asFraction(p.center, d.bar.pills.center));
         barPillRight = barPillSnapSlot(asFraction(p.right, d.bar.pills.right));
@@ -340,10 +366,21 @@ ShellRoot {
         hyprGapsIn = asInt(h.gapsIn, d.hypr.gapsIn);
         hyprGapsOut = asInt(h.gapsOut, d.hypr.gapsOut);
         hyprBlur = asBool(h.blur, d.hypr.blur);
-        hyprBlurSize = Math.max(1, Math.min(20, asInt(h.blurSize, d.hypr.blurSize)));
+        hyprBlurSize = Math.max(1, Math.min(20,
+            asInt(h.blurSize, d.hypr.blurSize)));
         alacrittyBlur = asBool(h.alacrittyBlur, d.hypr.alacrittyBlur);
         alacrittyBlurStrength = Math.max(0, Math.min(100,
             asInt(h.alacrittyBlurStrength, d.hypr.alacrittyBlurStrength)));
+
+        idleEnabled = asBool(idle.enabled, d.idle.enabled);
+        idleDimEnabled = asBool(idle.dim, d.idle.dim);
+        idleDimTimeout = Math.max(30, Math.min(1800,
+            asInt(idle.dimTimeout, d.idle.dimTimeout)));
+        idleDimLevel = Math.max(1, Math.min(100,
+            asInt(idle.dimLevel, d.idle.dimLevel)));
+        idleLockEnabled = asBool(idle.lock, d.idle.lock);
+        idleLockTimeout = Math.max(60, Math.min(1800,
+            asInt(idle.lockTimeout, d.idle.lockTimeout)));
 
         notifyPosition = ["top-left", "top-right", "bottom-left", "bottom-right"]
             .indexOf(n.position) >= 0 ? n.position : d.notifications.position;
@@ -353,6 +390,10 @@ ShellRoot {
         notifyPersistent = asBool(n.persistent, d.notifications.persistent);
         notifyShowAppIcon = asBool(n.showAppIcon, d.notifications.showAppIcon);
         notifyShowAppName = asBool(n.showAppName, d.notifications.showAppName);
+        calendarNotifications = asBool(n.calendarNotifications, d.notifications.calendarNotifications);
+        lowBatteryEnabled = asBool(n.lowBatteryEnabled, d.notifications.lowBatteryEnabled);
+        lowBatteryThreshold = Math.max(5, Math.min(50,
+            asInt(n.lowBatteryThreshold, d.notifications.lowBatteryThreshold)));
     }
 
     function buildSettings() {
@@ -373,6 +414,7 @@ ShellRoot {
                 fontSize: barFontSize,
                 iconSize: barIconSize,
                 pillOpacity: Math.round(barPillOpacity * 100) / 100,
+                calendarMedia: calendarMedia,
                 pills: {
                     left: Math.round(barPillLeft * 1000) / 1000,
                     center: Math.round(barPillCenter * 1000) / 1000,
@@ -394,6 +436,14 @@ ShellRoot {
                 alacrittyBlur: alacrittyBlur,
                 alacrittyBlurStrength: alacrittyBlurStrength
             },
+            idle: {
+                enabled: idleEnabled,
+                dim: idleDimEnabled,
+                dimTimeout: idleDimTimeout,
+                dimLevel: idleDimLevel,
+                lock: idleLockEnabled,
+                lockTimeout: idleLockTimeout
+            },
             notifications: {
                 position: notifyPosition,
                 timeout: notifyTimeout,
@@ -401,7 +451,10 @@ ShellRoot {
                 pauseOnHover: notifyPauseOnHover,
                 persistent: notifyPersistent,
                 showAppIcon: notifyShowAppIcon,
-                showAppName: notifyShowAppName
+                showAppName: notifyShowAppName,
+                calendarNotifications: calendarNotifications,
+                lowBatteryEnabled: lowBatteryEnabled,
+                lowBatteryThreshold: lowBatteryThreshold
             }
         };
     }
@@ -1245,7 +1298,12 @@ ShellRoot {
     // Generated Lua files
     // ---------------------------------------------------------------------
     function generateAutostart() {
-        const lines = autostart.map(c => "    hl.exec_cmd(\"" + escLua(c) + "\")").join("\n");
+        // hypridle is managed by the idle setting, not by the raw list: filter
+        // any older copy out so toggling never leaves duplicate launches.
+        const commands = autostart.filter(c => String(c).indexOf("hypridle") < 0);
+        if (idleEnabled)
+            commands.push("command -v hypridle >/dev/null 2>&1 && hypridle -c \"$HOME/.config/hypr/hypridle.conf\"");
+        const lines = commands.map(c => "    hl.exec_cmd(\"" + escLua(c) + "\")").join("\n");
         return "--------------------------------------------------------------------------------\n"
             + "-- AUTOSTART & SYSTEM INITIALIZATION\n"
             + "-- Managed by Quickshell Settings - regenerated when you press Apply.\n"
@@ -1253,6 +1311,47 @@ ShellRoot {
             + "hl.on(\"hyprland.start\", function ()\n"
             + lines + "\n"
             + "end)\n";
+    }
+
+    // Idle behaviour lives in ~/.config/hypr/hypridle.conf. DPMS and suspend
+    // keep their existing 330s/900s schedule as a safe follow-up to locking.
+    function generateHypridle() {
+        const head = "general {\n"
+            + "    lock_cmd = ~/.config/quickshell/lockscreen/lock.sh   # Quickshell lockscreen with crash watchdog\n"
+            + "    before_sleep_cmd = loginctl lock-session    # lock before suspend\n"
+            + "    after_sleep_cmd = hyprctl dispatch dpms on  # avoid having to press a key twice to turn on display\n"
+            + "}\n\n";
+        if (!idleEnabled)
+            return head + "# Idle actions are disabled in Settings > Monitors.\n";
+
+        let out = head;
+        if (idleDimEnabled) {
+            out += "# Dim screen after " + idleDimTimeout + "s\n"
+                + "listener {\n"
+                + "    timeout = " + idleDimTimeout + "\n"
+                + "    on-timeout = brightnessctl -s set " + idleDimLevel + "\n"
+                + "    on-resume = brightnessctl -r\n"
+                + "}\n\n";
+        }
+        if (idleLockEnabled) {
+            out += "# Lock screen after " + idleLockTimeout + "s\n"
+                + "listener {\n"
+                + "    timeout = " + idleLockTimeout + "\n"
+                + "    on-timeout = loginctl lock-session\n"
+                + "}\n\n";
+        }
+        out += "# Turn off screen after 5.5 minutes (330s)\n"
+            + "listener {\n"
+            + "    timeout = 330\n"
+            + "    on-timeout = hyprctl dispatch dpms off\n"
+            + "    on-resume = hyprctl dispatch dpms on\n"
+            + "}\n\n"
+            + "# Suspend laptop after 15 minutes (900s)\n"
+            + "listener {\n"
+            + "    timeout = 900\n"
+            + "    on-timeout = systemctl suspend\n"
+            + "}\n";
+        return out;
     }
 
     function generateEnv() {
@@ -1508,15 +1607,24 @@ ShellRoot {
             [hyprDir + "/programs.lua", generatePrograms()],
             [hyprDir + "/monitors.lua", generateMonitors()],
             [hyprDir + "/keybindings.lua", generateKeybindings()],
+            [home + "/.config/hypr/hypridle.conf", generateHypridle()],
             [home + "/.config/alacritty/alacritty.toml", generateAlacritty()]
         ];
 
-        let script = "mkdir -p '" + home + "/.config/alacritty'\n";
+        let script = "mkdir -p '" + home + "/.config/alacritty' '" + home + "/.config/hypr'\n";
         for (let i = 0; i < files.length; i++) {
             const encoded = b64Utf8(files[i][1]);
             script += "printf '%s' '" + encoded + "' | base64 -d > '" + files[i][0] + "'\n";
         }
         script += "hyprctl reload >/dev/null 2>&1\n";
+        // autostart only runs at Hyprland start, so restart hypridle here to
+        // make a freshly applied idle config take effect immediately.
+        script += "if command -v hypridle >/dev/null 2>&1; then\n";
+        script += "  pkill -x hypridle 2>/dev/null || true\n";
+        if (idleEnabled)
+            script += "  nohup hypridle -c '" + home
+                + "/.config/hypr/hypridle.conf' >/dev/null 2>&1 &\n";
+        script += "fi\n";
 
         Quickshell.execDetached(["sh", "-c", script]);
         status = "Applied — Hyprland reloaded";

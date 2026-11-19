@@ -107,6 +107,19 @@ ColumnLayout {
         }
     }
 
+    SectionCard {
+        Layout.fillWidth: true
+        title: "CALENDAR"
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "Media controls"
+            hint: "Show at the bottom of the calendar pop-up"
+            checked: root.app.calendarMedia
+            onToggled: value => { root.app.calendarMedia = value; root.app.queueSave() }
+        }
+    }
+
     // ---- Live preview -------------------------------------------------
     Rectangle {
         id: preview

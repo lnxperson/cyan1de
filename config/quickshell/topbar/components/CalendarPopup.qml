@@ -14,7 +14,7 @@ PopupWindow {
     readonly property int daysInMonth: new Date(viewYear, viewMonthIndex + 1, 0).getDate()
     readonly property int firstDayOffset: (new Date(viewYear, viewMonthIndex, 1).getDay() + 6) % 7
 
-    implicitWidth: 380
+    implicitWidth: Theme.calendarNotifications ? 680 : 380
     implicitHeight: surface.contentHeight
     color: "transparent"
     visible: false
@@ -83,142 +83,166 @@ PopupWindow {
 
         RowLayout {
             Layout.fillWidth: true
+            spacing: 14
 
-            Text {
-                text: Qt.formatDate(popup.viewMonth, "MMMM yyyy")
-                font.family: Theme.mono
-                font.pixelSize: 13
-                font.weight: Font.DemiBold
-                color: Theme.text
-            }
+            ColumnLayout {
+                Layout.alignment: Qt.AlignTop
+                Layout.preferredWidth: 306
+                Layout.maximumWidth: 306
+                spacing: 10
 
-            Item { Layout.fillWidth: true }
-
-            PillButton {
-                label: "Today"
-                onClicked: popup.resetMonth()
-            }
-
-            Item {
-                implicitWidth: 28
-                implicitHeight: 28
-
-                Rectangle {
-                    anchors.fill: parent
-                    radius: 7
-                    color: prevMouse.containsMouse ? Theme.hover : "transparent"
-                }
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "󰅁"
-                    font.family: Theme.font
-                    font.pixelSize: 14
-                    color: Theme.subtext
-                }
-
-                MouseArea {
-                    id: prevMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: popup.shiftMonth(-1)
-                }
-            }
-
-            Item {
-                implicitWidth: 28
-                implicitHeight: 28
-
-                Rectangle {
-                    anchors.fill: parent
-                    radius: 7
-                    color: nextMouse.containsMouse ? Theme.hover : "transparent"
-                }
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "󰅂"
-                    font.family: Theme.font
-                    font.pixelSize: 14
-                    color: Theme.subtext
-                }
-
-                MouseArea {
-                    id: nextMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: popup.shiftMonth(1)
-                }
-            }
-        }
-
-        ColumnLayout {
-            Layout.alignment: Qt.AlignHCenter
-            spacing: 4
-
-            Row {
-                spacing: 2
-
-                Repeater {
-                    model: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
+                RowLayout {
+                    Layout.fillWidth: true
 
                     Text {
-                        required property string modelData
-                        width: 42
-                        horizontalAlignment: Text.AlignHCenter
-                        text: modelData
+                        text: Qt.formatDate(popup.viewMonth, "MMMM yyyy")
                         font.family: Theme.mono
-                        font.pixelSize: 10
+                        font.pixelSize: 13
                         font.weight: Font.DemiBold
-                        color: Theme.dim
+                        color: Theme.text
                     }
-                }
-            }
 
-            Grid {
-                columns: 7
-                spacing: 2
+                    Item { Layout.fillWidth: true }
 
-                Repeater {
-                    model: 42
+                    PillButton {
+                        label: "Today"
+                        onClicked: popup.resetMonth()
+                    }
 
                     Item {
-                        id: dayCell
-                        required property int index
-
-                        readonly property int day: index - popup.firstDayOffset + 1
-                        readonly property bool inMonth: day >= 1 && day <= popup.daysInMonth
-                        readonly property bool isToday: inMonth
-                            && day === clock.date.getDate()
-                            && popup.viewMonthIndex === clock.date.getMonth()
-                            && popup.viewYear === clock.date.getFullYear()
-
-                        width: 42
-                        height: 34
+                        implicitWidth: 28
+                        implicitHeight: 28
 
                         Rectangle {
-                            anchors.centerIn: parent
-                            width: 32
-                            height: 28
+                            anchors.fill: parent
                             radius: 7
-                            color: dayCell.isToday ? Theme.active : "transparent"
-                            border.width: dayCell.isToday ? 1 : 0
-                            border.color: Theme.accent
+                            color: prevMouse.containsMouse ? Theme.hover : "transparent"
                         }
 
                         Text {
                             anchors.centerIn: parent
-                            visible: dayCell.inMonth
-                            text: dayCell.day
+                            text: "󰅁"
+                            font.family: Theme.font
+                            font.pixelSize: 14
+                            color: Theme.subtext
+                        }
+
+                        MouseArea {
+                            id: prevMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: popup.shiftMonth(-1)
+                        }
+                    }
+
+                    Item {
+                        implicitWidth: 28
+                        implicitHeight: 28
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 7
+                            color: nextMouse.containsMouse ? Theme.hover : "transparent"
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "󰅂"
+                            font.family: Theme.font
+                            font.pixelSize: 14
+                            color: Theme.subtext
+                        }
+
+                        MouseArea {
+                            id: nextMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: popup.shiftMonth(1)
+                        }
+                    }
+                }
+
+                Row {
+                    spacing: 2
+
+                    Repeater {
+                        model: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
+
+                        Text {
+                            required property string modelData
+                            width: 42
+                            horizontalAlignment: Text.AlignHCenter
+                            text: modelData
                             font.family: Theme.mono
-                            font.pixelSize: 12
-                            color: dayCell.isToday ? Theme.accent : Theme.text
+                            font.pixelSize: 10
+                            font.weight: Font.DemiBold
+                            color: Theme.dim
+                        }
+                    }
+                }
+
+                Grid {
+                    columns: 7
+                    spacing: 2
+
+                    Repeater {
+                        model: 42
+
+                        Item {
+                            id: dayCell
+                            required property int index
+
+                            readonly property int day: index - popup.firstDayOffset + 1
+                            readonly property bool inMonth: day >= 1 && day <= popup.daysInMonth
+                            readonly property bool isToday: inMonth
+                                && day === clock.date.getDate()
+                                && popup.viewMonthIndex === clock.date.getMonth()
+                                && popup.viewYear === clock.date.getFullYear()
+
+                            width: 42
+                            height: 34
+
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: 32
+                                height: 28
+                                radius: 7
+                                color: dayCell.isToday ? Theme.active : "transparent"
+                                border.width: dayCell.isToday ? 1 : 0
+                                border.color: Theme.accent
+                            }
+
+                            Text {
+                                anchors.centerIn: parent
+                                visible: dayCell.inMonth
+                                text: dayCell.day
+                                font.family: Theme.mono
+                                font.pixelSize: 12
+                                color: dayCell.isToday ? Theme.accent : Theme.text
+                            }
                         }
                     }
                 }
             }
+
+            Rectangle {
+                Layout.preferredWidth: 1
+                Layout.fillHeight: true
+                color: Theme.border
+                visible: Theme.calendarNotifications
+            }
+
+            NotificationHistory {
+                Layout.preferredWidth: 280
+                Layout.alignment: Qt.AlignTop
+                visible: Theme.calendarNotifications
+            }
+        }
+
+        MediaControls {
+            Layout.fillWidth: true
         }
     }
 }

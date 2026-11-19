@@ -375,6 +375,82 @@ ColumnLayout {
         }
     }
 
+    SectionCard {
+        Layout.fillWidth: true
+        title: "IDLE & LOCK"
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            ToggleRow {
+                Layout.fillWidth: true
+                label: "Auto dim and lock"
+                hint: "Generate ~/.config/hypr/hypridle.conf on Apply"
+                checked: app.idleEnabled
+                onToggled: value => { app.idleEnabled = value; app.queueSave() }
+            }
+
+            ToggleRow {
+                Layout.fillWidth: true
+                label: "Dim screen"
+                hint: "Lower brightness when idle"
+                checked: app.idleDimEnabled
+                onToggled: value => { app.idleDimEnabled = value; app.queueSave() }
+            }
+
+            SliderField {
+                Layout.fillWidth: true
+                label: "Dim after"
+                from: 30
+                to: 900
+                stepSize: 30
+                suffix: "s"
+                value: app.idleDimTimeout
+                onMoved: value => { app.idleDimTimeout = Math.round(value); app.queueSave() }
+            }
+
+            SliderField {
+                Layout.fillWidth: true
+                label: "Dim brightness"
+                from: 1
+                to: 50
+                stepSize: 1
+                suffix: "%"
+                value: app.idleDimLevel
+                onMoved: value => { app.idleDimLevel = Math.round(value); app.queueSave() }
+            }
+
+            ToggleRow {
+                Layout.fillWidth: true
+                label: "Lock screen"
+                hint: "Lock the session when idle"
+                checked: app.idleLockEnabled
+                onToggled: value => { app.idleLockEnabled = value; app.queueSave() }
+            }
+
+            SliderField {
+                Layout.fillWidth: true
+                label: "Lock after"
+                from: 60
+                to: 1800
+                stepSize: 30
+                suffix: "s"
+                value: app.idleLockTimeout
+                onMoved: value => { app.idleLockTimeout = Math.round(value); app.queueSave() }
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: "Display-off (330s) and suspend (900s) are kept as power-saving follow-ups. Press Apply layout to rewrite hypridle.conf."
+                font.family: Theme.mono
+                font.pixelSize: 10
+                color: Theme.dim
+                wrapMode: Text.WordWrap
+            }
+        }
+    }
+
     RowLayout {
         Layout.fillWidth: true
         spacing: 10

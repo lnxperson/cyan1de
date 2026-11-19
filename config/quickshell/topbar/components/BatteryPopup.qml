@@ -216,5 +216,64 @@ PopupWindow {
                 elide: Text.ElideRight
             }
         }
+
+        // Only rendered when power-profiles-daemon is installed and active.
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 1
+            color: Theme.border
+            visible: PowerProfileControl.available === true
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 6
+            visible: PowerProfileControl.available === true
+
+            Text {
+                text: "POWER PROFILE"
+                font.family: Theme.mono
+                font.pixelSize: 10
+                font.weight: Font.DemiBold
+                color: Theme.subtext
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+
+                Repeater {
+                    model: PowerProfileControl.profiles
+
+                    delegate: Rectangle {
+                        required property var modelData
+
+                        readonly property bool selected: PowerProfileControl.profile === modelData
+
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 26
+                        radius: 6
+                        color: selected ? Theme.active : Theme.surfaceAlt
+                        border.width: 1
+                        border.color: selected ? Theme.accent : Theme.border
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: PowerProfileControl.labelFor(modelData)
+                            font.family: Theme.mono
+                            font.pixelSize: 9
+                            color: selected ? Theme.accentSoft : Theme.subtext
+                            elide: Text.ElideRight
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: PowerProfileControl.setProfile(modelData)
+                        }
+                    }
+                }
+            }
+        }
     }
 }

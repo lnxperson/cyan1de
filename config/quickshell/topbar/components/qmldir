@@ -1,13 +1,17 @@
 singleton Theme 1.0 Theme.qml
 singleton Brightness 1.0 Brightness.qml
 singleton NightLight 1.0 NightLight.qml
+singleton PowerProfileControl 1.0 PowerProfileControl.qml
 ActionButton 1.0 ActionButton.qml
 Bar 1.0 Bar.qml
 BarButton 1.0 BarButton.qml
+BatteryMonitor 1.0 BatteryMonitor.qml
 BatteryPopup 1.0 BatteryPopup.qml
 BluetoothPopup 1.0 BluetoothPopup.qml
 BrightnessPopup 1.0 BrightnessPopup.qml
 CalendarPopup 1.0 CalendarPopup.qml
+MediaControls 1.0 MediaControls.qml
+NotificationHistory 1.0 NotificationHistory.qml
 NetworkPopup 1.0 NetworkPopup.qml
 PillButton 1.0 PillButton.qml
 PopupSurface 1.0 PopupSurface.qml

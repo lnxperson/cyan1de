@@ -20,6 +20,11 @@ ShellRoot {
 
     property int nextKey: 1
 
+    readonly property string historyPath: Quickshell.env("HOME") + "/.config/quickshell/notification-history.json"
+    readonly property int historyLimit: 40
+    property var history: []
+    property int nextHistoryId: 1
+
     NotificationServer {
         id: server
 
@@ -33,6 +38,78 @@ ShellRoot {
 
     ListModel { id: popupModel }
     readonly property int count: popupModel.count
+
+    function loadHistory(): void {
+        historyFile.reload();
+        let list = [];
+        try {
+            const parsed = JSON.parse(historyFile.text());
+            if (Array.isArray(parsed))
+                list = parsed.slice(0, root.historyLimit);
+        } catch (e) {
+            list = [];
+        }
+
+        // Older history files have no id. Give each entry a stable one and
+        // rewrite the file so per-entry removal works after a daemon restart.
+        let nextId = 1;
+        let migrated = false;
+        for (let i = 0; i < list.length; i++) {
+            const entry = list[i];
+            const id = Number(entry && entry.id);
+            if (typeof id === "number" && isFinite(id)
+                && Math.floor(id) === id && id > 0) {
+                if (id >= nextId)
+                    nextId = id + 1;
+            } else {
+                entry.id = nextId++;
+                migrated = true;
+            }
+        }
+        root.nextHistoryId = nextId;
+        root.history = list;
+        if (migrated)
+            root.writeHistory();
+    }
+
+    function writeHistory(): void {
+        historyWriter.setText(JSON.stringify(root.history, null, 2) + "\n");
+    }
+
+    function clearHistory(): void {
+        root.history = [];
+        root.writeHistory();
+    }
+
+    function removeHistory(id): void {
+        const target = Number(id);
+        const next = root.history.filter(entry => Number(entry && entry.id) !== target);
+        if (next.length === root.history.length)
+            return;
+        root.history = next;
+        root.writeHistory();
+    }
+
+    function recordHistory(notif): void {
+        if (!notif)
+            return;
+        const summary = notif.summary || "";
+        const body = notif.body || "";
+        if (!summary && !body)
+            return;
+
+        const entry = {
+            id: root.nextHistoryId++,
+            time: Math.floor(Date.now() / 1000),
+            appName: notif.appName || "",
+            appIcon: notif.appIcon || "",
+            summary: summary,
+            body: body,
+            urgency: notif.urgency
+        };
+        root.history = [entry].concat(root.history).slice(0, root.historyLimit);
+        root.writeHistory();
+    }
 
     function indexOfKey(key: int): int {
         for (let i = 0; i < popupModel.count; i++) {
@@ -48,6 +125,7 @@ ShellRoot {
 
         // Without this the server discards the notification immediately.
         notif.tracked = true;
+        root.recordHistory(notif);
 
         const key = root.nextKey++;
         popupModel.insert(root.atBottom ? popupModel.count : 0,
@@ -96,10 +174,32 @@ ShellRoot {
             root.closeKey(popupModel.get(0).key, "dismiss");
     }
 
+    Component.onCompleted: root.loadHistory()
+
+    FileView {
+        id: historyFile
+        path: root.historyPath
+        preload: true
+        blockLoading: true
+        printErrors: false
+        onLoadedChanged: if (loaded) root.loadHistory()
+    }
+
+    FileView {
+        id: historyWriter
+        path: root.historyPath
+        blockWrites: false
+        atomicWrites: true
+        printErrors: false
+    }
+
     IpcHandler {
         target: "notifications"
 
         function clear(): void { root.clear() }
+        function historyCount(): int { return root.history.length }
+        function clearHistory(): void { root.clearHistory() }
+        function removeHistory(id: int): void { root.removeHistory(id) }
         function expireAll(): void {
             while (popupModel.count > 0)
                 root.closeKey(popupModel.get(0).key, "expire");

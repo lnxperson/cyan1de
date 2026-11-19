@@ -91,6 +91,43 @@ ColumnLayout {
 
     SectionCard {
         Layout.fillWidth: true
+        title: "LOW BATTERY"
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "Low battery warning"
+            hint: "Notify once per discharge cycle on laptops"
+            checked: root.app.lowBatteryEnabled
+            onToggled: value => { root.app.lowBatteryEnabled = value; root.app.queueSave() }
+        }
+
+        SliderField {
+            Layout.fillWidth: true
+            label: "Warn at"
+            from: 5
+            to: 50
+            stepSize: 1
+            suffix: "%"
+            value: root.app.lowBatteryThreshold
+            onMoved: value => { root.app.lowBatteryThreshold = Math.round(value); root.app.queueSave() }
+        }
+    }
+
+    SectionCard {
+        Layout.fillWidth: true
+        title: "CALENDAR"
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "Notification history"
+            hint: "Show recent notifications beside the calendar"
+            checked: root.app.calendarNotifications
+            onToggled: value => { root.app.calendarNotifications = value; root.app.queueSave() }
+        }
+    }
+
+    SectionCard {
+        Layout.fillWidth: true
         title: "APPEARANCE"
 
         ToggleRow {

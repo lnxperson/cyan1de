@@ -24,6 +24,7 @@
     "fontSize": 12,
     "iconSize": 15,
     "pillOpacity": 1,
+    "calendarMedia": true,
     "pills": {
       "left": 0,
       "center": 0.5,
@@ -52,6 +53,17 @@
     "pauseOnHover": true,
     "persistent": false,
     "showAppIcon": true,
-    "showAppName": true
+    "showAppName": true,
+    "calendarNotifications": true,
+    "lowBatteryEnabled": true,
+    "lowBatteryThreshold": 20
+  },
+  "idle": {
+    "enabled": true,
+    "dim": true,
+    "dimTimeout": 150,
+    "dimLevel": 10,
+    "lock": true,
+    "lockTimeout": 300
   }
 }

@@ -12,6 +12,7 @@ QtObject {
     property var barData: data.bar || ({})
     property var pillData: barData.pills || ({})
     property var hyprData: data.hypr || ({})
+    property var notifyData: data.notifications || ({})
     property string lastText: ""
 
     // Typography
@@ -83,6 +84,10 @@ QtObject {
     readonly property color pillFill: Qt.rgba(pill.r, pill.g, pill.b, pillOpacity)
     readonly property color pillBorder: lightMode ? lightBorder : basePillBorder
     readonly property int barHeight: Math.max(44, pillHeight + 10)
+    readonly property bool calendarMedia: barData.calendarMedia !== undefined ? barData.calendarMedia : true
+    readonly property bool calendarNotifications: notifyData.calendarNotifications !== undefined ? notifyData.calendarNotifications : true
+    readonly property bool lowBatteryEnabled: notifyData.lowBatteryEnabled !== undefined ? notifyData.lowBatteryEnabled : true
+    readonly property int lowBatteryThreshold: notifyData.lowBatteryThreshold !== undefined ? notifyData.lowBatteryThreshold : 20
 
     // Pill positions, stored as fractions of the available bar width.
     readonly property real pillLeft: pillData.left !== undefined ? pillData.left : 0
