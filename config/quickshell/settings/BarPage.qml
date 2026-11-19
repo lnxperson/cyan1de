@@ -581,6 +581,85 @@ ColumnLayout {
 
     SectionCard {
         Layout.fillWidth: true
+        title: "ANIMATIONS"
+        subtitle: "Built-in Hyprland styles only. Speed scales every animation. Press Apply to write hyprland/animations.lua."
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            Text {
+                Layout.preferredWidth: 150
+                text: "Window open"
+                font.family: Theme.mono
+                font.pixelSize: 11
+                color: Theme.subtext
+            }
+
+            OptionCombo {
+                options: root.app.windowAnimStyles
+                selected: root.app.animWindowOpen
+                onPicked: value => root.app.animWindowOpen = value
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            Text {
+                Layout.preferredWidth: 150
+                text: "Window close"
+                font.family: Theme.mono
+                font.pixelSize: 11
+                color: Theme.subtext
+            }
+
+            OptionCombo {
+                options: root.app.windowAnimStyles
+                selected: root.app.animWindowClose
+                onPicked: value => root.app.animWindowClose = value
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            Text {
+                Layout.preferredWidth: 150
+                text: "Workspace switch"
+                font.family: Theme.mono
+                font.pixelSize: 11
+                color: Theme.subtext
+            }
+
+            OptionCombo {
+                options: root.app.workspaceAnimStyles
+                selected: root.app.animWorkspace
+                onPicked: value => root.app.animWorkspace = value
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
+        SliderField {
+            Layout.fillWidth: true
+            label: "Animation speed"
+            from: 1
+            to: 20
+            value: root.app.animSpeed
+            suffix: ""
+            onMoved: value => root.app.animSpeed = Math.round(value)
+        }
+    }
+
+    SectionCard {
+        Layout.fillWidth: true
         title: "BLUR"
 
         ToggleRow {
@@ -637,7 +716,7 @@ ColumnLayout {
         Item { Layout.fillWidth: true }
 
         Text {
-            text: "hyprland/ui_overrides.lua"
+            text: "hyprland/ui_overrides.lua + animations.lua"
             font.family: Theme.mono
             font.pixelSize: 10
             color: Theme.dim

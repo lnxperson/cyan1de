@@ -44,7 +44,11 @@
     "blur": true,
     "blurSize": 5,
     "alacrittyBlur": true,
-    "alacrittyBlurStrength": 60
+    "alacrittyBlurStrength": 60,
+    "animWindowOpen": "popin 87%",
+    "animWindowClose": "popin 87%",
+    "animWorkspace": "slide",
+    "animSpeed": 10
   },
   "notifications": {
     "position": "top-right",

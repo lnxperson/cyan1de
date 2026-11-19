@@ -78,6 +78,25 @@ ShellRoot {
     property bool alacrittyBlur: true
     property int alacrittyBlurStrength: 60
 
+    // Animations (hyprland/animations.lua is generated on Apply)
+    property string animWindowOpen: "popin 87%"
+    property string animWindowClose: "popin 87%"
+    property string animWorkspace: "slide"
+    property int animSpeed: 10
+    // Fixed lists from the Hyprland animation tree - no free-text styles.
+    readonly property var windowAnimStyles: [
+        "popin 20%", "popin 40%", "popin 60%", "popin 70%", "popin 80%",
+        "popin 87%", "popin 90%", "popin",
+        "slide", "slide left", "slide right", "slide top", "slide bottom",
+        "gnomed", "gnome"
+    ]
+    readonly property var workspaceAnimStyles: [
+        "slide", "slide 20%", "slide 50%", "slidevert", "slidevert 20%",
+        "slide top", "slide bottom", "slide left", "slide right",
+        "fade",
+        "slidefade", "slidefade 20%", "slidefadevert", "slidefadevert 20%"
+    ]
+
     // Idle handling (hypridle.conf is generated on Apply)
     property bool idleEnabled: true
     property bool idleDimEnabled: true
@@ -214,7 +233,11 @@ ShellRoot {
                 blur: true,
                 blurSize: 5,
                 alacrittyBlur: true,
-                alacrittyBlurStrength: 60
+                alacrittyBlurStrength: 60,
+                animWindowOpen: "popin 87%",
+                animWindowClose: "popin 87%",
+                animWorkspace: "slide",
+                animSpeed: 10
             },
             idle: {
                 enabled: true,
@@ -372,6 +395,15 @@ ShellRoot {
         alacrittyBlurStrength = Math.max(0, Math.min(100,
             asInt(h.alacrittyBlurStrength, d.hypr.alacrittyBlurStrength)));
 
+        animWindowOpen = windowAnimStyles.indexOf(h.animWindowOpen) >= 0
+            ? h.animWindowOpen : d.hypr.animWindowOpen;
+        animWindowClose = windowAnimStyles.indexOf(h.animWindowClose) >= 0
+            ? h.animWindowClose : d.hypr.animWindowClose;
+        animWorkspace = workspaceAnimStyles.indexOf(h.animWorkspace) >= 0
+            ? h.animWorkspace : d.hypr.animWorkspace;
+        animSpeed = Math.max(1, Math.min(20,
+            asInt(h.animSpeed, d.hypr.animSpeed)));
+
         idleEnabled = asBool(idle.enabled, d.idle.enabled);
         idleDimEnabled = asBool(idle.dim, d.idle.dim);
         idleDimTimeout = Math.max(30, Math.min(1800,
@@ -434,7 +466,11 @@ ShellRoot {
                 blur: hyprBlur,
                 blurSize: hyprBlurSize,
                 alacrittyBlur: alacrittyBlur,
-                alacrittyBlurStrength: alacrittyBlurStrength
+                alacrittyBlurStrength: alacrittyBlurStrength,
+                animWindowOpen: animWindowOpen,
+                animWindowClose: animWindowClose,
+                animWorkspace: animWorkspace,
+                animSpeed: animSpeed
             },
             idle: {
                 enabled: idleEnabled,
@@ -1393,6 +1429,57 @@ ShellRoot {
             + "})\n";
     }
 
+    // The whole animation tree is generated here so the speed slider scales
+    // every leaf. Base speeds are the tuned values of the original tree
+    // (authored around global speed 10); relative feel is preserved.
+    function generateAnimations() {
+        const spd = base => (Math.round(base * animSpeed / 10 * 100) / 100).toString();
+        const openStyle = "style = \"" + escLua(animWindowOpen) + "\"";
+        const closeStyle = "style = \"" + escLua(animWindowClose) + "\"";
+        const wsStyle = "style = \"" + escLua(animWorkspace) + "\"";
+        const leaves = [
+            ["global",        10,    "bezier = \"default\"", ""],
+            ["border",        5.39,  "bezier = \"easeOutQuint\"", ""],
+            ["windows",       4.79,  "spring = \"easy\"", ""],
+            ["windowsIn",     4.1,   "spring = \"easy\"", openStyle],
+            ["windowsOut",    1.49,  "bezier = \"linear\"", closeStyle],
+            ["fadeIn",        1.73,  "bezier = \"almostLinear\"", ""],
+            ["fadeOut",       1.46,  "bezier = \"almostLinear\"", ""],
+            ["fade",          3.03,  "bezier = \"quick\"", ""],
+            ["layers",        3.81,  "bezier = \"easeOutQuint\"", ""],
+            ["layersIn",      4,     "bezier = \"easeOutQuint\"", "style = \"fade\""],
+            ["layersOut",     1.5,   "bezier = \"linear\"", "style = \"fade\""],
+            ["fadeLayersIn",  1.79,  "bezier = \"almostLinear\"", ""],
+            ["fadeLayersOut", 1.39,  "bezier = \"almostLinear\"", ""],
+            ["workspaces",    6,     "bezier = \"easeOutQuint\"", wsStyle],
+            ["workspacesIn",  6,     "bezier = \"easeOutQuint\"", wsStyle],
+            ["workspacesOut", 6,     "bezier = \"easeOutQuint\"", wsStyle],
+            ["zoomFactor",    7,     "bezier = \"quick\"", ""]
+        ];
+
+        let out = "--------------------------------------------------------------------------------\n"
+            + "-- ANIMATIONS\n"
+            + "-- Managed by Quickshell Settings - regenerated when you press Apply.\n"
+            + "-- Styles and speed: Settings -> Appearance -> Animations.\n"
+            + "--------------------------------------------------------------------------------\n\n"
+            + "-- Curves used by the animation leaves below\n"
+            + "hl.curve(\"easeOutQuint\",   { type = \"bezier\", points = { {0.23, 1}, {0.32, 1} } })\n"
+            + "hl.curve(\"easeInOutCubic\", { type = \"bezier\", points = { {0.65, 0.05}, {0.36, 1} } })\n"
+            + "hl.curve(\"linear\",         { type = \"bezier\", points = { {0, 0}, {1, 1} } })\n"
+            + "hl.curve(\"almostLinear\",   { type = \"bezier\", points = { {0.5, 0.5}, {0.75, 1} } })\n"
+            + "hl.curve(\"quick\",          { type = \"bezier\", points = { {0.15, 0}, {0.1, 1} } })\n"
+            + "hl.curve(\"easy\",           { type = \"spring\", mass = 1, stiffness = 238.1191, damping = 24.21279333 })\n\n";
+
+        for (let i = 0; i < leaves.length; i++) {
+            const leaf = leaves[i];
+            out += "hl.animation({ leaf = \"" + leaf[0] + "\", enabled = true, speed = " + spd(leaf[1])
+                + (leaf[2] ? ", " + leaf[2] : "")
+                + (leaf[3] ? ", " + leaf[3] : "")
+                + " })\n";
+        }
+        return out;
+    }
+
     // Alacritty has no blur of its own: transparency lets Hyprland's blur
     // show through. Strength 0 keeps the terminal opaque; 100 is the most
     // transparent (and therefore the most visibly blurred) setting.
@@ -1603,6 +1690,7 @@ ShellRoot {
             [hyprDir + "/autostart.lua", generateAutostart()],
             [hyprDir + "/env.lua", generateEnv()],
             [hyprDir + "/ui_overrides.lua", generateManaged()],
+            [hyprDir + "/animations.lua", generateAnimations()],
             [hyprDir + "/input.lua", generateInput()],
             [hyprDir + "/programs.lua", generatePrograms()],
             [hyprDir + "/monitors.lua", generateMonitors()],
