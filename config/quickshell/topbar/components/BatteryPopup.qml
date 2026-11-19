@@ -217,7 +217,7 @@ PopupWindow {
             }
         }
 
-        // Only rendered when power-profiles-daemon is installed and active.
+        // Only show profile controls when power-profiles-daemon actually answers.
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 1
@@ -243,7 +243,7 @@ PopupWindow {
                 spacing: 6
 
                 Repeater {
-                    model: PowerProfileControl.profiles
+                    model: PowerProfileControl.profileOptions
 
                     delegate: Rectangle {
                         required property var modelData
@@ -273,6 +273,15 @@ PopupWindow {
                         }
                     }
                 }
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: PowerProfileControl.statusHint
+                font.family: Theme.mono
+                font.pixelSize: 9
+                color: Theme.dim
+                wrapMode: Text.WordWrap
             }
         }
     }
