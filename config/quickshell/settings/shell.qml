@@ -82,20 +82,66 @@ ShellRoot {
     property string animWindowOpen: "popin 87%"
     property string animWindowClose: "popin 87%"
     property string animWorkspace: "slide"
+    property string animLayer: "fade"
+    property string animOpenCurve: "easy"
+    property string animCloseCurve: "linear"
     property int animSpeed: 10
-    // Fixed lists from the Hyprland animation tree - no free-text styles.
+    // Curated from the Hyprland 0.57.2 animation tree: one entry per distinct
+    // animation (no duplicated popin scales or gnome/gnomed aliases). Values
+    // stay canonical so generated animations.lua is unchanged; labels are for UI.
     readonly property var windowAnimStyles: [
-        "popin 20%", "popin 40%", "popin 60%", "popin 70%", "popin 80%",
-        "popin 87%", "popin 90%", "popin",
-        "slide", "slide left", "slide right", "slide top", "slide bottom",
-        "gnomed", "gnome"
+        "popin 87%", "gnomed",
+        "slide", "slide top", "slide bottom", "slide left", "slide right"
     ]
     readonly property var workspaceAnimStyles: [
-        "slide", "slide 20%", "slide 50%", "slidevert", "slidevert 20%",
-        "slide top", "slide bottom", "slide left", "slide right",
-        "fade",
-        "slidefade", "slidefade 20%", "slidefadevert", "slidefadevert 20%"
+        "fade", "slidevert", "slidefadevert",
+        "slide", "slide top", "slide bottom", "slide left", "slide right",
+        "slidefade", "slidefade top", "slidefade bottom",
+        "slidefade left", "slidefade right"
     ]
+    readonly property var layerAnimStyles: [
+        "fade", "popin 87%",
+        "slide", "slide top", "slide bottom", "slide left", "slide right"
+    ]
+    // Named easing curves already declared in animations.lua - no free text.
+    readonly property var animCurves: [
+        "easeOutQuint", "easeInOutCubic", "almostLinear", "quick", "linear", "easy"
+    ]
+    readonly property var animCurveLabels: ({
+        "easeOutQuint": "Smooth Out",
+        "easeInOutCubic": "Smooth In-Out",
+        "almostLinear": "Almost Linear",
+        "quick": "Snappy",
+        "linear": "Linear",
+        "easy": "Springy"
+    })
+    readonly property var animCurveKinds: ({
+        "easeOutQuint": "bezier", "easeInOutCubic": "bezier",
+        "almostLinear": "bezier", "quick": "bezier", "linear": "bezier",
+        "easy": "spring"
+    })
+
+    function animCurveExpr(name) {
+        const kind = animCurveKinds[name] === "spring" ? "spring" : "bezier";
+        return kind + " = \"" + name + "\"";
+    }
+    readonly property var animStyleLabels: ({
+        "popin 87%": "Pop In",
+        "gnomed": "Center Expand",
+        "slide": "Slide In",
+        "slide top": "Slide In from Top",
+        "slide bottom": "Slide In from Bottom",
+        "slide left": "Slide In from Left",
+        "slide right": "Slide In from Right",
+        "fade": "Fade",
+        "slidevert": "Vertical Slide",
+        "slidefadevert": "Vertical Slide + Fade",
+        "slidefade": "Slide + Fade",
+        "slidefade top": "Slide + Fade from Top",
+        "slidefade bottom": "Slide + Fade from Bottom",
+        "slidefade left": "Slide + Fade from Left",
+        "slidefade right": "Slide + Fade from Right"
+    })
 
     // Idle handling (hypridle.conf is generated on Apply)
     property bool idleEnabled: true
@@ -237,6 +283,9 @@ ShellRoot {
                 animWindowOpen: "popin 87%",
                 animWindowClose: "popin 87%",
                 animWorkspace: "slide",
+                animLayer: "fade",
+                animOpenCurve: "easy",
+                animCloseCurve: "linear",
                 animSpeed: 10
             },
             idle: {
@@ -401,6 +450,12 @@ ShellRoot {
             ? h.animWindowClose : d.hypr.animWindowClose;
         animWorkspace = workspaceAnimStyles.indexOf(h.animWorkspace) >= 0
             ? h.animWorkspace : d.hypr.animWorkspace;
+        animLayer = layerAnimStyles.indexOf(h.animLayer) >= 0
+            ? h.animLayer : d.hypr.animLayer;
+        animOpenCurve = animCurves.indexOf(h.animOpenCurve) >= 0
+            ? h.animOpenCurve : d.hypr.animOpenCurve;
+        animCloseCurve = animCurves.indexOf(h.animCloseCurve) >= 0
+            ? h.animCloseCurve : d.hypr.animCloseCurve;
         animSpeed = Math.max(1, Math.min(20,
             asInt(h.animSpeed, d.hypr.animSpeed)));
 
@@ -470,6 +525,9 @@ ShellRoot {
                 animWindowOpen: animWindowOpen,
                 animWindowClose: animWindowClose,
                 animWorkspace: animWorkspace,
+                animLayer: animLayer,
+                animOpenCurve: animOpenCurve,
+                animCloseCurve: animCloseCurve,
                 animSpeed: animSpeed
             },
             idle: {
@@ -1437,18 +1495,21 @@ ShellRoot {
         const openStyle = "style = \"" + escLua(animWindowOpen) + "\"";
         const closeStyle = "style = \"" + escLua(animWindowClose) + "\"";
         const wsStyle = "style = \"" + escLua(animWorkspace) + "\"";
+        const layerStyle = "style = \"" + escLua(animLayer) + "\"";
+        const openCurve = animCurveExpr(animOpenCurve);
+        const closeCurve = animCurveExpr(animCloseCurve);
         const leaves = [
             ["global",        10,    "bezier = \"default\"", ""],
             ["border",        5.39,  "bezier = \"easeOutQuint\"", ""],
             ["windows",       4.79,  "spring = \"easy\"", ""],
-            ["windowsIn",     4.1,   "spring = \"easy\"", openStyle],
-            ["windowsOut",    1.49,  "bezier = \"linear\"", closeStyle],
+            ["windowsIn",     4.1,   openCurve, openStyle],
+            ["windowsOut",    1.49,  closeCurve, closeStyle],
             ["fadeIn",        1.73,  "bezier = \"almostLinear\"", ""],
             ["fadeOut",       1.46,  "bezier = \"almostLinear\"", ""],
             ["fade",          3.03,  "bezier = \"quick\"", ""],
             ["layers",        3.81,  "bezier = \"easeOutQuint\"", ""],
-            ["layersIn",      4,     "bezier = \"easeOutQuint\"", "style = \"fade\""],
-            ["layersOut",     1.5,   "bezier = \"linear\"", "style = \"fade\""],
+            ["layersIn",      4,     "bezier = \"easeOutQuint\"", layerStyle],
+            ["layersOut",     1.5,   "bezier = \"linear\"", layerStyle],
             ["fadeLayersIn",  1.79,  "bezier = \"almostLinear\"", ""],
             ["fadeLayersOut", 1.39,  "bezier = \"almostLinear\"", ""],
             ["workspaces",    6,     "bezier = \"easeOutQuint\"", wsStyle],

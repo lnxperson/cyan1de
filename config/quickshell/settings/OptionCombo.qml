@@ -7,7 +7,13 @@ ComboBox {
 
     property var options: []
     property string selected: ""
+    // Optional canonical-value -> display-name map (used by animation styles).
+    property var labels: ({})
     signal picked(string value)
+
+    function labelFor(value) {
+        return root.labels[value] || value;
+    }
 
     model: root.options
     currentIndex: Math.max(0, root.options.indexOf(root.selected))
@@ -19,7 +25,7 @@ ComboBox {
     }
 
     implicitHeight: 28
-    implicitWidth: 130
+    implicitWidth: 220
 
     background: Rectangle {
         radius: 6
@@ -29,7 +35,7 @@ ComboBox {
     }
 
     contentItem: Text {
-        text: root.displayText
+        text: root.labelFor(root.currentText)
         font.family: Theme.mono
         font.pixelSize: 11
         color: Theme.text
@@ -67,7 +73,7 @@ ComboBox {
                 highlighted: root.currentIndex === index
 
                 contentItem: Text {
-                    text: modelData
+                    text: root.labelFor(modelData)
                     font.family: Theme.mono
                     font.pixelSize: 11
                     color: parent.highlighted ? Theme.accentSoft : Theme.text

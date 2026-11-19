@@ -48,6 +48,9 @@
     "animWindowOpen": "popin 87%",
     "animWindowClose": "popin 87%",
     "animWorkspace": "slide",
+    "animLayer": "fade",
+    "animOpenCurve": "easy",
+    "animCloseCurve": "linear",
     "animSpeed": 10
   },
   "notifications": {

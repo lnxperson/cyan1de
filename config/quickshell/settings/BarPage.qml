@@ -582,7 +582,7 @@ ColumnLayout {
     SectionCard {
         Layout.fillWidth: true
         title: "ANIMATIONS"
-        subtitle: "Built-in Hyprland styles only. Speed scales every animation. Press Apply to write hyprland/animations.lua."
+        subtitle: "Built-in Hyprland styles and curves only. Speed scales every animation. Press Apply to write hyprland/animations.lua."
 
         RowLayout {
             Layout.fillWidth: true
@@ -598,6 +598,7 @@ ColumnLayout {
 
             OptionCombo {
                 options: root.app.windowAnimStyles
+                labels: root.app.animStyleLabels
                 selected: root.app.animWindowOpen
                 onPicked: value => root.app.animWindowOpen = value
             }
@@ -619,6 +620,7 @@ ColumnLayout {
 
             OptionCombo {
                 options: root.app.windowAnimStyles
+                labels: root.app.animStyleLabels
                 selected: root.app.animWindowClose
                 onPicked: value => root.app.animWindowClose = value
             }
@@ -640,8 +642,75 @@ ColumnLayout {
 
             OptionCombo {
                 options: root.app.workspaceAnimStyles
+                labels: root.app.animStyleLabels
                 selected: root.app.animWorkspace
                 onPicked: value => root.app.animWorkspace = value
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            Text {
+                Layout.preferredWidth: 150
+                text: "Layer / popup"
+                font.family: Theme.mono
+                font.pixelSize: 11
+                color: Theme.subtext
+            }
+
+            OptionCombo {
+                options: root.app.layerAnimStyles
+                labels: root.app.animStyleLabels
+                selected: root.app.animLayer
+                onPicked: value => root.app.animLayer = value
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            Text {
+                Layout.preferredWidth: 150
+                text: "Open easing"
+                font.family: Theme.mono
+                font.pixelSize: 11
+                color: Theme.subtext
+            }
+
+            OptionCombo {
+                options: root.app.animCurves
+                labels: root.app.animCurveLabels
+                selected: root.app.animOpenCurve
+                onPicked: value => root.app.animOpenCurve = value
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            Text {
+                Layout.preferredWidth: 150
+                text: "Close easing"
+                font.family: Theme.mono
+                font.pixelSize: 11
+                color: Theme.subtext
+            }
+
+            OptionCombo {
+                options: root.app.animCurves
+                labels: root.app.animCurveLabels
+                selected: root.app.animCloseCurve
+                onPicked: value => root.app.animCloseCurve = value
             }
 
             Item { Layout.fillWidth: true }
