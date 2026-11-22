@@ -4,10 +4,6 @@ A clean, dark, portable **Hyprland + Quickshell** desktop configuration for Arch
 
 The shipped defaults use JetBrainsMono Nerd Font, a dark surface palette, and a blue-to-teal window-border gradient. Quickshell surfaces are opaque for crisp text; blur is limited to Hyprland windows and Alacritty.
 
-![cyan1de default desktop showcase](demopics/default_app_showcase.png)
-
-*Default desktop with the shipped panel and applications.*
-
 ---
 
 ## Highlights
@@ -50,9 +46,10 @@ You can decline package installation and install them yourself.
 
 ## Installation
 
-Download or clone this folder, then run the installer:
+Simply run this command in your terminal:
 
 ```bash
+git clone https://github.com/lnxperson/cyan1de
 cd cyan1de
 chmod +x install.sh
 ./install.sh
