@@ -1,68 +1,295 @@
 # cyan1de
-Very simple and straightforward dotfiles for Hyprland.
 
-## Prerequisites
+A clean, dark, portable **Hyprland + Quickshell** desktop configuration for Arch-based systems. It ships with floating pill panels, a full graphical settings app, a launcher, emoji picker, notification history, OSD, lockscreen, and sensible default applications.
 
-* You must be on Arch Linux or on an Arch based distribution (e.g. CachyOS, Manjaro, EndeavourOS)
-* You must have git installed
+The shipped defaults use JetBrainsMono Nerd Font, a dark surface palette, and a blue-to-teal window-border gradient. Quickshell surfaces are opaque for crisp text; blur is limited to Hyprland windows and Alacritty.
 
-## How to install
+![cyan1de default desktop showcase](demopics/default_app_showcase.png)
 
-1. **Run** the following commands:
+*Default desktop with the shipped panel and applications.*
+
+---
+
+## Highlights
+
+- Floating **pills**, continuous **unified**, or edge-reveal **island** panel modes
+- Panel on **top / bottom / left / right**, on **all displays** or one selected monitor
+- Ten workspaces, scratchpad, floating-window controls, and per-monitor fullscreen bar hiding
+- Centered clock, system tray, Bluetooth, network, volume, brightness, battery, and power controls
+- Calendar popup with media controls and notification history
+- Notification banners with hover pause, history, low-battery warnings, and configurable placement
+- App launcher with application, file, and web-search actions
+- Emoji picker with search and clipboard paste
+- On-screen display for volume, brightness, keyboard brightness, and night light
+- Lockscreen with a crash watchdog
+- Graphical settings app that rewrites the managed Hyprland Lua files
+- No Quickshell blur layers; Hyprland blur and Alacritty blur remain configurable
+
+---
+
+## Requirements
+
+This is designed for **Arch Linux** or a derivative because `install.sh` installs packages with `pacman`.
+
+The installer handles packages such as:
+
+- `hyprland`, `quickshell`, `alacritty`
+- `nautilus`, `firefox`, `gnome-text-editor`, `loupe`, `papers`
+- `xdg-desktop-portal-hyprland`
+- `brightnessctl`, `ddcutil`, `hyprshot`, `hyprsunset`, `hypridle`
+- `playerctl`, `power-profiles-daemon`, `fprintd`
+- `bluez`, `bluez-utils`, `networkmanager`
+- `pipewire`, `wireplumber`
+- `qt6ct`, `adw-gtk-theme`
+- `ttf-jetbrains-mono-nerd`, `noto-fonts-emoji`
+- `python`, `xdg-utils`, `ripgrep`, `wl-clipboard`
+
+You can decline package installation and install them yourself.
+
+---
+
+## Installation
+
+Download or clone this folder, then run the installer:
 
 ```bash
-git clone https://github.com/lnxperson/cyan1de
 cd cyan1de
 chmod +x install.sh
 ./install.sh
 ```
 
-2. **Follow** the instructions
-3. Select **Hyprland** in your login screen
+The installer:
 
-## What packages are installed?
+1. Backs up existing `~/.config/hypr` and `~/.config/quickshell` directories with a timestamp.
+2. Optionally installs the required packages with `pacman`.
+3. Sets default apps only when their desktop files are present.
+4. Best-effort enables `fprintd.service`, `bluetooth.service`, and `power-profiles-daemon.service`.
+5. Copies `config/hypr` and `config/quickshell` into `~/.config`.
+6. Makes all shipped Quickshell helper scripts executable.
 
-The installer may install the following packages:
+After installation, reload Hyprland or log out and back in.
 
-* hyprland
-* quickshell
-* alacritty
-* nautilus
-* firefox
-* gnome-text-editor
-* loupe
-* papers
-* xdg-desktop-portal-hyprland
-* brightnessctl
-* ddcutil
-* hyprshot
-* playerctl
-* fprintd
-* bluez
-* bluez-utils
-* networkmanager
-* pipewire
-* wireplumber
-* qt6ct
-* adw-gtk-theme
-* ttf-jetbrains-mono-nerd
-* python
-* xdg-utils
+To remove the installed config directories later, run `./install.sh` and choose **Remove**. This does not uninstall packages.
 
-## How to use
+---
 
-Upon starting Hyprland, you will be greeted by the welcome panel. Here you can see all of the core keybindings. By going into the settings panel you can customize a bunch of settings. These settings include top panel, wallpaper, appearance, input, keybindings, autostart, default programs, environment variables, monitors, window rules and notifications.
+## Default applications
 
-*Note: The lock screen is set to autostart by default. You can disable this by going to "Settings > Autostart > Remove line "~/.config/quickshell/lockscreen/lock.sh".*
+The installer sets these defaults when available:
 
-## Compatibility
+| Type | Application |
+| --- | --- |
+| File manager | Nautilus |
+| Text editor | GNOME Text Editor |
+| Image viewer | Loupe |
+| PDF viewer | Papers |
+| Browser | Firefox |
 
-Hyprland works flawlessly on both NVIDIA and AMD graphics cards. NVIDIA cards may require the nvidia-open driver. You can install this by running
-```bash
-sudo pacman -S nvidia-open
+![Default applications showcase](demopics/default_app_showcase.png)
+
+*The default applications and desktop layout are selected to work together out of the box.*
+
+---
+
+## Top bar
+
+The default panel is a floating pill layout with the app menu and workspaces on the left, the clock centered, and system controls on the right. Open a control to reveal its popup; the active control gets a sliding highlight.
+
+![Top bar action section](demopics/action_section.png)
+
+*The action section with quick system controls and popups.*
+
+### Panel modes
+
+Change this in **Settings → Appearance → Panel → Layout**:
+
+| Mode | Behavior |
+| --- | --- |
+| `pills` | Separate floating pills for each group — default |
+| `unified` | One continuous panel |
+| `island` | Compact panel that reveals near the selected screen edge |
+
+The panel can sit on any edge and can follow all monitors or a single display.
+
+The bar hides automatically on a monitor when that monitor’s active workspace has a fullscreen window, so fullscreen video is not covered. Other monitors keep their bars.
+
+---
+
+## App launcher
+
+Press **Super + Space** to open the launcher. It supports application search, file search, and web queries. Results can be launched directly or opened with the configured terminal and helper apps.
+
+![Application launcher](demopics/app_launcher.png)
+
+*Application launcher with search and actions.*
+
+---
+
+## Calendar and notifications
+
+Click the clock to open the calendar. The popup can include media controls and notification history, and its width is configurable in Settings.
+
+Notifications support:
+
+- top or bottom and left or right placement
+- bubble duration and maximum visible count
+- pause on hover
+- optional persistent popups
+- app icon and app name
+- low-battery warnings
+- notification history inside the calendar
+
+![Calendar popup with notification history](demopics/calendar_pop_up.png)
+
+*Calendar popup with notification history.*
+
+---
+
+## Settings app
+
+Press **Super + comma** to open the settings app. It includes pages for:
+
+- Appearance — wallpaper, panel, colors, cursor, effects, and window styling
+- Input — keyboard, pointer, touchpad, and gestures
+- Keybindings — shortcuts and window actions
+- Autostart — commands launched with Hyprland
+- Programs — terminal, browser, file manager, and other defaults
+- Environment — variables exported to applications
+- Monitors — arrangement, scale, rotation, idle dimming, and locking
+- Rules — window rules and per-app overrides
+- Notifications — banners, history, and low-battery behavior
+
+![Settings app](demopics/settings_app.png)
+
+*The settings app home screen.*
+
+![Easy-to-use settings](demopics/easy_to_use_settings.png)
+
+*Grouped controls make appearance and behavior changes straightforward.*
+
+### How settings are written
+
+Settings live in `~/.config/quickshell/settings.json` for Quickshell and in Hyprland Lua files for compositor behavior.
+
+Files managed by the settings app are rewritten when you press **Apply**:
+
+- `input.lua`
+- `programs.lua`
+- `monitors.lua`
+- `autostart.lua`
+- `env.lua`
+- `ui_overrides.lua`
+- `animations.lua`
+- `keybindings.lua`
+
+Hand-edited files that Settings does not rewrite:
+
+- `look_and_feel.lua`
+- `permissions.lua`
+- `rules.lua`
+
+---
+
+## Monitor configuration
+
+The **Monitors** page can arrange displays, set scale and rotation, enable or disable outputs, and configure idle dimming and automatic lock timing.
+
+![Monitor settings](demopics/monitor_settings.png)
+
+*Monitor arrangement and display settings.*
+
+---
+
+## Emoji picker
+
+Press **Super + period** to open the emoji picker. Search results can be copied to the clipboard or pasted into the focused application.
+
+![Emoji picker](demopics/emoji_picker.png)
+
+*Searchable emoji picker.*
+
+---
+
+## Window management
+
+The default setup includes ten workspaces, a scratchpad, dwindle tiling, floating toggles, pseudo-tiling, split-direction toggling, and configurable window borders with a blue-to-teal gradient.
+
+![Window management](demopics/window_management.png)
+
+*Workspaces, borders, gaps, and window layout in use.*
+
+---
+
+## Default keybindings
+
+`SUPER` is the main modifier.
+
+| Shortcut | Action |
+| --- | --- |
+| `Super + Return` | Open terminal |
+| `Super + Q` | Close window |
+| `Super + E` | Open file manager |
+| `Super + V` | Toggle floating state |
+| `Super + Space` | Open app launcher |
+| `Super + P` | Pseudo-tile window |
+| `Super + J` | Toggle split direction |
+| `Super + W` | Open browser |
+| `Super + L` | Lock screen |
+| `Super + comma` | Open settings |
+| `Super + period` | Open emoji picker |
+| `Super + Ctrl + P` | Toggle performance mode |
+| `Super + 1` … `Super + 0` | Focus workspace 1–10 |
+| `Super + Shift + 1` … `Shift + 0` | Move window to workspace 1–10 |
+| `Super + F` | Toggle scratchpad |
+| `Super + Shift + F` | Move window to scratchpad |
+| `Super + Arrow keys` | Focus neighboring window |
+| `Super + mouse_down` / `mouse_up` | Cycle workspaces |
+| `Super + left click` / `right click` | Drag or resize floating window |
+| `Super + Shift + S` | Region screenshot to clipboard |
+| `Super + Ctrl + Shift + S` | Full monitor screenshot |
+| `Super + Ctrl + S` | Region screenshot to file |
+| `XF86Audio*` | Volume, mute, and media controls |
+| `XF86MonBrightness*` | Display brightness |
+| `XF86KbdBrightness*` | Keyboard brightness |
+
+Screenshots use `hyprshot`.
+
+---
+
+## Layout
+
+```text
+cyan1de/
+├── install.sh
+├── README.md
+├── demopics/
+└── config/
+    ├── hypr/
+    │   ├── hypridle.conf
+    │   ├── hyprland.lua
+    │   └── hyprland/
+    └── quickshell/
+        ├── background/
+        ├── emoji/
+        ├── launcher/
+        ├── lockscreen/
+        ├── notifications/
+        ├── osd/
+        ├── performance/
+        ├── settings/
+        ├── topbar/
+        ├── welcome/
+        └── settings.json
 ```
-AMD cards don't necessarily require any drivers as they're built in.
 
-## Power Management
+Quickshell runs as separate named sessions: `topbar`, `osd`, `launcher`, `emoji`, `background`, `settings`, `notifications`, and `welcome`, plus the lockscreen watchdog.
 
-Power-profiles-daemon is supported. TLP works fine, too.
+---
+
+## Notes
+
+- Use a Wayland session with Hyprland.
+- JetBrainsMono Nerd Font and Noto Emoji are expected; without them, glyphs may fall back.
+- Quickshell panels are intentionally opaque. The available blur options are **Hyprland blur** and **Alacritty blur** in Settings.
+- If a panel looks wrong after upgrading, remove the old `~/.config/quickshell` and `~/.config/hypr` directories and reinstall; the installer backs them up first.
+- Popup content uses a shared fixed size; the calendar has its own fixed height to keep month switching stable.

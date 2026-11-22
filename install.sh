@@ -20,7 +20,9 @@ PACKAGES=(
     ddcutil
     hyprshot
     hyprsunset
+    hypridle
     playerctl
+    power-profiles-daemon
     fprintd
     bluez
     bluez-utils
@@ -30,9 +32,11 @@ PACKAGES=(
     qt6ct
     adw-gtk-theme
     ttf-jetbrains-mono-nerd
+    noto-fonts-emoji
     python
     xdg-utils
     ripgrep
+    wl-clipboard
 )
 
 privileged() {
@@ -92,8 +96,8 @@ set_mime_defaults() {
 
 enable_services() {
     command -v systemctl >/dev/null 2>&1 || return 0
-    echo "Enabling fingerprint and Bluetooth services (best effort)..."
-    for service in fprintd.service bluetooth.service; do
+    echo "Enabling fingerprint, Bluetooth and power-profiles services (best effort)..."
+    for service in fprintd.service bluetooth.service power-profiles-daemon.service; do
         if privileged systemctl enable --now "$service" >/dev/null 2>&1; then
             echo "  enabled $service"
         else
