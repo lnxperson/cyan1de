@@ -106,4 +106,9 @@ Rectangle {
             spacing: 12
         }
     }
+
+    PopupDimOverlay {
+        anchors.fill: parent
+        radius: parent.radius
+    }
 }

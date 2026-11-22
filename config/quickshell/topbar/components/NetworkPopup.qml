@@ -407,4 +407,11 @@ PopupWindow {
                 }
             }
         }
+
+    PopupDimOverlay {
+        anchors.fill: surface
+        radius: surface.radius
+        reveal: surface.reveal
+        visible: popup.selectedNetwork !== null
+    }
 }

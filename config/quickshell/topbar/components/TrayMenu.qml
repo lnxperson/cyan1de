@@ -341,4 +341,10 @@ PopupWindow {
             }
         }
     }
+
+    PopupDimOverlay {
+        anchors.fill: surface
+        radius: surface.radius
+        reveal: root.reveal
+    }
 }

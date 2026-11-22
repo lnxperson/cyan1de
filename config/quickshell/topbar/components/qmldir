@@ -14,6 +14,7 @@ MediaControls 1.0 MediaControls.qml
 NotificationHistory 1.0 NotificationHistory.qml
 NetworkPopup 1.0 NetworkPopup.qml
 PillButton 1.0 PillButton.qml
+PopupDimOverlay 1.0 PopupDimOverlay.qml
 PopupSurface 1.0 PopupSurface.qml
 PowerPopup 1.0 PowerPopup.qml
 SliderRow 1.0 SliderRow.qml
