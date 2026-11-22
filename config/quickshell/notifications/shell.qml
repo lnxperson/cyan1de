@@ -506,8 +506,8 @@ ShellRoot {
 
         Loader {
             anchors.fill: parent
+            z: 1000
             source: "SoftwareDimOverlay.qml"
-            onLoaded: item.screen = window.screen
         }
 
         Column {

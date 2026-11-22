@@ -9,8 +9,6 @@ import Quickshell.Io
 Rectangle {
     id: root
 
-    property var screen
-    readonly property string outputName: screen && screen.name ? screen.name : ""
     property int level: 100
     readonly property real dimAlpha: Math.max(0, Math.min(0.95, (100 - level) / 100))
 
@@ -41,9 +39,9 @@ Rectangle {
         try {
             brightnessFile.reload();
             const parsed = JSON.parse(brightnessFile.text());
-            const value = parsed[root.outputName];
-            root.level = typeof value === "number"
-                ? Math.max(0, Math.min(100, Math.round(value)))
+            const values = Object.values(parsed).filter(v => typeof v === "number");
+            root.level = values.length > 0
+                ? Math.max(0, Math.min(100, Math.round(Math.min(...values))))
                 : 100;
         } catch (e) {
             // Keep the last good value if the file is mid-write or missing.

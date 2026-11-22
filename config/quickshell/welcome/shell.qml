@@ -197,11 +197,9 @@ ShellRoot {
 
         Loader {
             anchors.fill: card
+            z: 1000
             source: "SoftwareDimOverlay.qml"
-            onLoaded: {
-                item.screen = window.screen;
-                item.radius = card.radius;
-            }
+            onLoaded: item.radius = Qt.binding(function() { return card.radius; })
         }
         WlrLayershell.keyboardFocus: root.shown
             ? WlrKeyboardFocus.Exclusive
