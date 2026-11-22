@@ -28,6 +28,9 @@ Rectangle {
     // During a switch the incoming surface is transparent, so the outgoing
     // rounded surface is the only background until the slide finishes.
     property bool backgroundHidden: false
+    // The restore at the end of a switch must be instant; animating it made the
+    // panel fade in after the outgoing surface was already hidden.
+    property bool instantBackground: false
     property int hideDelay: Theme.motionFast + 20
 
     // Keyboard navigation lives here so every popup gets the same Tab/arrow
@@ -35,6 +38,10 @@ Rectangle {
     property bool keyboardNavigation: true
     property bool keyboardPassthrough: false
     property int keyboardIndex: -1
+    // Focus rings are a keyboard-navigation affordance. Opening a popup preps
+    // the first target for Enter, but must not paint an outline until the user
+    // actually navigates with Tab/Backtab or the arrow keys.
+    property bool showFocusOutline: false
     focus: true
     activeFocusOnTab: false
 
@@ -74,8 +81,14 @@ Rectangle {
         }
     }
 
-    Behavior on color { ColorAnimation { duration: Theme.motionFast } }
-    Behavior on border.color { ColorAnimation { duration: Theme.motionFast } }
+    Behavior on color {
+        enabled: !root.instantBackground
+        ColorAnimation { duration: Theme.motionFast }
+    }
+    Behavior on border.color {
+        enabled: !root.instantBackground
+        ColorAnimation { duration: Theme.motionFast }
+    }
 
     function focusedItem() {
         const list = root.sortedCandidates();
@@ -151,13 +164,15 @@ Rectangle {
         for (let i = 0; i < list.length; i++) {
             const item = list[i];
             if (typeof item.keyboardFocused !== "undefined")
-                item.keyboardFocused = i === root.keyboardIndex
+                item.keyboardFocused = root.showFocusOutline
+                    && i === root.keyboardIndex
                     && !root.isTextEntry(item);
         }
     }
 
     function clearKeyboardFocus() {
         root.keyboardIndex = -1;
+        root.showFocusOutline = false;
         root.applyKeyboardFocus();
     }
 
@@ -285,6 +300,7 @@ Rectangle {
         }
 
         if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
+            root.showFocusOutline = true;
             root.moveFocus(event.key === Qt.Key_Backtab
                 || (event.modifiers & Qt.ShiftModifier) ? -1 : 1);
             event.accepted = true;
@@ -293,6 +309,7 @@ Rectangle {
 
         if (event.key === Qt.Key_Left || event.key === Qt.Key_Right
             || event.key === Qt.Key_Up || event.key === Qt.Key_Down) {
+            root.showFocusOutline = true;
             root.moveFocusDirection(event.key);
             event.accepted = true;
         }
@@ -305,7 +322,11 @@ Rectangle {
     Timer {
         id: restoreBackgroundTimer
         interval: Theme.motionBase + 20
-        onTriggered: root.backgroundHidden = false
+        onTriggered: {
+            root.instantBackground = true;
+            root.backgroundHidden = false;
+            Qt.callLater(function () { root.instantBackground = false; });
+        }
     }
 
     Timer {
@@ -324,6 +345,8 @@ Rectangle {
             root.sliding = false;
             root.contentSlideOffset = 0;
             root.backgroundHidden = false;
+            root.instantBackground = false;
+            root.showFocusOutline = false;
             root.z = 1;
         }
     }
@@ -345,6 +368,8 @@ Rectangle {
         root.sliding = false;
         root.contentSlideOffset = 0;
         root.backgroundHidden = false;
+        root.instantBackground = false;
+        root.showFocusOutline = false;
         root.z = 1;
         restoreBackgroundTimer.stop();
         root.hideDelay = Theme.motionFast + 20;
@@ -374,6 +399,8 @@ Rectangle {
         root.slideHorizontal = horizontal;
         root.sliding = false;
         root.backgroundHidden = true;
+        root.instantBackground = false;
+        root.showFocusOutline = false;
         root.contentSlideOffset = direction * root.slideDistance(horizontal);
         root.sliding = true;
         root.z = 2;
@@ -394,9 +421,11 @@ Rectangle {
             return;
         root.closing = true;
         root.hideDelay = Theme.motionBase + 30;
+        restoreBackgroundTimer.stop();
         root.slideHorizontal = horizontal;
         root.sliding = true;
         root.backgroundHidden = false;
+        root.instantBackground = false;
         root.z = 1;
         root.contentSlideOffset = -direction * root.slideDistance(horizontal);
         root.clearKeyboardFocus();
@@ -411,6 +440,8 @@ Rectangle {
         root.sliding = false;
         root.contentSlideOffset = 0;
         root.backgroundHidden = false;
+        root.instantBackground = false;
+        root.showFocusOutline = false;
         restoreBackgroundTimer.stop();
         root.z = 1;
         root.reveal = 0;

@@ -190,6 +190,12 @@ PanelWindow {
     readonly property int contentInset: 12
     readonly property int sectionGap: 14
 
+    // Unified and island sections are flanked by short rulers. Top/bottom bars
+    // use vertical ticks; left/right bars rotate them into horizontal ticks.
+    readonly property int rulerGap: 4
+    readonly property int rulerLength: Math.max(10, Theme.panelHeight - 12)
+    readonly property color rulerColor: Theme.pillBorder
+
     // Popups look up their buttons by element key, so moving an element does
     // not break its popup anchor.
     property var elementButtons: ({})
@@ -458,6 +464,38 @@ PanelWindow {
 
     function sectionVisible(which) {
         return bar.sectionElements(which).length > 0;
+    }
+
+    function sectionContent(which) {
+        return which === "left" ? leftContent
+            : (which === "center" ? centerContent : rightContent);
+    }
+
+    function sectionRulers(which) {
+        const content = bar.sectionContent(which);
+        if (!content)
+            return [];
+
+        const cx = content.x + content.implicitWidth / 2;
+        const cy = content.y + content.implicitHeight / 2;
+
+        if (bar.vertical) {
+            const half = bar.rulerLength / 2;
+            return [
+                Qt.rect(cx - content.implicitWidth / 2 - bar.rulerGap,
+                    cy - half, 1, bar.rulerLength),
+                Qt.rect(cx + content.implicitWidth / 2 + bar.rulerGap - 1,
+                    cy - half, 1, bar.rulerLength)
+            ];
+        }
+
+        const half = bar.rulerLength / 2;
+        return [
+            Qt.rect(cx - half, cy - content.implicitHeight / 2 - bar.rulerGap,
+                bar.rulerLength, 1),
+            Qt.rect(cx - half, cy + content.implicitHeight / 2 + bar.rulerGap - 1,
+                bar.rulerLength, 1)
+        ];
     }
 
     function componentFor(key) {
@@ -953,9 +991,9 @@ PanelWindow {
             id: clockBtn
             anchors.centerIn: parent
             width: 26
-            height: 66
+            height: 74
             implicitWidth: 26
-            implicitHeight: 66
+            implicitHeight: 74
 
             readonly property Item activeIconItem: clockStack
             function iconVisualCenterX() {
@@ -1004,22 +1042,29 @@ PanelWindow {
                     color: calendarPopup.visible ? Theme.accent : Theme.border
                 }
 
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: Qt.formatDateTime(clock.date, "HH")
-                    font.family: Theme.mono
-                    font.pixelSize: 13
-                    font.weight: Font.DemiBold
-                    color: calendarPopup.visible ? Theme.accentSoft : Theme.text
-                }
+                Column {
+                    id: timeStack
 
-                Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: Qt.formatDateTime(clock.date, "mm")
-                    font.family: Theme.mono
-                    font.pixelSize: 13
-                    font.weight: Font.DemiBold
-                    color: calendarPopup.visible ? Theme.accentSoft : Theme.text
+                    spacing: 4
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: Qt.formatDateTime(clock.date, "HH")
+                        font.family: Theme.mono
+                        font.pixelSize: 13
+                        font.weight: Font.DemiBold
+                        color: calendarPopup.visible ? Theme.accentSoft : Theme.text
+                    }
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: Qt.formatDateTime(clock.date, "mm")
+                        font.family: Theme.mono
+                        font.pixelSize: 13
+                        font.weight: Font.DemiBold
+                        color: calendarPopup.visible ? Theme.accentSoft : Theme.text
+                    }
                 }
             }
 
@@ -1364,6 +1409,32 @@ PanelWindow {
         border.width: 1
         border.color: Theme.pillBorder
         z: -1
+    }
+
+    Repeater {
+        model: ["left", "center", "right"]
+
+        Item {
+            property bool sectionIsVisible: (bar.unified || bar.island)
+                && bar.sectionVisible(modelData)
+            readonly property var rects: sectionIsVisible
+                ? bar.sectionRulers(modelData)
+                : []
+
+            opacity: bar.island ? bar.islandReveal : 1
+
+            Repeater {
+                model: parent.rects
+
+                Rectangle {
+                    x: modelData.x
+                    y: modelData.y
+                    width: modelData.width
+                    height: modelData.height
+                    color: bar.rulerColor
+                }
+            }
+        }
     }
 
     ActionPopupHost {
