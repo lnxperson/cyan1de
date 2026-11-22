@@ -8,6 +8,9 @@ Rectangle {
     property color accent: Theme.text
     property bool danger: false
     property real press: 0
+    property bool keyboardFocused: false
+
+    activeFocusOnTab: true
 
     signal clicked()
 
@@ -16,8 +19,10 @@ Rectangle {
     color: mouse.containsMouse
         ? (danger ? "#2a181b" : Theme.hover)
         : Theme.surfaceAlt
-    border.width: 1
-    border.color: danger ? "#4a2a2e" : Theme.border
+    border.width: root.activeFocus || root.keyboardFocused ? 2 : 1
+    border.color: root.activeFocus || root.keyboardFocused
+        ? Theme.accentSoft
+        : (danger ? "#4a2a2e" : Theme.border)
     scale: 1 - 0.03 * root.press
 
     Behavior on color { ColorAnimation { duration: Theme.motionFast } }
@@ -63,5 +68,17 @@ Rectangle {
         cursorShape: Qt.PointingHandCursor
         onPressedChanged: root.press = containsPress ? 1 : 0
         onClicked: root.clicked()
+    }
+
+    function keyboardActivate() { root.clicked(); }
+
+    Keys.onReturnPressed: {
+        event.accepted = true;
+        root.clicked();
+    }
+
+    Keys.onSpacePressed: {
+        event.accepted = true;
+        root.clicked();
     }
 }

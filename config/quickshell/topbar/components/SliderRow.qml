@@ -53,11 +53,16 @@ ColumnLayout {
             implicitWidth: 24
             implicitHeight: 24
             visible: root.showMute
+            property bool keyboardFocused: false
+            activeFocusOnTab: root.showMute
 
             Rectangle {
                 anchors.fill: parent
                 radius: 6
-                color: muteMouse.containsMouse ? Theme.hover : "transparent"
+                color: muteMouse.containsMouse || parent.activeFocus
+                    || parent.keyboardFocused ? Theme.hover : "transparent"
+                border.width: parent.activeFocus || parent.keyboardFocused ? 1 : 0
+                border.color: Theme.accentSoft
 
                 Behavior on color { ColorAnimation { duration: Theme.motionFast } }
             }
@@ -79,6 +84,18 @@ ColumnLayout {
                 cursorShape: Qt.PointingHandCursor
                 onClicked: root.muteToggled()
             }
+
+            function keyboardActivate() { root.muteToggled(); }
+
+            Keys.onReturnPressed: {
+                event.accepted = true;
+                root.muteToggled();
+            }
+
+            Keys.onSpacePressed: {
+                event.accepted = true;
+                root.muteToggled();
+            }
         }
     }
 
@@ -86,6 +103,8 @@ ColumnLayout {
         id: slider
         Layout.fillWidth: true
         Layout.preferredHeight: 24
+        property bool keyboardFocused: false
+        activeFocusOnTab: true
 
         from: 0
         to: 1
@@ -123,7 +142,8 @@ ColumnLayout {
             radius: 7
             color: root.muted ? Theme.subtext : Theme.accentSoft
             border.width: 2
-            border.color: Theme.surface
+            border.color: slider.activeFocus || slider.keyboardFocused
+                ? Theme.accentSoft : Theme.surface
             scale: slider.pressed ? 1.15 : 1
 
             Behavior on color { ColorAnimation { duration: Theme.motionFast } }
@@ -134,5 +154,7 @@ ColumnLayout {
                 }
             }
         }
+
+        function keyboardActivate() { root.committed(slider.value); }
     }
 }

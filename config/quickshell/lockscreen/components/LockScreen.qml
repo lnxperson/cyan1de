@@ -2,7 +2,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pam
-import "Colors.js" as Colors
 
 Item {
     id: root
@@ -18,14 +17,36 @@ Item {
     property bool messageError: false
     property string queuedPassword: ""
     property string hostname: ""
+    property real reveal: 0
 
     signal unlocked()
 
     opacity: 0
     Behavior on opacity { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
 
+    // Let the shared theme finish its first settings read before the reveal,
+    // so the lock screen never pops in with the fallback palette.
+    Timer {
+        id: revealTimer
+        interval: 120
+        onTriggered: root.reveal = 1
+    }
+
+    Timer {
+        id: unlockTimer
+        interval: Theme.motionBase + 40
+        onTriggered: {
+            if (lock)
+                lock.locked = false;
+            else
+                console.warn("LockScreen: session lock object is missing; the compositor will unlock only when the process exits");
+            unlocked();
+        }
+    }
+
     Component.onCompleted: {
         opacity = 1;
+        revealTimer.start();
         input.forceActiveFocus();
     }
 
@@ -38,13 +59,12 @@ Item {
         messageError = false;
         fpProc.running = false;
         pam.abort();
+        revealTimer.stop();
 
-        if (lock)
-            lock.locked = false;
-        else
-            console.warn("LockScreen: session lock object is missing; the compositor will unlock only when the process exits");
-
-        unlocked();
+        // Play the exit animation first, then release the session lock so the
+        // reverse pop is visible instead of being cut short by surface teardown.
+        reveal = 0;
+        unlockTimer.start();
     }
 
     function submitPassword() {
@@ -174,7 +194,7 @@ Item {
     // some GPU/driver combinations.
     Rectangle {
         anchors.fill: parent
-        color: Colors.bg
+        color: Theme.bg
     }
 
     Image {
@@ -192,13 +212,13 @@ Item {
         }
     }
 
-    // Darkening / readability overlay
+    // Theme-aware readability overlay
     Rectangle {
         anchors.fill: parent
         gradient: Gradient {
-            GradientStop { position: 0.0; color: "#c4050a12" }
-            GradientStop { position: 0.55; color: "#a6050a12" }
-            GradientStop { position: 1.0; color: "#d9050a12" }
+            GradientStop { position: 0.0; color: Qt.rgba(Theme.bg.r, Theme.bg.g, Theme.bg.b, 0.78) }
+            GradientStop { position: 0.55; color: Qt.rgba(Theme.bg.r, Theme.bg.g, Theme.bg.b, 0.66) }
+            GradientStop { position: 1.0; color: Qt.rgba(Theme.bg.r, Theme.bg.g, Theme.bg.b, 0.85) }
         }
     }
 
@@ -209,26 +229,51 @@ Item {
 
     Column {
         id: content
-        anchors.centerIn: parent
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.verticalCenterOffset: (1 - root.reveal) * 14
         width: Math.min(parent.width - 48, 480)
         spacing: 0
+
+        opacity: root.reveal
+        scale: 0.94 + 0.06 * root.reveal
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: root.unlocking ? Theme.motionBase : Theme.motionSlow
+                easing.type: root.unlocking ? Easing.InCubic : Easing.OutCubic
+            }
+        }
+        Behavior on scale {
+            NumberAnimation {
+                duration: root.unlocking ? Theme.motionBase : Theme.motionSlow + 120
+                easing.type: root.unlocking ? Easing.InCubic : Easing.OutBack
+                easing.overshoot: 1.18
+            }
+        }
+        Behavior on anchors.verticalCenterOffset {
+            NumberAnimation {
+                duration: root.unlocking ? Theme.motionBase : Theme.motionSlow + 120
+                easing.type: root.unlocking ? Easing.InCubic : Easing.OutCubic
+            }
+        }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: Qt.formatDateTime(clock.date, "HH:mm")
-            font.family: Colors.mono
+            font.family: Theme.mono
             font.pixelSize: 96
             font.weight: Font.Light
-            color: Colors.text
+            color: Theme.text
             opacity: 0.96
         }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: Qt.formatDateTime(clock.date, "dddd, d MMMM yyyy")
-            font.family: Colors.mono
+            font.family: Theme.mono
             font.pixelSize: 17
-            color: Colors.subtext
+            color: Theme.subtext
         }
 
         Item { width: 1; height: 46 }
@@ -240,9 +285,9 @@ Item {
             width: Math.min(parent.width, 360)
             height: 48
             radius: 12
-            color: "#cc111722"
+            color: Qt.rgba(Theme.pill.r, Theme.pill.g, Theme.pill.b, 0.8)
             border.width: 1
-            border.color: input.activeFocus ? Colors.accent : Colors.border
+            border.color: input.activeFocus ? Theme.accent : Theme.border
 
             Behavior on border.color { ColorAnimation { duration: 140 } }
 
@@ -251,9 +296,9 @@ Item {
                 anchors.leftMargin: 15
                 anchors.verticalCenter: parent.verticalCenter
                 text: "󰌾"
-                font.family: Colors.font
+                font.family: Theme.font
                 font.pixelSize: 16
-                color: input.activeFocus ? Colors.accent : Colors.dim
+                color: input.activeFocus ? Theme.accent : Theme.dim
             }
 
             TextInput {
@@ -262,11 +307,11 @@ Item {
                 leftPadding: 44
                 rightPadding: 14
                 verticalAlignment: TextInput.AlignVCenter
-                font.family: Colors.mono
+                font.family: Theme.mono
                 font.pixelSize: 14
-                color: Colors.text
-                selectionColor: Colors.accent
-                selectedTextColor: Colors.bg
+                color: Theme.text
+                selectionColor: Theme.accent
+                selectedTextColor: Theme.bg
                 passwordCharacter: "•"
                 echoMode: TextInput.Password
                 focus: true
@@ -286,9 +331,9 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: input.text.length === 0
                 text: "Password"
-                font.family: Colors.mono
+                font.family: Theme.mono
                 font.pixelSize: 13
-                color: Colors.dim
+                color: Theme.dim
             }
         }
 
@@ -303,11 +348,11 @@ Item {
                 id: fpIcon
                 visible: root.fpAvailable
                 text: "󰈷"
-                font.family: Colors.font
+                font.family: Theme.font
                 font.pixelSize: 16
                 color: root.messageError
-                    ? Colors.red
-                    : (root.fpWorking ? Colors.accent : Colors.subtext)
+                    ? Theme.red
+                    : (root.fpWorking ? Theme.accent : Theme.subtext)
                 anchors.verticalCenter: parent.verticalCenter
 
                 SequentialAnimation on opacity {
@@ -321,9 +366,9 @@ Item {
 
             Text {
                 text: root.message
-                font.family: Colors.mono
+                font.family: Theme.mono
                 font.pixelSize: 12
-                color: root.messageError ? Colors.red : Colors.subtext
+                color: root.messageError ? Theme.red : Theme.subtext
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
@@ -334,9 +379,9 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             visible: root.fpAvailable
             text: "Fingerprint or password to unlock"
-            font.family: Colors.mono
+            font.family: Theme.mono
             font.pixelSize: 10
-            color: Colors.dim
+            color: Theme.dim
         }
     }
 
@@ -345,10 +390,17 @@ Item {
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 34
         text: Quickshell.env("USER") + (root.hostname !== "" ? "@" + root.hostname : "")
-        font.family: Colors.mono
+        font.family: Theme.mono
         font.pixelSize: 10
-        color: Colors.dim
-        opacity: 0.75
+        color: Theme.dim
+        opacity: 0.75 * root.reveal
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: root.unlocking ? Theme.motionBase : Theme.motionSlow
+                easing.type: root.unlocking ? Easing.InCubic : Easing.OutCubic
+            }
+        }
     }
 
     // Subtle vertical accent at the very top
@@ -360,10 +412,17 @@ Item {
         radius: 1
         gradient: Gradient {
             orientation: Gradient.Horizontal
-            GradientStop { position: 0.0; color: "#0068e0c8" }
-            GradientStop { position: 0.5; color: Colors.accentAlt }
-            GradientStop { position: 1.0; color: "#0068e0c8" }
+            GradientStop { position: 0.0; color: "transparent" }
+            GradientStop { position: 0.5; color: Theme.accentAlt }
+            GradientStop { position: 1.0; color: "transparent" }
         }
-        opacity: 0.55
+        opacity: 0.55 * root.reveal
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: root.unlocking ? Theme.motionBase : Theme.motionSlow
+                easing.type: root.unlocking ? Easing.InCubic : Easing.OutCubic
+            }
+        }
     }
 }

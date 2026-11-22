@@ -9,6 +9,7 @@ PopupWindow {
     property var bar
     property Item target
     property date viewMonth: new Date()
+    property alias popupSurface: surface
 
     readonly property int viewYear: viewMonth.getFullYear()
     readonly property int viewMonthIndex: viewMonth.getMonth()
@@ -48,6 +49,7 @@ PopupWindow {
     PopupSurface {
         id: surface
         window: popup
+        owner: popup
         anchors.fill: parent
         padding: 18
 
@@ -124,11 +126,16 @@ PopupWindow {
                     Item {
                         implicitWidth: 28
                         implicitHeight: 28
+                        property bool keyboardFocused: false
+                        activeFocusOnTab: true
 
                         Rectangle {
                             anchors.fill: parent
                             radius: 7
-                            color: prevMouse.containsMouse ? Theme.hover : "transparent"
+                            color: prevMouse.containsMouse || parent.activeFocus
+                                || parent.keyboardFocused ? Theme.hover : "transparent"
+                            border.width: parent.activeFocus || parent.keyboardFocused ? 1 : 0
+                            border.color: Theme.accentSoft
 
                             Behavior on color { ColorAnimation { duration: Theme.motionFast } }
                         }
@@ -148,16 +155,33 @@ PopupWindow {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: popup.shiftMonth(-1)
                         }
+
+                        function keyboardActivate() { popup.shiftMonth(-1); }
+
+                        Keys.onReturnPressed: {
+                            event.accepted = true;
+                            popup.shiftMonth(-1);
+                        }
+
+                        Keys.onSpacePressed: {
+                            event.accepted = true;
+                            popup.shiftMonth(-1);
+                        }
                     }
 
                     Item {
                         implicitWidth: 28
                         implicitHeight: 28
+                        property bool keyboardFocused: false
+                        activeFocusOnTab: true
 
                         Rectangle {
                             anchors.fill: parent
                             radius: 7
-                            color: nextMouse.containsMouse ? Theme.hover : "transparent"
+                            color: nextMouse.containsMouse || parent.activeFocus
+                                || parent.keyboardFocused ? Theme.hover : "transparent"
+                            border.width: parent.activeFocus || parent.keyboardFocused ? 1 : 0
+                            border.color: Theme.accentSoft
 
                             Behavior on color { ColorAnimation { duration: Theme.motionFast } }
                         }
@@ -176,6 +200,18 @@ PopupWindow {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: popup.shiftMonth(1)
+                        }
+
+                        function keyboardActivate() { popup.shiftMonth(1); }
+
+                        Keys.onReturnPressed: {
+                            event.accepted = true;
+                            popup.shiftMonth(1);
+                        }
+
+                        Keys.onSpacePressed: {
+                            event.accepted = true;
+                            popup.shiftMonth(1);
                         }
                     }
                 }

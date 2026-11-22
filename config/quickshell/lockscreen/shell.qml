@@ -36,7 +36,7 @@ ShellRoot {
     // Lives outside the lock surfaces so it survives their destruction.
     Timer {
         id: quitTimer
-        interval: 300
+        interval: 120
         onTriggered: Qt.quit()
     }
 

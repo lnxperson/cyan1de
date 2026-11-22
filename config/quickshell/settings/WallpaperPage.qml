@@ -77,11 +77,8 @@ ColumnLayout {
         Layout.fillWidth: true
         spacing: 12
 
-        Text {
+        SettingLabel {
             text: "Scaling"
-            font.family: Theme.mono
-            font.pixelSize: 11
-            color: Theme.subtext
         }
 
         Segmented {

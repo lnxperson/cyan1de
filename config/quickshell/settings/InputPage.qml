@@ -17,11 +17,8 @@ ColumnLayout {
         color: Theme.text
     }
 
-    Text {
+    SettingLabel {
         text: "Keyboard, mouse and touchpad settings from ~/.config/hypr/hyprland/input.lua."
-        font.family: Theme.mono
-        font.pixelSize: 11
-        color: Theme.subtext
         wrapMode: Text.WordWrap
         Layout.fillWidth: true
     }
@@ -33,6 +30,7 @@ ColumnLayout {
         TextFieldRow {
             Layout.fillWidth: true
             label: "Layout"
+            tooltip: "XKB keyboard layout, for example us or de."
             value: root.app.inKbLayout
             placeholder: "us"
             onEdited: value => root.app.inKbLayout = value
@@ -87,6 +85,7 @@ ColumnLayout {
         SliderField {
             Layout.fillWidth: true
             label: "Sensitivity"
+            tooltip: "Global pointer sensitivity multiplier."
             from: -1
             to: 1
             stepSize: 0.05
@@ -170,6 +169,7 @@ ColumnLayout {
         TextFieldRow {
             Layout.fillWidth: true
             label: "Sensitivity"
+            tooltip: "Sensitivity override for the selected input device."
             value: String(root.app.deviceSensitivity)
             placeholder: "-0.5"
             onEdited: value => root.app.deviceSensitivity = parseFloat(value) || 0

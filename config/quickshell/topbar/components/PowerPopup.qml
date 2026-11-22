@@ -2,31 +2,25 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 
-PopupWindow {
+Item {
     id: popup
 
-
+    readonly property string actionKey: "power"
     property var bar
+    property var host
     property Item target
+    property alias popupSurface: surface
     property string pending: ""
     property var pendingCommand: null
-
-    implicitWidth: 400
-    // Fixed so every action popup shares one consistent size.
-    implicitHeight: 320
-    color: "transparent"
     visible: false
 
-    anchor.window: bar
-    anchor.rect.x: bar ? bar.actionPopupX(width) : 0
-    anchor.rect.y: bar ? bar.actionPopupY(height) : 0
-
-    function open() { surface.open(); }
-    function close() {
-        surface.close();
+    function prepare() {}
+    function cleanup() {
         pending = "";
         pendingCommand = null;
     }
+    function open() { if (popup.host) popup.host.openPopup(popup); }
+    function close() { if (popup.host) popup.host.closePopup(popup); }
 
     function runNow(command) {
         Quickshell.execDetached(command);
@@ -45,14 +39,6 @@ PopupWindow {
         }
     }
 
-    onVisibleChanged: {
-        if (!visible) {
-            surface.reset();
-            pending = "";
-            pendingCommand = null;
-        }
-    }
-
     Timer {
         id: confirmTimer
         interval: 3000
@@ -64,7 +50,10 @@ PopupWindow {
 
     PopupSurface {
         id: surface
-        window: popup
+        window: popup.host
+        controller: popup.host
+        owner: popup
+        manageWindow: false
         anchors.fill: parent
 
         RowLayout {

@@ -17,11 +17,8 @@ ColumnLayout {
         color: Theme.text
     }
 
-    Text {
+    SettingLabel {
         text: "Window matching, floating and position overrides from rules.lua. These are shown read-only — edit the file directly for advanced rules."
-        font.family: Theme.mono
-        font.pixelSize: 11
-        color: Theme.subtext
         wrapMode: Text.WordWrap
         Layout.fillWidth: true
     }

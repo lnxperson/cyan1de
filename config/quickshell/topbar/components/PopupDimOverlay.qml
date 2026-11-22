@@ -12,6 +12,10 @@ Rectangle {
     property string monitorName: ""
     property int level: 100
     property real reveal: 1
+    // Hidden popups still exist as QML objects. Only poll while this overlay's
+    // own popup is actually on screen; otherwise every popup would spawn a
+    // hyprctl process twice per second in the background.
+    property bool active: true
     readonly property real dimAlpha: Math.max(0, Math.min(0.95, (100 - level) / 100))
 
     anchors.fill: parent
@@ -27,7 +31,7 @@ Rectangle {
         preload: true
         blockLoading: true
         printErrors: false
-        onLoadedChanged: if (loaded) root.reload()
+        onLoadedChanged: if (loaded && root.active) root.reload()
     }
 
     // PanelWindow.screen is not reliable for Hyprland popups, so ask the
@@ -52,12 +56,20 @@ Rectangle {
     Timer {
         interval: 500
         repeat: true
-        running: true
+        running: root.active
         onTriggered: {
             root.reload();
             if (!focusProbe.running)
                 focusProbe.running = true;
         }
+    }
+
+    onActiveChanged: {
+        if (!root.active)
+            return;
+        root.reload();
+        if (!focusProbe.running)
+            focusProbe.running = true;
     }
 
     function reload() {
@@ -74,7 +86,9 @@ Rectangle {
     }
 
     Component.onCompleted: {
-        focusProbe.running = true;
-        root.reload();
+        if (root.active) {
+            focusProbe.running = true;
+            root.reload();
+        }
     }
 }

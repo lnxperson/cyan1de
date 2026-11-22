@@ -3,6 +3,7 @@ singleton Brightness 1.0 Brightness.qml
 singleton NightLight 1.0 NightLight.qml
 singleton PowerProfileControl 1.0 PowerProfileControl.qml
 ActionButton 1.0 ActionButton.qml
+ActionPopupHost 1.0 ActionPopupHost.qml
 Bar 1.0 Bar.qml
 BarButton 1.0 BarButton.qml
 BatteryMonitor 1.0 BatteryMonitor.qml

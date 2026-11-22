@@ -5,13 +5,16 @@ import Quickshell
 import Quickshell.Networking
 import Quickshell.Wayland
 
-PopupWindow {
+Item {
     id: popup
 
-
+    readonly property string actionKey: "network"
     property var bar
+    property var host
     property Item target
+    property alias popupSurface: surface
     property var selectedNetwork: null
+    visible: false
 
     readonly property var wifiDevice: {
         const devices = Networking.devices.values;
@@ -40,18 +43,20 @@ PopupWindow {
         return null;
     }
 
-    implicitWidth: 400
-    // Fixed so the popup height stays stable while its contents load.
-    implicitHeight: 320
-    color: "transparent"
-    visible: false
+    function prepare() {
+        if (popup.wifiDevice)
+            popup.wifiDevice.scannerEnabled = true;
+    }
 
-    anchor.window: bar
-    anchor.rect.x: bar ? bar.actionPopupX(width) : 0
-    anchor.rect.y: bar ? bar.actionPopupY(height) : 0
+    function cleanup() {
+        popup.selectedNetwork = null;
+        passwordField.text = "";
+        if (popup.wifiDevice)
+            popup.wifiDevice.scannerEnabled = false;
+    }
 
-    function open() { surface.open(); }
-    function close() { surface.close(); }
+    function open() { if (popup.host) popup.host.openPopup(popup); }
+    function close() { if (popup.host) popup.host.closePopup(popup); }
 
     function signalIcon(strength) {
         if (strength > 75) return "󰤨";
@@ -81,22 +86,12 @@ PopupWindow {
         Qt.callLater(function () { wifiDevice.scannerEnabled = true; });
     }
 
-    onVisibleChanged: {
-        if (visible) {
-            if (wifiDevice)
-                wifiDevice.scannerEnabled = true;
-        } else {
-            surface.reset();
-            selectedNetwork = null;
-            passwordField.text = "";
-            if (wifiDevice)
-                wifiDevice.scannerEnabled = false;
-        }
-    }
-
     PopupSurface {
         id: surface
-        window: popup
+        window: popup.host
+        controller: popup.host
+        owner: popup
+        manageWindow: false
         anchors.fill: parent
 
         // Header
@@ -168,11 +163,16 @@ PopupWindow {
 
                     required property var modelData
                     readonly property var net: modelData
+                    property bool keyboardFocused: false
 
                     width: listView.width
                     height: 50
                     radius: 8
-                    color: rowMouse.containsMouse ? Theme.hover : "transparent"
+                    color: rowMouse.containsMouse || networkRow.activeFocus
+                        || networkRow.keyboardFocused ? Theme.hover : "transparent"
+                    border.width: networkRow.activeFocus || networkRow.keyboardFocused ? 1 : 0
+                    border.color: Theme.accentSoft
+                    activeFocusOnTab: true
 
                     Behavior on color { ColorAnimation { duration: 100 } }
 
@@ -235,22 +235,36 @@ PopupWindow {
                         }
                     }
 
+                    function activate() {
+                        if (networkRow.net.connected)
+                            return;
+                        if (networkRow.net.known || networkRow.net.security === WifiSecurityType.Open) {
+                            networkRow.net.connect();
+                        } else {
+                            popup.selectedNetwork = networkRow.net;
+                            passwordField.text = "";
+                            Qt.callLater(function () { passwordField.forceActiveFocus(); });
+                        }
+                    }
+
                     MouseArea {
                         id: rowMouse
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (networkRow.net.connected)
-                                return;
-                            if (networkRow.net.known || networkRow.net.security === WifiSecurityType.Open) {
-                                networkRow.net.connect();
-                            } else {
-                                popup.selectedNetwork = networkRow.net;
-                                passwordField.text = "";
-                                Qt.callLater(function () { passwordField.forceActiveFocus(); });
-                            }
-                        }
+                        onClicked: networkRow.activate()
+                    }
+
+                    function keyboardActivate() { networkRow.activate(); }
+
+                    Keys.onReturnPressed: {
+                        event.accepted = true;
+                        networkRow.activate();
+                    }
+
+                    Keys.onSpacePressed: {
+                        event.accepted = true;
+                        networkRow.activate();
                     }
                 }
             }
@@ -382,8 +396,12 @@ PopupWindow {
                         border.color: passwordField.activeFocus ? Theme.accent : Theme.border
                     }
 
+                    onActiveFocusChanged: popup.popupSurface.keyboardPassthrough = passwordField.activeFocus
                     onAccepted: popup.connectSelected()
-                    Keys.onEscapePressed: popup.selectedNetwork = null
+                    Keys.onEscapePressed: {
+                        event.accepted = true;
+                        popup.selectedNetwork = null;
+                    }
                 }
 
                 Item { Layout.fillHeight: true }
@@ -412,6 +430,7 @@ PopupWindow {
         anchors.fill: surface
         radius: surface.radius
         reveal: surface.reveal
+        active: popup.selectedNetwork !== null && surface.reveal > 0
         visible: popup.selectedNetwork !== null
     }
 }

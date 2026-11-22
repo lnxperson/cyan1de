@@ -28,11 +28,8 @@ ColumnLayout {
         color: Theme.text
     }
 
-    Text {
+    SettingLabel {
         text: "Each shortcut has a bind, a command and a label. Click a bind to record keys; Esc cancels. Labels appear in Hyprland as bind descriptions."
-        font.family: Theme.mono
-        font.pixelSize: 11
-        color: Theme.subtext
         wrapMode: Text.WordWrap
         Layout.fillWidth: true
     }

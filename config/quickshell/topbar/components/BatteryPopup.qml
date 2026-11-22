@@ -4,12 +4,15 @@ import Quickshell
 import Quickshell.Services.UPower
 import Quickshell.Wayland
 
-PopupWindow {
+Item {
     id: popup
 
-
+    readonly property string actionKey: "battery"
     property var bar
+    property var host
     property Item target
+    property alias popupSurface: surface
+    visible: false
 
     readonly property var battery: UPower.displayDevice
     readonly property var device: {
@@ -53,24 +56,17 @@ PopupWindow {
         return minutes + "m";
     }
 
-    implicitWidth: 400
-    // Fixed so every action popup shares one consistent size.
-    implicitHeight: 320
-    color: "transparent"
-    visible: false
-
-    anchor.window: bar
-    anchor.rect.x: bar ? bar.actionPopupX(width) : 0
-    anchor.rect.y: bar ? bar.actionPopupY(height) : 0
-
-    function open() { surface.open(); }
-    function close() { surface.close(); }
-
-    onVisibleChanged: if (!visible) surface.reset()
+    function prepare() {}
+    function cleanup() {}
+    function open() { if (popup.host) popup.host.openPopup(popup); }
+    function close() { if (popup.host) popup.host.closePopup(popup); }
 
     PopupSurface {
         id: surface
-        window: popup
+        window: popup.host
+        controller: popup.host
+        owner: popup
+        manageWindow: false
         anchors.fill: parent
 
         RowLayout {
@@ -250,13 +246,17 @@ PopupWindow {
                         required property var modelData
 
                         readonly property bool selected: PowerProfileControl.profile === modelData
+                        property bool keyboardFocused: false
 
                         Layout.fillWidth: true
                         Layout.preferredHeight: 26
                         radius: 6
                         color: selected ? Theme.active : Theme.surfaceAlt
-                        border.width: 1
-                        border.color: selected ? Theme.accent : Theme.border
+                        border.width: activeFocus || keyboardFocused ? 2 : 1
+                        border.color: activeFocus || keyboardFocused
+                            ? Theme.accentSoft
+                            : (selected ? Theme.accent : Theme.border)
+                        activeFocusOnTab: true
 
                         Text {
                             anchors.centerIn: parent
@@ -271,6 +271,18 @@ PopupWindow {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: PowerProfileControl.setProfile(modelData)
+                        }
+
+                        function keyboardActivate() { PowerProfileControl.setProfile(modelData); }
+
+                        Keys.onReturnPressed: {
+                            event.accepted = true;
+                            PowerProfileControl.setProfile(modelData);
+                        }
+
+                        Keys.onSpacePressed: {
+                            event.accepted = true;
+                            PowerProfileControl.setProfile(modelData);
                         }
                     }
                 }

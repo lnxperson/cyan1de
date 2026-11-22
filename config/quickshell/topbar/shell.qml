@@ -3,6 +3,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 import "components"
 
 ShellRoot {
@@ -98,11 +99,71 @@ ShellRoot {
         return matched.length > 0 ? matched : screens;
     }
 
+    // Keyboard shortcuts are dispatched over IPC to the bar on the focused
+    // monitor, or to whichever bar already owns an open popup.
+    property var bars: []
+
+    function registerBar(bar) {
+        if (root.bars.indexOf(bar) < 0)
+            root.bars.push(bar);
+    }
+
+    function unregisterBar(bar) {
+        const index = root.bars.indexOf(bar);
+        if (index >= 0)
+            root.bars.splice(index, 1);
+    }
+
+    function targetBar() {
+        for (let i = 0; i < root.bars.length; i++) {
+            if (root.bars[i].activePopup !== null)
+                return root.bars[i];
+        }
+
+        const monitor = Hyprland.focusedMonitor;
+        const focusedName = monitor ? monitor.name : "";
+        for (let i = 0; i < root.bars.length; i++) {
+            const bar = root.bars[i];
+            if (bar.visible && (!focusedName
+                || (bar.screen && bar.screen.name === focusedName)))
+                return bar;
+        }
+
+        for (let i = 0; i < root.bars.length; i++) {
+            if (root.bars[i].visible)
+                return root.bars[i];
+        }
+        return root.bars.length ? root.bars[0] : null;
+    }
+
+    IpcHandler {
+        target: "topbar"
+
+        function cycleAction(): void {
+            const bar = root.targetBar();
+            if (bar)
+                bar.cycleActionPopup();
+        }
+
+        function calendar(): void {
+            const bar = root.targetBar();
+            if (bar)
+                bar.toggleCalendar();
+        }
+
+        function close(): void {
+            const bar = root.targetBar();
+            if (bar)
+                bar.closePopup();
+        }
+    }
+
     Variants {
         model: root.panelScreens
 
         Bar {
             property var modelData
+            shellRoot: root
             screen: modelData
             cursorX: root.cursorX
             cursorY: root.cursorY

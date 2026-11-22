@@ -19,6 +19,9 @@ ShellRoot {
     property bool shown: false
     property real reveal: 0
     property bool closing: false
+    property bool applying: false
+    property bool pendingCloseAfterApply: false
+    property string pendingApplyScript: ""
     property Item dragOverlayHost: null
     property int page: 0
     property int renderedPage: 0
@@ -1044,18 +1047,25 @@ ShellRoot {
     // ---------------------------------------------------------------------
     // Loading
     // ---------------------------------------------------------------------
+    function reloadFile(file) {
+        file.reload();
+        // reload() can be asynchronous. Block until it finishes so the text()
+        // calls below always see the file as it exists on disk right now.
+        file.waitForJob();
+    }
+
     function loadAll() {
         // FileView caches text between reads; refresh from disk before parsing
         // so externally edited files (or a previous Apply) are never stale.
-        settingsFile.reload();
-        autostartFile.reload();
-        envFile.reload();
-        inputFile.reload();
-        programsFile.reload();
-        monitorsFile.reload();
-        keybindingsFile.reload();
-        rulesFile.reload();
-        alacrittyFile.reload();
+        reloadFile(settingsFile);
+        reloadFile(autostartFile);
+        reloadFile(envFile);
+        reloadFile(inputFile);
+        reloadFile(programsFile);
+        reloadFile(monitorsFile);
+        reloadFile(keybindingsFile);
+        reloadFile(rulesFile);
+        reloadFile(alacrittyFile);
 
         let parsed = null;
         try {
@@ -2179,6 +2189,8 @@ ShellRoot {
     }
 
     function applyAll() {
+        if (applying)
+            return;
         saveDebounce.stop();
 
         // Apply can also be called over IPC without opening the UI first. In
@@ -2230,10 +2242,11 @@ ShellRoot {
                 + "/.config/hypr/hypridle.conf' >/dev/null 2>&1 &\n";
         script += "fi\n";
 
-        Quickshell.execDetached(["sh", "-c", script]);
-        status = "Applied — Hyprland reloaded";
-        statusColor = Theme.green;
-        statusTimer.restart();
+        pendingApplyScript = script;
+        applying = true;
+        status = "Applying…";
+        statusColor = Theme.subtext;
+        applyProc.running = true;
     }
 
     // ---------------------------------------------------------------------
@@ -2242,31 +2255,49 @@ ShellRoot {
     function open() {
         if (shown && !closing)
             return;
-        quitTimer.stop();
+        hideTimer.stop();
         loadAll();
+
+        // A warm daemon must still feel like a fresh panel: always return to
+        // the first page with the first appearance section selected.
+        navHighlightAnimate = false;
+        navHighlightVisible = false;
+        page = 0;
+        renderedPage = 0;
+        pageLoader.opacity = 1;
+        appearanceSection = "panel";
+        confirmReset = false;
+        scroller.contentItem.contentY = 0;
+        Qt.callLater(root.syncNavHighlight);
+
         closing = false;
         shown = true;
         reveal = 1;
     }
 
-    // Quit instead of hiding: every open is then a fresh process that reads
-    // the config files from disk, so a new daemon can never show stale state.
-    // ~/.config/quickshell/settings/toggle.sh relaunches it on demand. The exit
-    // is delayed so the card can animate out first.
+    // Keep the daemon warm so the next open is instant. open() always calls
+    // loadAll(), which reloads every managed file from disk first, so a hidden
+    // process can never show stale settings.
     function close() {
         if (closing)
             return;
+        if (applying) {
+            pendingCloseAfterApply = true;
+            status = "Finishing Apply…";
+            statusColor = Theme.subtext;
+            return;
+        }
         closing = true;
         reveal = 0;
-        quitTimer.restart();
+        hideTimer.restart();
     }
 
     Timer {
-        id: quitTimer
+        id: hideTimer
         interval: Theme.motionFast + 20
         onTriggered: {
             shown = false;
-            Qt.quit();
+            closing = false;
         }
     }
 
@@ -2354,13 +2385,13 @@ ShellRoot {
         function reset(): void { root.resetAll() }
         function theme(mode: string): void { root.setThemeMode(mode) }
         function section(index: int): void {
-            root.setPage(index);
             root.open();
+            root.setPage(index);
         }
         // Alias for existing scripts: this selects a top-level page by index.
         function hsection(index: int): void {
-            root.setPage(index);
             root.open();
+            root.setPage(index);
         }
     }
 
@@ -2463,6 +2494,29 @@ ShellRoot {
         preload: true
         blockLoading: true
         printErrors: false
+    }
+
+    Process {
+        id: applyProc
+        running: false
+        command: ["sh", "-c", root.pendingApplyScript]
+
+        onExited: function (exitCode) {
+            root.applying = false;
+            if (exitCode === 0) {
+                root.status = "Applied — Hyprland reloaded";
+                root.statusColor = Theme.green;
+            } else {
+                root.status = "Apply failed (" + exitCode + ")";
+                root.statusColor = Theme.red;
+            }
+            root.statusTimer.restart();
+
+            if (root.pendingCloseAfterApply) {
+                root.pendingCloseAfterApply = false;
+                root.close();
+            }
+        }
     }
 
     Process {

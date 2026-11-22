@@ -33,6 +33,10 @@ hl.bind(mainMod .. " + comma", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/qu
 hl.bind(mainMod .. " + period", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/emoji/toggle.sh"), { description = "Emoji picker" })             -- Emoji picker
 hl.bind(mainMod .. " + CTRL + P", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/performance/toggle.sh"), { locked = true, description = "Toggle performance mode" }) -- Performance mode
 
+-- Keyboard-only topbar popups
+hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("qs ipc -c topbar call topbar cycleAction"), { description = "Cycle action popups" })
+hl.bind(mainMod .. " + C", hl.dsp.exec_cmd("qs ipc -c topbar call topbar calendar"), { description = "Toggle calendar popup" })
+
 
 -- -----------------------------------------------------------------------------
 -- Screenshots (Hyprshot)

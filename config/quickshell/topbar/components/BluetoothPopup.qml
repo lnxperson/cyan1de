@@ -3,12 +3,15 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Bluetooth
 
-PopupWindow {
+Item {
     id: popup
 
-
+    readonly property string actionKey: "bluetooth"
     property var bar
+    property var host
     property Item target
+    property alias popupSurface: surface
+    visible: false
 
     // The Bluetooth singleton connects to BlueZ asynchronously, so all of
     // these bindings are deliberately reactive rather than cached on load.
@@ -64,27 +67,16 @@ PopupWindow {
         return popup.btScanning ? "Scanning for devices…" : "On — no devices connected";
     }
 
-    implicitWidth: 400
-    // Fixed so the popup height stays stable while its contents load.
-    implicitHeight: 320
-    color: "transparent"
-    visible: false
+    function prepare() { popup.requestScan(); }
 
-    anchor.window: bar
-    anchor.rect.x: bar ? bar.actionPopupX(width) : 0
-    anchor.rect.y: bar ? bar.actionPopupY(height) : 0
-
-    function open() {
-        surface.open();
-        popup.requestScan();
-    }
-
-    function close() {
-        surface.close();
+    function cleanup() {
         popup.wantScan = false;
         if (popup.btAdapter && popup.btScanning)
             popup.btAdapter.discovering = false;
     }
+
+    function open() { if (popup.host) popup.host.openPopup(popup); }
+    function close() { if (popup.host) popup.host.closePopup(popup); }
 
     function requestScan() {
         if (!popup.btOn)
@@ -170,20 +162,12 @@ PopupWindow {
         }
     }
 
-    onVisibleChanged: {
-        if (!visible) {
-            surface.reset();
-            popup.wantScan = false;
-            if (popup.btAdapter && popup.btScanning)
-                popup.btAdapter.discovering = false;
-        } else if (popup.btOn) {
-            popup.requestScan();
-        }
-    }
-
     PopupSurface {
         id: surface
-        window: popup
+        window: popup.host
+        controller: popup.host
+        owner: popup
+        manageWindow: false
         anchors.fill: parent
 
         // Header
@@ -252,11 +236,16 @@ PopupWindow {
 
                     required property var modelData
                     readonly property var device: modelData
+                    property bool keyboardFocused: false
 
                     width: listView.width
                     height: 50
                     radius: 8
-                    color: rowMouse.containsMouse ? Theme.hover : "transparent"
+                    color: rowMouse.containsMouse || deviceRow.activeFocus
+                        || deviceRow.keyboardFocused ? Theme.hover : "transparent"
+                    border.width: deviceRow.activeFocus || deviceRow.keyboardFocused ? 1 : 0
+                    border.color: Theme.accentSoft
+                    activeFocusOnTab: true
 
                     Behavior on color { ColorAnimation { duration: 100 } }
 
@@ -315,6 +304,18 @@ PopupWindow {
                         onClicked: popup.activateDevice(deviceRow.device)
                     }
 
+                    function keyboardActivate() { popup.activateDevice(deviceRow.device); }
+
+                    Keys.onReturnPressed: {
+                        event.accepted = true;
+                        popup.activateDevice(deviceRow.device);
+                    }
+
+                    Keys.onSpacePressed: {
+                        event.accepted = true;
+                        popup.activateDevice(deviceRow.device);
+                    }
+
                     // Sibling placed after the row MouseArea so its own
                     // MouseArea receives forget clicks first.
                     Rectangle {
@@ -326,7 +327,12 @@ PopupWindow {
                         implicitWidth: 26
                         implicitHeight: 26
                         radius: 6
-                        color: forgetMouse.containsMouse ? "#2a181b" : "transparent"
+                        property bool keyboardFocused: false
+                        color: forgetMouse.containsMouse || activeFocus
+                            || keyboardFocused ? "#2a181b" : "transparent"
+                        border.width: activeFocus || keyboardFocused ? 1 : 0
+                        border.color: Theme.red
+                        activeFocusOnTab: visible
 
                         Text {
                             anchors.centerIn: parent
@@ -342,6 +348,18 @@ PopupWindow {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: deviceRow.device.forget()
+                        }
+
+                        function keyboardActivate() { deviceRow.device.forget(); }
+
+                        Keys.onReturnPressed: {
+                            event.accepted = true;
+                            deviceRow.device.forget();
+                        }
+
+                        Keys.onSpacePressed: {
+                            event.accepted = true;
+                            deviceRow.device.forget();
                         }
                     }
                 }

@@ -17,11 +17,8 @@ ColumnLayout {
         color: Theme.text
     }
 
-    Text {
+    SettingLabel {
         text: "Applications used by the bar, launcher and keybindings."
-        font.family: Theme.mono
-        font.pixelSize: 11
-        color: Theme.subtext
         wrapMode: Text.WordWrap
         Layout.fillWidth: true
     }

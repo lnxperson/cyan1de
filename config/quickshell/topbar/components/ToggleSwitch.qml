@@ -4,14 +4,20 @@ Rectangle {
     id: root
 
     property bool checked: false
+    property bool keyboardFocused: false
+
+    activeFocusOnTab: true
+
     signal toggled(bool checked)
 
     implicitWidth: 40
     implicitHeight: 22
     radius: 11
     color: root.checked ? Theme.accent : Theme.surfaceAlt
-    border.width: 1
-    border.color: root.checked ? Theme.accent : Theme.border
+    border.width: root.activeFocus || root.keyboardFocused ? 2 : 1
+    border.color: root.activeFocus || root.keyboardFocused
+        ? Theme.accentSoft
+        : (root.checked ? Theme.accent : Theme.border)
     scale: 1 - 0.03 * (toggleArea.containsPress ? 1 : 0)
 
     Behavior on color { ColorAnimation { duration: Theme.motionFast } }
@@ -48,5 +54,20 @@ Rectangle {
             root.checked = !root.checked;
             root.toggled(root.checked);
         }
+    }
+
+    function keyboardActivate() {
+        root.checked = !root.checked;
+        root.toggled(root.checked);
+    }
+
+    Keys.onReturnPressed: {
+        event.accepted = true;
+        toggleArea.clicked();
+    }
+
+    Keys.onSpacePressed: {
+        event.accepted = true;
+        toggleArea.clicked();
     }
 }

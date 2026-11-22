@@ -14,8 +14,41 @@ PanelWindow {
     id: bar
 
     property var modelData
+    property var shellRoot: null
     property var activePopup: null
     property bool switchingPopup: false
+
+    // HyprlandFocusGrab routes popup keys to this bar. The popup windows stay
+    // focusable by pointer, so keyboard navigation is dispatched from here
+    // instead of giving the popups an xdg keyboard grab that swallowed clicks.
+    Item {
+        id: popupKeySink
+        focus: true
+        activeFocusOnTab: false
+
+        Keys.onPressed: function (event) {
+            const popup = bar.activePopup;
+            if (!popup || !popup.popupSurface)
+                return;
+            popup.popupSurface.handleKey(event);
+        }
+    }
+
+    // A fixed grab list avoids tearing down and reacquiring the focus grab on
+    // every action-popup switch. Inactive popups are hidden, so they cannot
+    // receive input even though they stay in the list.
+    readonly property var allPopupWindows: [
+        bar, calendarPopup, actionPopupHost
+    ]
+
+    // Keep the existing bar bindings while the action popups now live inside
+    // one persistent host window.
+    readonly property var volumePopup: actionPopupHost.volumePopup
+    readonly property var brightnessPopup: actionPopupHost.brightnessPopup
+    readonly property var bluetoothPopup: actionPopupHost.bluetoothPopup
+    readonly property var networkPopup: actionPopupHost.networkPopup
+    readonly property var batteryPopup: actionPopupHost.batteryPopup
+    readonly property var powerPopup: actionPopupHost.powerPopup
 
     readonly property string notificationHistoryPath: Quickshell.env("HOME")
         + "/.config/quickshell/notification-history.json"
@@ -48,9 +81,25 @@ PanelWindow {
         function onIslandRevealedChanged() {
             bar.islandReveal = bar.islandRevealed ? 1 : 0;
         }
+
+        function onVisibleChanged() {
+            if (!bar.visible) {
+                bar.closePopup();
+                actionPopupHost.hideAll();
+            }
+        }
     }
 
-    Component.onCompleted: bar.islandReveal = bar.islandRevealed ? 1 : 0
+    Component.onCompleted: {
+        bar.islandReveal = bar.islandRevealed ? 1 : 0;
+        if (bar.shellRoot)
+            bar.shellRoot.registerBar(bar);
+    }
+
+    Component.onDestruction: {
+        if (bar.shellRoot)
+            bar.shellRoot.unregisterBar(bar);
+    }
 
     // Hide only the bar on the monitor whose active workspace is fullscreen.
     function fullscreenOnThisScreen() {
@@ -271,6 +320,35 @@ PanelWindow {
         objects: [Pipewire.defaultAudioSink, Pipewire.defaultAudioSource]
     }
 
+    function actionIconPoint(popup) {
+        const key = bar.popupActionKey(popup);
+        if (!key)
+            return null;
+        const item = bar.elementButton(key);
+        if (!item)
+            return null;
+        const icon = item.activeIconItem && item.activeIconItem.visible
+            ? item.activeIconItem : item;
+        const p = item.mapToItem(bar.contentItem,
+            item.iconVisualCenterX(), icon.height / 2);
+        return Qt.point(p.x, p.y);
+    }
+
+    // Match the popup slide to the direction the bar's active-action indicator
+    // travels. Vertical bars use the vertical axis instead.
+    function actionSwitchMotion(from, to) {
+        const a = bar.actionIconPoint(from);
+        const b = bar.actionIconPoint(to);
+        if (!a || !b)
+            return { direction: 1, horizontal: !bar.vertical };
+
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        if (bar.vertical || Math.abs(dy) > Math.abs(dx))
+            return { direction: dy >= 0 ? 1 : -1, horizontal: false };
+        return { direction: dx >= 0 ? 1 : -1, horizontal: true };
+    }
+
     function togglePopup(popup) {
         if (activePopup === popup) {
             closePopup();
@@ -280,10 +358,21 @@ PanelWindow {
         // Changing the focus-grab window list can briefly clear the grab. Keep
         // that from closing the popup we are switching to.
         switchingPopup = true;
-        if (activePopup)
-            activePopup.close();
-        activePopup = popup;
-        popup.open();
+        const fromKey = bar.popupActionKey(activePopup);
+        const toKey = bar.popupActionKey(popup);
+
+        if (fromKey && toKey) {
+            const motion = bar.actionSwitchMotion(activePopup, popup);
+            actionPopupHost.switchPopup(activePopup, popup,
+                motion.direction, motion.horizontal);
+            activePopup = popup;
+        } else {
+            if (activePopup)
+                activePopup.close();
+            activePopup = popup;
+            popup.open();
+        }
+        popupKeySink.forceActiveFocus(Qt.PopupFocusReason);
         Qt.callLater(function () { bar.switchingPopup = false; });
     }
 
@@ -291,6 +380,21 @@ PanelWindow {
         if (activePopup)
             activePopup.close();
         activePopup = null;
+    }
+
+    // Keyboard entry points used by the shell IPC handler.
+    function cycleActionPopup() {
+        const keys = actionPopupHost.cycleKeys;
+        if (!keys.length)
+            return;
+        const currentKey = bar.popupActionKey(activePopup);
+        const index = keys.indexOf(currentKey);
+        const nextKey = keys[(index + 1) % keys.length];
+        bar.togglePopup(actionPopupHost.contentFor(nextKey));
+    }
+
+    function toggleCalendar() {
+        bar.togglePopup(calendarPopup);
     }
 
     function shorten(text, length) {
@@ -641,12 +745,7 @@ PanelWindow {
     HyprlandFocusGrab {
         id: focusGrab
         active: bar.activePopup !== null
-        windows: {
-            const list = [bar];
-            if (bar.activePopup)
-                list.push(bar.activePopup);
-            return list;
-        }
+        windows: bar.allPopupWindows
         onCleared: {
             if (!bar.switchingPopup)
                 bar.closePopup();
@@ -1267,46 +1366,15 @@ PanelWindow {
         z: -1
     }
 
-    VolumePopup {
-        id: volumePopup
+    ActionPopupHost {
+        id: actionPopupHost
         bar: bar
-        target: bar.elementButton("volume")
-    }
-
-    BrightnessPopup {
-        id: brightnessPopup
-        bar: bar
-        target: bar.elementButton("brightness")
-    }
-
-    BluetoothPopup {
-        id: bluetoothPopup
-        bar: bar
-        target: bar.elementButton("bluetooth")
-    }
-
-    NetworkPopup {
-        id: networkPopup
-        bar: bar
-        target: bar.elementButton("network")
-    }
-
-    BatteryPopup {
-        id: batteryPopup
-        bar: bar
-        target: bar.elementButton("battery")
     }
 
     CalendarPopup {
         id: calendarPopup
         bar: bar
         target: bar.elementButton("clock")
-    }
-
-    PowerPopup {
-        id: powerPopup
-        bar: bar
-        target: bar.elementButton("power")
     }
 
     // ---- Active action indicator -------------------------------------
@@ -1317,13 +1385,9 @@ PanelWindow {
     property real actionIndicatorLeftNudge: 1
 
     function popupActionKey(popup) {
-        if (popup === bluetoothPopup) return "bluetooth";
-        if (popup === networkPopup) return "network";
-        if (popup === volumePopup) return "volume";
-        if (popup === brightnessPopup) return "brightness";
-        if (popup === batteryPopup) return "battery";
-        if (popup === powerPopup) return "power";
-        return "";
+        if (!popup || popup === calendarPopup)
+            return "";
+        return popup.actionKey || "";
     }
 
     function actionIndicatorGeometry() {
