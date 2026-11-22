@@ -6,6 +6,7 @@ import Quickshell.Bluetooth
 PopupWindow {
     id: popup
 
+
     property var bar
     property Item target
 
@@ -64,26 +65,22 @@ PopupWindow {
     }
 
     implicitWidth: 400
-    implicitHeight: surface.contentHeight
+    // Fixed so the popup height stays stable while its contents load.
+    implicitHeight: 320
     color: "transparent"
     visible: false
 
     anchor.window: bar
-    anchor.rect.x: {
-        if (!bar || !target)
-            return 0;
-        const p = target.mapToItem(bar.contentItem, 0, 0);
-        return Math.round(Math.max(8, Math.min(p.x + target.width - width, bar.width - width - 8)));
-    }
-    anchor.rect.y: bar ? bar.height + 2 : 0
+    anchor.rect.x: bar ? bar.actionPopupX(width) : 0
+    anchor.rect.y: bar ? bar.actionPopupY(height) : 0
 
     function open() {
-        visible = true;
+        surface.open();
         popup.requestScan();
     }
 
     function close() {
-        visible = false;
+        surface.close();
         popup.wantScan = false;
         if (popup.btAdapter && popup.btScanning)
             popup.btAdapter.discovering = false;
@@ -175,6 +172,7 @@ PopupWindow {
 
     onVisibleChanged: {
         if (!visible) {
+            surface.reset();
             popup.wantScan = false;
             if (popup.btAdapter && popup.btScanning)
                 popup.btAdapter.discovering = false;
@@ -185,6 +183,7 @@ PopupWindow {
 
     PopupSurface {
         id: surface
+        window: popup
         anchors.fill: parent
 
         // Header
@@ -236,7 +235,9 @@ PopupWindow {
         // Device list
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: Math.max(56, Math.min(288, popup.devices.length * 52))
+            Layout.fillHeight: true
+            Layout.minimumHeight: 0
+            Layout.preferredHeight: 0
 
             ListView {
                 id: listView

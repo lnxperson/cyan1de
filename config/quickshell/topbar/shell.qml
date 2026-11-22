@@ -2,9 +2,48 @@
 // Required: system-tray right-click menus use QtWidgets QMenu.
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import "components"
 
 ShellRoot {
+    id: root
+
+    // Global cursor position from Hyprland, used only by the island layout's
+    // edge-reveal behaviour. -1 means unknown, which keeps the bar visible.
+    property int cursorX: -1
+    property int cursorY: -1
+
+    Process {
+        id: cursorProbe
+        command: ["hyprctl", "cursorpos"]
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const parts = text.trim().split(",");
+                if (parts.length < 2)
+                    return;
+                const x = parseInt(parts[0], 10);
+                const y = parseInt(parts[1], 10);
+                if (!isNaN(x) && !isNaN(y)) {
+                    root.cursorX = x;
+                    root.cursorY = y;
+                }
+            }
+        }
+    }
+
+    // Singleton timers do not tick on 0.3.2, so poll from the shell root.
+    // Only island needs cursor tracking, so the process stays idle otherwise.
+    Timer {
+        interval: 120
+        repeat: true
+        running: Theme.barLayout === "island"
+        onTriggered: {
+            if (!cursorProbe.running)
+                cursorProbe.running = true;
+        }
+    }
+
     // Theme's singleton-internal Timer does not tick on Quickshell 0.3.2, so
     // drive its settings.json reload from the shell root where timers work.
     Timer {
@@ -37,11 +76,25 @@ ShellRoot {
     }
 
     Variants {
-        model: Quickshell.screens
+        model: {
+            const screens = Quickshell.screens;
+            const want = Theme.barDisplay;
+            if (!want || want === "all")
+                return screens;
+            const matched = [];
+            for (let i = 0; i < screens.length; i++) {
+                if (screens[i].name === want)
+                    matched.push(screens[i]);
+            }
+            // Keep a panel visible if the saved display is disconnected.
+            return matched.length > 0 ? matched : screens;
+        }
 
         Bar {
             property var modelData
             screen: modelData
+            cursorX: root.cursorX
+            cursorY: root.cursorY
         }
     }
 }

@@ -168,21 +168,12 @@ ColumnLayout {
             border.width: 1
             border.color: Theme.border
 
-            Rectangle {
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                width: 3
-                color: root.urgencyColor(modelData.urgency)
-            }
-
             ColumnLayout {
                 id: content
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
                 anchors.margins: 8
-                anchors.leftMargin: 12
                 spacing: 3
 
                 RowLayout {

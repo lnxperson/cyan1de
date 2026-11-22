@@ -7,6 +7,7 @@ Rectangle {
     property string label: ""
     property color accent: Theme.accent
     property bool danger: false
+    property real press: 0
 
     signal clicked()
 
@@ -18,8 +19,18 @@ Rectangle {
         : (danger ? "#1e1416" : Theme.surfaceAlt)
     border.width: 1
     border.color: danger ? "#4a2a2e" : Theme.border
+    scale: 1 - 0.025 * root.press
+    opacity: 1 - 0.06 * root.press
 
-    Behavior on color { ColorAnimation { duration: 120 } }
+    Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+    Behavior on border.color { ColorAnimation { duration: Theme.motionFast } }
+    Behavior on opacity { NumberAnimation { duration: Theme.motionFast } }
+    Behavior on scale {
+        NumberAnimation {
+            duration: Theme.motionFast
+            easing.type: Easing.OutCubic
+        }
+    }
 
     Row {
         id: row
@@ -50,6 +61,7 @@ Rectangle {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
+        onPressedChanged: root.press = containsPress ? 1 : 0
         onClicked: root.clicked()
     }
 }

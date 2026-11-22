@@ -14,7 +14,16 @@ ShellRoot {
     property real value: 0
     property bool muted: false
     property bool shown: false
+    property real reveal: 0
+    property bool closing: false
     property bool ready: false
+
+    Behavior on reveal {
+        NumberAnimation {
+            duration: osd.closing ? Theme.motionFast : Theme.motionBase
+            easing.type: Easing.OutCubic
+        }
+    }
 
     property string backlightDir: ""
     property int maxRaw: 0
@@ -55,6 +64,14 @@ ShellRoot {
 
     readonly property string valueText: muted ? "Muted" : Math.round(value * 100) + "%"
 
+    function present() {
+        exitTimer.stop();
+        closing = false;
+        shown = true;
+        reveal = 1;
+        hideTimer.restart();
+    }
+
     function flash(nextKind) {
         if (nextKind === "volume") {
             if (!sinkAudio)
@@ -70,24 +87,21 @@ ShellRoot {
             muted = sourceAudio.muted;
         }
 
-        shown = true;
-        hideTimer.restart();
+        present();
     }
 
     function flashBrightness(percent) {
         kind = "brightness";
         value = Math.max(0, Math.min(1, percent / 100));
         muted = false;
-        shown = true;
-        hideTimer.restart();
+        present();
     }
 
     function flashKeyboard(percent) {
         kind = "kbd";
         value = Math.max(0, Math.min(1, percent / 100));
         muted = false;
-        shown = true;
-        hideTimer.restart();
+        present();
     }
 
     function pollBrightness() {
@@ -148,7 +162,20 @@ ShellRoot {
     Timer {
         id: hideTimer
         interval: 1400
-        onTriggered: osd.shown = false
+        onTriggered: {
+            osd.closing = true;
+            osd.reveal = 0;
+            exitTimer.restart();
+        }
+    }
+
+    Timer {
+        id: exitTimer
+        interval: Theme.motionFast + 20
+        onTriggered: {
+            shown = false;
+            closing = false;
+        }
     }
 
     Connections {
@@ -258,8 +285,11 @@ ShellRoot {
         anchors {
             bottom: true
             left: true
-            right: true
         }
+        margins {
+            left: (screen ? Math.max(0, (screen.width - 340) / 2) : 0)
+        }
+        implicitWidth: 340
         implicitHeight: 150
         exclusiveZone: 0
         color: "transparent"
@@ -273,6 +303,7 @@ ShellRoot {
             anchors.margins: -1
             radius: card.radius + 1
             color: "#55000000"
+            opacity: osd.reveal
             z: -1
         }
 
@@ -286,9 +317,18 @@ ShellRoot {
             anchors.bottomMargin: 56
 
             radius: Theme.panelRadius
-            color: Theme.surface
+            color: Theme.panelFill(Theme.surface, "osd")
             border.width: 1
             border.color: Theme.border
+
+            opacity: osd.reveal
+            scale: Theme.motionEnterScale + (1 - Theme.motionEnterScale) * osd.reveal
+            transform: Translate {
+                y: (1 - osd.reveal) * Theme.motionEnterOffset
+            }
+
+            Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+            Behavior on border.color { ColorAnimation { duration: Theme.motionFast } }
 
             Item {
                 anchors.fill: parent
@@ -340,7 +380,12 @@ ShellRoot {
                         radius: parent.radius
                         color: osd.muted ? Theme.dim : osd.tone
 
-                        Behavior on width { NumberAnimation { duration: 110 } }
+                        Behavior on width {
+                            NumberAnimation {
+                                duration: Theme.motionBase
+                                easing.type: Easing.OutCubic
+                            }
+                        }
                     }
                 }
             }

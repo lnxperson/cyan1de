@@ -18,11 +18,9 @@ ComboBox {
     model: root.options
     currentIndex: Math.max(0, root.options.indexOf(root.selected))
 
-    onCurrentIndexChanged: {
-        if (root.options.length > 0 && currentIndex >= 0 &&
-            root.options[currentIndex] !== root.selected)
-            root.picked(root.options[currentIndex]);
-    }
+    // Only emit picked from an actual popup selection. Listening to
+    // currentIndexChanged also fires when an async options list is replaced,
+    // which could silently overwrite a saved value with the first option.
 
     implicitHeight: 28
     implicitWidth: 220
@@ -89,6 +87,7 @@ ComboBox {
                 onClicked: {
                     root.currentIndex = index;
                     root.popup.close();
+                    root.picked(root.options[index]);
                 }
             }
         }

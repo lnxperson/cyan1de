@@ -5,6 +5,7 @@ import Quickshell
 PopupWindow {
     id: popup
 
+
     property var bar
     property Item target
     property date viewMonth: new Date()
@@ -14,22 +15,20 @@ PopupWindow {
     readonly property int daysInMonth: new Date(viewYear, viewMonthIndex + 1, 0).getDate()
     readonly property int firstDayOffset: (new Date(viewYear, viewMonthIndex, 1).getDay() + 6) % 7
 
-    implicitWidth: Theme.calendarNotifications ? 680 : 380
-    implicitHeight: surface.contentHeight
+    implicitWidth: Math.max(380, Theme.calendarWidth)
+    // Fixed so the popup height stays stable while its contents load.
+    implicitHeight: 510
     color: "transparent"
     visible: false
 
     anchor.window: bar
-    anchor.rect.x: {
-        if (!bar || !target)
-            return 0;
-        const p = target.mapToItem(bar.contentItem, 0, 0);
-        return Math.round(Math.max(8, Math.min(p.x + target.width / 2 - width / 2, bar.width - width - 8)));
-    }
-    anchor.rect.y: bar ? bar.height + 2 : 0
+    anchor.rect.x: bar ? bar.popupX(target, width, "center") : 0
+    anchor.rect.y: bar ? bar.popupY(target, height, "center") : 0
 
-    function open() { visible = true; }
-    function close() { visible = false; }
+    function open() { surface.open(); }
+    function close() { surface.close(); }
+
+    onVisibleChanged: if (!visible) surface.reset()
 
     function shiftMonth(delta) {
         viewMonth = new Date(viewYear, viewMonthIndex + delta, 1);
@@ -48,6 +47,7 @@ PopupWindow {
 
     PopupSurface {
         id: surface
+        window: popup
         anchors.fill: parent
         padding: 18
 
@@ -81,9 +81,21 @@ PopupWindow {
             color: Theme.border
         }
 
+        // Media can sit above or below the calendar. The header and divider
+        // above always stay first.
+        Item {
+            id: mediaTopSlot
+            Layout.fillWidth: true
+            implicitHeight: Theme.calendarMedia
+                && Theme.calendarMediaPosition === "top"
+                ? mediaControls.implicitHeight : 0
+        }
+
         RowLayout {
             Layout.fillWidth: true
             spacing: 14
+            layoutDirection: Theme.calendarNotificationsSide === "left"
+                ? Qt.RightToLeft : Qt.LeftToRight
 
             ColumnLayout {
                 Layout.alignment: Qt.AlignTop
@@ -117,6 +129,8 @@ PopupWindow {
                             anchors.fill: parent
                             radius: 7
                             color: prevMouse.containsMouse ? Theme.hover : "transparent"
+
+                            Behavior on color { ColorAnimation { duration: Theme.motionFast } }
                         }
 
                         Text {
@@ -144,6 +158,8 @@ PopupWindow {
                             anchors.fill: parent
                             radius: 7
                             color: nextMouse.containsMouse ? Theme.hover : "transparent"
+
+                            Behavior on color { ColorAnimation { duration: Theme.motionFast } }
                         }
 
                         Text {
@@ -209,9 +225,24 @@ PopupWindow {
                                 width: 32
                                 height: 28
                                 radius: 7
-                                color: dayCell.isToday ? Theme.active : "transparent"
+                                color: dayCell.isToday
+                                    ? Theme.active
+                                    : (dayMouse.containsMouse ? Theme.hover : "transparent")
                                 border.width: dayCell.isToday ? 1 : 0
                                 border.color: Theme.accent
+                                scale: dayCell.isToday
+                                    ? 1.06 : (dayMouse.containsMouse ? 1.03 : 1)
+
+                                Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+                                Behavior on border.width {
+                                    NumberAnimation { duration: Theme.motionFast }
+                                }
+                                Behavior on scale {
+                                    NumberAnimation {
+                                        duration: Theme.motionFast
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
                             }
 
                             Text {
@@ -220,7 +251,20 @@ PopupWindow {
                                 text: dayCell.day
                                 font.family: Theme.mono
                                 font.pixelSize: 12
-                                color: dayCell.isToday ? Theme.accent : Theme.text
+                                color: dayCell.isToday
+                                    ? Theme.accent
+                                    : (dayMouse.containsMouse ? Theme.accentSoft : Theme.text)
+
+                                Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+                            }
+
+                            MouseArea {
+                                id: dayMouse
+                                anchors.fill: parent
+                                acceptedButtons: Qt.NoButton
+                                hoverEnabled: dayCell.inMonth
+                                cursorShape: dayCell.inMonth
+                                    ? Qt.PointingHandCursor : Qt.ArrowCursor
                             }
                         }
                     }
@@ -241,8 +285,19 @@ PopupWindow {
             }
         }
 
-        MediaControls {
+        Item {
+            id: mediaBottomSlot
             Layout.fillWidth: true
+            implicitHeight: Theme.calendarMedia
+                && Theme.calendarMediaPosition !== "top"
+                ? mediaControls.implicitHeight : 0
         }
+    }
+
+    MediaControls {
+        id: mediaControls
+        parent: Theme.calendarMediaPosition === "top"
+            ? mediaTopSlot : mediaBottomSlot
+        anchors.fill: parent
     }
 }

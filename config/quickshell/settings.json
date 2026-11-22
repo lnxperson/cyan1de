@@ -10,7 +10,7 @@
       "pill": "#ffffff"
     }
   },
-  "wallpaper": "",
+  "wallpaper": "~/Pictures/Wallpapers/eclipse.png",
   "wallpaperMode": "crop",
   "bar": {
     "accent": "#7cc7f5",
@@ -18,13 +18,50 @@
     "pill": "#121722",
     "pillBorder": "#2b3547",
     "text": "#cdd6e6",
-    "pillHeight": 34,
+    "layout": "pills",
+    "edge": "top",
+    "display": "all",
+    "unifiedCorners": false,
+    "panelHeight": 34,
     "pillRadius": 12,
     "sideMargin": 10,
     "fontSize": 12,
     "iconSize": 15,
     "pillOpacity": 1,
     "calendarMedia": true,
+    "calendarMediaPosition": "bottom",
+    "calendarNotificationsSide": "right",
+    "calendarWidth": 680,
+    "elements": {
+      "appMenu": true,
+      "workspaces": true,
+      "clock": true,
+      "tray": true,
+      "bluetooth": true,
+      "network": true,
+      "volume": true,
+      "brightness": true,
+      "battery": true,
+      "power": true
+    },
+    "elementLayout": {
+      "left": [
+        "appMenu",
+        "workspaces"
+      ],
+      "center": [
+        "clock"
+      ],
+      "right": [
+        "tray",
+        "bluetooth",
+        "network",
+        "volume",
+        "brightness",
+        "battery",
+        "power"
+      ]
+    },
     "pills": {
       "left": 0,
       "center": 0.5,
@@ -42,7 +79,7 @@
     "gapsIn": 5,
     "gapsOut": 5,
     "blur": true,
-    "blurSize": 5,
+    "blurSize": 10,
     "alacrittyBlur": true,
     "alacrittyBlurStrength": 60,
     "animWindowOpen": "popin 87%",
@@ -52,6 +89,14 @@
     "animOpenCurve": "easy",
     "animCloseCurve": "linear",
     "animSpeed": 10
+  },
+  "idle": {
+    "enabled": true,
+    "dim": true,
+    "dimTimeout": 150,
+    "dimLevel": 10,
+    "lock": true,
+    "lockTimeout": 300
   },
   "notifications": {
     "position": "top-right",
@@ -64,13 +109,5 @@
     "calendarNotifications": true,
     "lowBatteryEnabled": true,
     "lowBatteryThreshold": 20
-  },
-  "idle": {
-    "enabled": true,
-    "dim": true,
-    "dimTimeout": 150,
-    "dimLevel": 10,
-    "lock": true,
-    "lockTimeout": 300
   }
 }

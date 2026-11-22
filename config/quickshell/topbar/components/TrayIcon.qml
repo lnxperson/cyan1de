@@ -1,12 +1,11 @@
 import QtQuick
-import Quickshell
 import "."
 
 Item {
     id: root
 
     property var item: null
-    property var bar: null
+    property var ownerBar: null
     property bool menuWasOpen: false
     property alias menuOpen: menu.visible
 
@@ -16,7 +15,7 @@ Item {
     TrayMenu {
         id: menu
         anchorItem: root
-        ownerWindow: root.bar
+        ownerWindow: root.ownerBar
         handle: root.item ? root.item.menu : null
     }
 
@@ -24,6 +23,8 @@ Item {
         anchors.fill: parent
         radius: 6
         color: mouse.containsMouse ? Theme.hover : "transparent"
+
+        Behavior on color { ColorAnimation { duration: Theme.motionFast } }
     }
 
     Image {
@@ -33,6 +34,14 @@ Item {
         sourceSize.height: 16
         smooth: true
         asynchronous: true
+        scale: mouse.containsMouse ? 1.08 : 1
+
+        Behavior on scale {
+            NumberAnimation {
+                duration: Theme.motionFast
+                easing.type: Easing.OutCubic
+            }
+        }
     }
 
     MouseArea {
@@ -47,7 +56,7 @@ Item {
             if (event.button === Qt.RightButton ||
                 (event.button === Qt.LeftButton && root.item && root.item.onlyMenu && root.item.hasMenu)) {
                 // Capture this before any focus-grab side effects can close it.
-                root.menuWasOpen = TrayMenuState.current === menu && menu.visible;
+                root.menuWasOpen = TrayMenuState.current === menu && menu.isOpen();
             }
         }
 
@@ -76,7 +85,7 @@ Item {
         if (!root.item || !root.item.hasMenu || !root.item.menu)
             return;
 
-        if (root.menuWasOpen || (TrayMenuState.current === menu && menu.visible)) {
+        if (root.menuWasOpen || (TrayMenuState.current === menu && menu.isOpen())) {
             menu.hide();
             root.menuWasOpen = false;
             return;
@@ -84,6 +93,6 @@ Item {
 
         root.menuWasOpen = false;
         menu.handle = root.item.menu;
-        menu.visible = true;
+        menu.open();
     }
 }

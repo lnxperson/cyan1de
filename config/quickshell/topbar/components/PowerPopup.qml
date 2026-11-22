@@ -5,28 +5,25 @@ import Quickshell
 PopupWindow {
     id: popup
 
+
     property var bar
     property Item target
     property string pending: ""
     property var pendingCommand: null
 
-    implicitWidth: 320
-    implicitHeight: surface.contentHeight
+    implicitWidth: 400
+    // Fixed so every action popup shares one consistent size.
+    implicitHeight: 320
     color: "transparent"
     visible: false
 
     anchor.window: bar
-    anchor.rect.x: {
-        if (!bar || !target)
-            return 0;
-        const p = target.mapToItem(bar.contentItem, 0, 0);
-        return Math.round(Math.max(8, Math.min(p.x + target.width - width, bar.width - width - 8)));
-    }
-    anchor.rect.y: bar ? bar.height + 2 : 0
+    anchor.rect.x: bar ? bar.actionPopupX(width) : 0
+    anchor.rect.y: bar ? bar.actionPopupY(height) : 0
 
-    function open() { visible = true; }
+    function open() { surface.open(); }
     function close() {
-        visible = false;
+        surface.close();
         pending = "";
         pendingCommand = null;
     }
@@ -50,6 +47,7 @@ PopupWindow {
 
     onVisibleChanged: {
         if (!visible) {
+            surface.reset();
             pending = "";
             pendingCommand = null;
         }
@@ -66,6 +64,7 @@ PopupWindow {
 
     PopupSurface {
         id: surface
+        window: popup
         anchors.fill: parent
 
         RowLayout {
@@ -146,19 +145,12 @@ PopupWindow {
 
             ActionButton {
                 Layout.fillWidth: true
+                Layout.columnSpan: 2
                 icon: "󰐥"
                 label: popup.pending === "shutdown" ? "Confirm?" : "Shut down"
                 accent: Theme.red
                 danger: popup.pending === "shutdown"
                 onClicked: popup.request("shutdown", ["systemctl", "poweroff"])
-            }
-
-            ActionButton {
-                Layout.fillWidth: true
-                icon: "󰶐"
-                label: "Screen off"
-                accent: Theme.subtext
-                onClicked: popup.runNow(["hyprctl", "dispatch", "dpms", "off"])
             }
         }
     }

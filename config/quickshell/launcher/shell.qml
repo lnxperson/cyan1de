@@ -11,6 +11,8 @@ ShellRoot {
     id: root
 
     property bool shown: false
+    property real reveal: 0
+    property bool closing: false
     property string query: ""
     property int selected: 0
 
@@ -29,6 +31,13 @@ ShellRoot {
         : ""
     property var fileResults: []
     property bool searching: false
+
+    Behavior on reveal {
+        NumberAnimation {
+            duration: root.closing ? Theme.motionFast : Theme.motionBase
+            easing.type: Easing.OutCubic
+        }
+    }
 
     // Defaults mirror Settings -> Programs; refreshed from programs.lua on open.
     property string terminalCmd: "alacritty"
@@ -107,28 +116,50 @@ ShellRoot {
     }
 
     function open() {
-        if (root.shown) {
+        if (root.shown && !root.closing) {
             focusTimer.restart();
             return;
         }
 
-        field.text = "";
-        root.query = "";
-        root.selected = 0;
+        exitTimer.stop();
+        if (!root.shown) {
+            field.text = "";
+            root.query = "";
+            root.selected = 0;
+        }
+        root.closing = false;
         root.shown = true;
+        root.reveal = 1;
         programsProbe.running = false;
         programsProbe.running = true;
         focusTimer.restart();
     }
 
     function close() {
-        root.shown = false;
-        fileSearchDebounce.stop();
-        root.searching = false;
+        if (!root.shown || root.closing)
+            return;
+        root.closing = true;
+        root.reveal = 0;
+        focusTimer.stop();
+        exitTimer.restart();
+    }
+
+    Timer {
+        id: exitTimer
+        interval: Theme.motionFast + 20
+        onTriggered: {
+            shown = false;
+            closing = false;
+            fileSearchDebounce.stop();
+            searching = false;
+            field.text = "";
+            query = "";
+            selected = 0;
+        }
     }
 
     function toggle() {
-        if (root.shown)
+        if (root.shown && !root.closing)
             root.close();
         else
             root.open();
@@ -595,7 +626,7 @@ ShellRoot {
         focusable: true
 
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.namespace: "quickshell-launcher"
+        WlrLayershell.namespace: "quickshell-launcher-surface"
         WlrLayershell.keyboardFocus: root.shown
             ? WlrKeyboardFocus.Exclusive
             : WlrKeyboardFocus.None
@@ -610,6 +641,7 @@ ShellRoot {
             anchors.margins: -1
             radius: card.radius + 1
             color: "#66000000"
+            opacity: root.reveal
             z: -1
         }
 
@@ -621,9 +653,18 @@ ShellRoot {
             anchors.centerIn: parent
             anchors.verticalCenterOffset: -30
             radius: Theme.panelRadius
-            color: Theme.surface
+            color: Theme.panelFill(Theme.surface, "launcher")
             border.width: 1
             border.color: Theme.border
+
+            opacity: root.reveal
+            scale: Theme.motionEnterScale + (1 - Theme.motionEnterScale) * root.reveal
+            transform: Translate {
+                y: -(1 - root.reveal) * Theme.motionEnterOffset
+            }
+
+            Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+            Behavior on border.color { ColorAnimation { duration: Theme.motionFast } }
 
             MouseArea {
                 anchors.fill: parent
@@ -715,6 +756,44 @@ ShellRoot {
                         spacing: 2
                         boundsBehavior: Flickable.StopAtBounds
 
+                        add: Transition {
+                            NumberAnimation {
+                                property: "opacity"
+                                from: 0
+                                to: 1
+                                duration: Theme.motionBase
+                                easing.type: Easing.OutCubic
+                            }
+                            NumberAnimation {
+                                property: "scale"
+                                from: Theme.motionEnterScale
+                                to: 1
+                                duration: Theme.motionBase
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+                        remove: Transition {
+                            NumberAnimation {
+                                property: "opacity"
+                                to: 0
+                                duration: Theme.motionFast
+                                easing.type: Easing.OutCubic
+                            }
+                            NumberAnimation {
+                                property: "scale"
+                                to: Theme.motionEnterScale
+                                duration: Theme.motionFast
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+                        displaced: Transition {
+                            NumberAnimation {
+                                property: "y"
+                                duration: Theme.motionBase
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+
                         delegate: Rectangle {
                             id: row
 
@@ -735,8 +814,15 @@ ShellRoot {
                             color: highlighted
                                 ? Theme.active
                                 : (rowMouse.containsMouse ? Theme.hover : "transparent")
+                            scale: 1 - 0.02 * (rowMouse.containsPress ? 1 : 0)
 
-                            Behavior on color { ColorAnimation { duration: 90 } }
+                            Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+                            Behavior on scale {
+                                NumberAnimation {
+                                    duration: Theme.motionFast
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
 
                             RowLayout {
                                 anchors.fill: parent
@@ -868,8 +954,8 @@ ShellRoot {
 
                         Item {
                             id: calcHint
-                            width: calcHintText.width
-                            height: calcHintText.height
+                            Layout.preferredWidth: calcHintText.width
+                            Layout.preferredHeight: calcHintText.height
                             Layout.alignment: Qt.AlignVCenter
 
                             Text {
@@ -896,8 +982,8 @@ ShellRoot {
 
                         Item {
                             id: fileHint
-                            width: fileHintText.width
-                            height: fileHintText.height
+                            Layout.preferredWidth: fileHintText.width
+                            Layout.preferredHeight: fileHintText.height
                             Layout.alignment: Qt.AlignVCenter
 
                             Text {
@@ -924,8 +1010,8 @@ ShellRoot {
 
                         Item {
                             id: webHint
-                            width: webHintText.width
-                            height: webHintText.height
+                            Layout.preferredWidth: webHintText.width
+                            Layout.preferredHeight: webHintText.height
                             Layout.alignment: Qt.AlignVCenter
 
                             Text {

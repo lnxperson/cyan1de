@@ -27,6 +27,8 @@ ColumnLayout {
             font.family: Theme.font
             font.pixelSize: Theme.iconSize + 1
             color: root.muted ? Theme.dim : Theme.text
+
+            Behavior on color { ColorAnimation { duration: Theme.motionFast } }
         }
 
         Text {
@@ -43,6 +45,8 @@ ColumnLayout {
             font.family: Theme.mono
             font.pixelSize: 12
             color: root.muted ? Theme.red : Theme.text
+
+            Behavior on color { ColorAnimation { duration: Theme.motionFast } }
         }
 
         Item {
@@ -54,6 +58,8 @@ ColumnLayout {
                 anchors.fill: parent
                 radius: 6
                 color: muteMouse.containsMouse ? Theme.hover : "transparent"
+
+                Behavior on color { ColorAnimation { duration: Theme.motionFast } }
             }
 
             Text {
@@ -62,6 +68,8 @@ ColumnLayout {
                 font.family: Theme.font
                 font.pixelSize: Theme.iconSize
                 color: root.muted ? Theme.red : Theme.subtext
+
+                Behavior on color { ColorAnimation { duration: Theme.motionFast } }
             }
 
             MouseArea {
@@ -102,6 +110,8 @@ ColumnLayout {
                 height: parent.height
                 radius: parent.radius
                 color: root.muted ? Theme.dim : root.accent
+
+                Behavior on color { ColorAnimation { duration: Theme.motionFast } }
             }
         }
 
@@ -114,6 +124,15 @@ ColumnLayout {
             color: root.muted ? Theme.subtext : Theme.accentSoft
             border.width: 2
             border.color: Theme.surface
+            scale: slider.pressed ? 1.15 : 1
+
+            Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+            Behavior on scale {
+                NumberAnimation {
+                    duration: Theme.motionFast
+                    easing.type: Easing.OutCubic
+                }
+            }
         }
     }
 }

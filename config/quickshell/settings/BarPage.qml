@@ -6,87 +6,42 @@ ColumnLayout {
     id: root
 
     property var app
+    property string section: "panel"
 
-    // All preview pills share one width. That lets the three magnetic fields
-    // be larger than the pills while still centering each pill perfectly.
-    readonly property int previewPillWidth: 210
-    readonly property int slotWidth: 230
-    // Pull the two outer fields slightly inward so they don't sit flush
-    // against the preview edges.
-    readonly property int fieldInset: 10
+    readonly property var sectionHints: ({
+        panel: "Panel layout, elements, calendar and the live drag preview.",
+        theme: "Theme mode, panel colours and sizing.",
+        cursor: "Pointer theme and size, applied instantly.",
+        wallpaper: "Choose the wallpaper and how it fills the screen.",
+        effects: "Animation styles, speed and blur. Press Apply for Hyprland changes.",
+        windows: "Window borders, rounding and gaps. Press Apply for Hyprland changes."
+    })
 
-    readonly property var darkSurfacePresets: ["#0a0c11", "#11141b", "#171b24", "#1a202b", "#202634"]
-    readonly property var lightSurfacePresets: ["#ffffff", "#f8fafc", "#f1f5f9", "#e8edf3", "#dde3ea", "#e6e8eb"]
-    readonly property var darkPillPresets: ["#0a0c11", "#11141b", "#121722", "#171b24", "#1d2433"]
-    readonly property var lightPillPresets: ["#ffffff", "#f8fafc", "#f1f5f9", "#e9edf2", "#dfe4ea", "#eef1f5"]
-
-    property string draggingPill: ""
-    property int activeSlot: -1
-
-    // Offset belongs to the slot, not the pill, so pills stay centred even
-    // after they swap places.
-    function slotInset(fraction) {
-        if (fraction <= 0.0001) return fieldInset;
-        if (fraction >= 0.9999) return -fieldInset;
-        return 0;
+    // Displays offered by the panel placement controls. The saved value is
+    // kept selectable even when that display is temporarily unplugged.
+    readonly property var panelDisplayOptions: {
+        const list = ["all"];
+        for (let i = 0; i < root.app.monitorCount; i++) {
+            const mon = root.app.monitorAt(i);
+            if (mon && mon.name && list.indexOf(mon.name) < 0)
+                list.push(mon.name);
+        }
+        if (root.app.barDisplay !== "all" &&
+            list.indexOf(root.app.barDisplay) < 0)
+            list.push(root.app.barDisplay);
+        return list;
     }
-
-    function slotX(index) {
-        if (!root.app) return 0;
-        const margin = root.app.barSideMargin;
-        const span = Math.max(0, preview.width - margin * 2 - previewPillWidth);
-        // Pill centre at this slot, shifted back by half the field width.
-        return margin + index * 0.5 * span + (previewPillWidth - slotWidth) / 2
-            + slotInset(index * 0.5);
-    }
-
-    function beginDrag(which) {
-        root.draggingPill = which;
-    }
-
-    function endDrag() {
-        root.draggingPill = "";
-        root.activeSlot = -1;
-    }
-
-    function dragTo(which, area, grabOffset) {
-        if (!root.app || !area.pressed) return;
-        const margin = root.app.barSideMargin;
-        const span = Math.max(1, preview.width - margin * 2 - area.parent.width);
-        const absoluteX = area.mapToItem(preview, area.mouseX, area.mouseY).x;
-        const raw = (absoluteX - grabOffset - margin) / span;
-        const slot = root.app.barPillSnapSlot(raw);
-        root.activeSlot = slot < 0 ? -1 : Math.round(slot * 2);
-        root.app.setBarPillPosition(which, raw);
-    }
-
-    function pillFraction(which) {
-        if (!root.app) return 0;
-        if (which === "center") return root.app.barPillCenter;
-        if (which === "right") return root.app.barPillRight;
-        return root.app.barPillLeft;
-    }
-
-    function previewX(which, pillWidth) {
-        if (!root.app) return 0;
-        const margin = root.app.barSideMargin;
-        const span = Math.max(0, preview.width - margin * 2 - pillWidth);
-        const fraction = pillFraction(which);
-        return margin + fraction * span + slotInset(fraction);
+    readonly property var panelDisplayLabels: {
+        const labels = { "all": "All displays" };
+        for (let i = 1; i < root.panelDisplayOptions.length; i++)
+            labels[root.panelDisplayOptions[i]] = root.panelDisplayOptions[i];
+        return labels;
     }
 
     spacing: 14
 
     Text {
-        text: "Appearance"
-        font.family: Theme.mono
-        font.pixelSize: 20
-        font.weight: Font.DemiBold
-        color: Theme.text
-    }
-
-    Text {
-        text: "Wallpaper, Quickshell panels, and Hyprland look & feel. Quickshell changes are instant; window values apply with Apply. Pills only sit in the three marked spots."
+        text: String(root.sectionHints[root.section] || "")
         font.family: Theme.mono
         font.pixelSize: 11
         color: Theme.subtext
@@ -96,6 +51,7 @@ ColumnLayout {
 
     SectionCard {
         Layout.fillWidth: true
+        visible: root.section === "theme"
         title: "THEME"
 
         ToggleRow {
@@ -109,234 +65,306 @@ ColumnLayout {
 
     SectionCard {
         Layout.fillWidth: true
-        title: "CALENDAR"
+        visible: root.section === "cursor"
+        title: "CURSOR"
+        subtitle: "Pointer theme and size apply immediately. Press Apply to write them into Hyprland's environment."
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            Text {
+                Layout.preferredWidth: 150
+                text: "Theme"
+                font.family: Theme.mono
+                font.pixelSize: 11
+                color: Theme.subtext
+            }
+
+            OptionCombo {
+                options: root.app.cursorThemeOptions
+                labels: root.app.cursorThemeLabels
+                selected: root.app.cursorTheme
+                onPicked: value => root.app.setCursorTheme(value)
+            }
+
+            SettingsButton {
+                text: "Rescan"
+                tooltip: "Look for installed cursor themes again"
+                onClicked: root.app.scanCursors()
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
+        SliderField {
+            Layout.fillWidth: true
+            label: "Pointer size"
+            from: 12
+            to: 64
+            stepSize: 2
+            value: root.app.cursorSize
+            suffix: "px"
+            onMoved: value => root.app.setCursorSize(Math.round(value))
+        }
+
+        Text {
+            Layout.fillWidth: true
+            text: "Some Qt apps pick up a new Xcursor theme only after they restart."
+            font.family: Theme.mono
+            font.pixelSize: 9
+            color: Theme.dim
+            wrapMode: Text.WordWrap
+        }
+    }
+
+    SectionCard {
+        Layout.fillWidth: true
+        visible: root.section === "panel"
+        title: "PANEL"
+        subtitle: "Choose how the bar is arranged, which screen edge it sits on, and where it appears."
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            Text {
+                Layout.preferredWidth: 150
+                text: "Layout"
+                font.family: Theme.mono
+                font.pixelSize: 11
+                color: Theme.subtext
+            }
+
+            OptionCombo {
+                options: root.app.barLayoutOptions
+                labels: root.app.barLayoutLabels
+                selected: root.app.barLayout
+                onPicked: value => { root.app.barLayout = value; root.app.queueSave() }
+            }
+
+            SettingsButton {
+                visible: root.app.barLayout === "unified"
+                text: root.app.barUnifiedCorners ? "Corners: on" : "Corners: off"
+                primary: root.app.barUnifiedCorners
+                onClicked: {
+                    root.app.barUnifiedCorners = !root.app.barUnifiedCorners;
+                    root.app.queueSave();
+                }
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            Text {
+                Layout.preferredWidth: 150
+                text: "Edge"
+                font.family: Theme.mono
+                font.pixelSize: 11
+                color: Theme.subtext
+            }
+
+            OptionCombo {
+                options: root.app.barEdgeOptions
+                labels: root.app.barEdgeLabels
+                selected: root.app.barEdge
+                onPicked: value => { root.app.barEdge = value; root.app.queueSave() }
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            Text {
+                Layout.preferredWidth: 150
+                text: "Display"
+                font.family: Theme.mono
+                font.pixelSize: 11
+                color: Theme.subtext
+            }
+
+            OptionCombo {
+                options: root.panelDisplayOptions
+                labels: root.panelDisplayLabels
+                selected: root.app.barDisplay
+                onPicked: value => { root.app.barDisplay = value; root.app.queueSave() }
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+    }
+
+    SectionCard {
+        Layout.fillWidth: true
+        visible: root.section === "panel"
+        title: "PANEL ELEMENTS"
+        subtitle: "Hidden elements are removed from the bar and from its layout."
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "Application menu"
+            hint: "Launcher button"
+            checked: root.app.barShowAppMenu
+            onToggled: value => { root.app.barShowAppMenu = value; root.app.queueSave() }
+        }
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "Workspaces"
+            hint: "Workspace switcher"
+            checked: root.app.barShowWorkspaces
+            onToggled: value => { root.app.barShowWorkspaces = value; root.app.queueSave() }
+        }
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "Clock"
+            hint: "Opens the calendar pop-up"
+            checked: root.app.barShowClock
+            onToggled: value => { root.app.barShowClock = value; root.app.queueSave() }
+        }
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "System tray"
+            hint: "Tray icons and their separator"
+            checked: root.app.barShowTray
+            onToggled: value => { root.app.barShowTray = value; root.app.queueSave() }
+        }
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "Bluetooth"
+            checked: root.app.barShowBluetooth
+            onToggled: value => { root.app.barShowBluetooth = value; root.app.queueSave() }
+        }
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "Network"
+            checked: root.app.barShowNetwork
+            onToggled: value => { root.app.barShowNetwork = value; root.app.queueSave() }
+        }
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "Volume"
+            checked: root.app.barShowVolume
+            onToggled: value => { root.app.barShowVolume = value; root.app.queueSave() }
+        }
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "Brightness"
+            checked: root.app.barShowBrightness
+            onToggled: value => { root.app.barShowBrightness = value; root.app.queueSave() }
+        }
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "Battery"
+            checked: root.app.barShowBattery
+            onToggled: value => { root.app.barShowBattery = value; root.app.queueSave() }
+        }
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "Power"
+            checked: root.app.barShowPower
+            onToggled: value => { root.app.barShowPower = value; root.app.queueSave() }
+        }
+    }
+
+    SectionCard {
+        Layout.fillWidth: true
+        visible: root.section === "panel"
+        title: "CALENDAR LAYOUT"
+        subtitle: "Arrange what appears inside the calendar pop-up."
 
         ToggleRow {
             Layout.fillWidth: true
             label: "Media controls"
-            hint: "Show at the bottom of the calendar pop-up"
+            hint: "Show media player controls"
             checked: root.app.calendarMedia
             onToggled: value => { root.app.calendarMedia = value; root.app.queueSave() }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            Text {
+                Layout.preferredWidth: 150
+                text: "Media position"
+                font.family: Theme.mono
+                font.pixelSize: 11
+                color: Theme.subtext
+            }
+
+            OptionCombo {
+                options: ["bottom", "top"]
+                labels: ({ "bottom": "Bottom", "top": "Top" })
+                selected: root.app.calendarMediaPosition
+                onPicked: value => { root.app.calendarMediaPosition = value; root.app.queueSave() }
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            Text {
+                Layout.preferredWidth: 150
+                text: "Notifications"
+                font.family: Theme.mono
+                font.pixelSize: 11
+                color: Theme.subtext
+            }
+
+            OptionCombo {
+                options: ["right", "left"]
+                labels: ({ "right": "Right", "left": "Left" })
+                selected: root.app.calendarNotificationsSide
+                onPicked: value => { root.app.calendarNotificationsSide = value; root.app.queueSave() }
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
+        SliderField {
+            Layout.fillWidth: true
+            label: "Popup width"
+            from: 380
+            to: 1100
+            stepSize: 10
+            value: root.app.calendarWidth
+            suffix: "px"
+            onMoved: value => { root.app.calendarWidth = Math.round(value); root.app.queueSave() }
         }
     }
 
     // ---- Live preview -------------------------------------------------
-    Rectangle {
-        id: preview
-
+    BarPreview {
         Layout.fillWidth: true
-        implicitHeight: 86
-        radius: Theme.panelRadius
-        color: Theme.bg
-        border.width: 1
-        border.color: Theme.border
-
-        // Three shared magnetic drop spots. Any pill can land in any spot.
-        Repeater {
-            model: 3
-
-            Rectangle {
-                x: root.slotX(index)
-                anchors.verticalCenter: parent.verticalCenter
-                width: root.slotWidth
-                height: preview.height - 16
-                radius: Theme.panelRadius
-                color: "transparent"
-                border.width: root.activeSlot === index ? 2 : 1
-                border.color: Theme.accent
-                opacity: root.activeSlot === index
-                    ? 0.9
-                    : (root.draggingPill !== "" ? 0.38 : 0.16)
-
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.bottom: parent.bottom
-                    anchors.bottomMargin: 4
-                    text: ["LEFT", "CENTER", "RIGHT"][index]
-                    font.family: Theme.mono
-                    font.pixelSize: 8
-                    color: Theme.accent
-                }
-            }
-        }
-
-        Rectangle {
-            id: leftPill
-
-            x: root.previewX("left", width)
-            anchors.verticalCenter: parent.verticalCenter
-            width: root.previewPillWidth
-            height: root.app.barPillHeight
-            radius: root.app.barPillRadius
-            color: Theme.pillFill
-            border.width: 1
-            border.color: Theme.pillBorder
-            clip: true
-
-            Rectangle {
-                anchors.fill: parent
-                color: "#000000"
-                opacity: 1.0 - root.app.barPillOpacity
-            }
-
-            Row {
-                anchors.centerIn: parent
-                spacing: 2
-                Repeater {
-                    model: 10
-                    delegate: Rectangle {
-                        required property int index
-                        width: 15
-                        height: 16
-                        radius: 4
-                        color: index === 1 ? Theme.active : "transparent"
-                        border.width: index === 1 ? 1 : 0
-                        border.color: Theme.accent
-                        Text {
-                            anchors.centerIn: parent
-                            text: index + 1
-                            font.family: Theme.mono
-                            font.pixelSize: Math.max(7, root.app.barFontSize - 2)
-                            color: index === 1 ? root.app.barAccent : Theme.dim
-                        }
-                    }
-                }
-            }
-
-            MouseArea {
-                id: leftDrag
-                property real grabOffset: 0
-
-                anchors.fill: parent
-                cursorShape: Qt.SizeAllCursor
-                onPressed: {
-                    grabOffset = mapToItem(preview, mouseX, mouseY).x - parent.x;
-                    root.beginDrag("left");
-                }
-                onPositionChanged: root.dragTo("left", leftDrag, grabOffset)
-                onReleased: root.endDrag()
-                onCanceled: root.endDrag()
-            }
-        }
-
-        Rectangle {
-            id: centerPill
-
-            x: root.previewX("center", width)
-            anchors.verticalCenter: parent.verticalCenter
-            width: root.previewPillWidth
-            height: root.app.barPillHeight
-            radius: root.app.barPillRadius
-            color: Theme.pillFill
-            border.width: 1
-            border.color: Theme.pillBorder
-            clip: true
-
-            Rectangle {
-                anchors.fill: parent
-                color: "#000000"
-                opacity: 1.0 - root.app.barPillOpacity
-            }
-
-            Text {
-                anchors.centerIn: parent
-                text: "󰥔  Tue 17 Nov  19:42"
-                font.family: Theme.mono
-                font.pixelSize: root.app.barFontSize
-                color: Theme.text
-            }
-
-            MouseArea {
-                id: centerDrag
-                property real grabOffset: 0
-
-                anchors.fill: parent
-                cursorShape: Qt.SizeAllCursor
-                onPressed: {
-                    grabOffset = mapToItem(preview, mouseX, mouseY).x - parent.x;
-                    root.beginDrag("center");
-                }
-                onPositionChanged: root.dragTo("center", centerDrag, grabOffset)
-                onReleased: root.endDrag()
-                onCanceled: root.endDrag()
-            }
-        }
-
-        Rectangle {
-            id: rightPill
-
-            x: root.previewX("right", width)
-            anchors.verticalCenter: parent.verticalCenter
-            width: root.previewPillWidth
-            height: root.app.barPillHeight
-            radius: root.app.barPillRadius
-            color: Theme.pillFill
-            border.width: 1
-            border.color: Theme.pillBorder
-            clip: true
-
-            Rectangle {
-                anchors.fill: parent
-                color: "#000000"
-                opacity: 1.0 - root.app.barPillOpacity
-            }
-
-            Row {
-                anchors.centerIn: parent
-                spacing: 6
-
-                Text {
-                    text: "󰂯"
-                    font.family: Theme.font
-                    font.pixelSize: root.app.barFontSize
-                    color: Theme.accent
-                }
-                Text {
-                    text: "󰤨  WiFi"
-                    font.family: Theme.mono
-                    font.pixelSize: Math.max(10, root.app.barFontSize - 2)
-                    color: Theme.text
-                }
-                Text {
-                    text: "󰕾  45%"
-                    font.family: Theme.mono
-                    font.pixelSize: Math.max(10, root.app.barFontSize - 2)
-                    color: Theme.text
-                }
-                Text {
-                    text: "󰃠  70%"
-                    font.family: Theme.mono
-                    font.pixelSize: Math.max(10, root.app.barFontSize - 2)
-                    color: Theme.text
-                }
-                Text {
-                    text: "⏻"
-                    font.family: Theme.font
-                    font.pixelSize: root.app.barFontSize + 1
-                    color: Theme.accent
-                }
-            }
-
-            MouseArea {
-                id: rightDrag
-                property real grabOffset: 0
-
-                anchors.fill: parent
-                cursorShape: Qt.SizeAllCursor
-                onPressed: {
-                    grabOffset = mapToItem(preview, mouseX, mouseY).x - parent.x;
-                    root.beginDrag("right");
-                }
-                onPositionChanged: root.dragTo("right", rightDrag, grabOffset)
-                onReleased: root.endDrag()
-                onCanceled: root.endDrag()
-            }
-        }
+        visible: root.section === "panel"
+        width: parent.width
+        app: root.app
+        overlayHost: root.app.dragOverlayHost
     }
 
     // ---- Colours ------------------------------------------------------
     Rectangle {
         Layout.fillWidth: true
+        visible: root.section === "theme"
         implicitHeight: colorsColumn.implicitHeight + 28
         radius: Theme.panelRadius
         color: Theme.surfaceAlt
@@ -361,33 +389,41 @@ ColumnLayout {
 
             ColorField {
                 Layout.fillWidth: true
+                app: root.app
                 label: "Accent"
                 value: root.app.barAccent
-                presets: ["#7cc7f5", "#8ab4f8", "#60a5fa", "#38bdf8", "#68e0c8", "#5eead4", "#b9e6ff", "#9bd48b", "#e6c384", "#fbbf24", "#fb923c", "#e78a8a", "#f5a3c7", "#c6a0e8", "#a78bfa"]
                 onEdited: value => { root.app.barAccent = value; root.app.queueSave() }
             }
 
             ColorField {
                 Layout.fillWidth: true
+                app: root.app
+                label: "Font color"
+                value: root.app.barText
+                onEdited: value => { root.app.barText = value; root.app.queueSave() }
+            }
+
+            ColorField {
+                Layout.fillWidth: true
+                app: root.app
                 label: "Popup surface"
                 value: root.app.barSurface
-                presets: root.app.themeMode === "light" ? root.lightSurfacePresets : root.darkSurfacePresets
                 onEdited: value => root.app.setBarColor("surface", value)
             }
 
             ColorField {
                 Layout.fillWidth: true
+                app: root.app
                 label: "Background"
                 value: root.app.barPill
-                presets: root.app.themeMode === "light" ? root.lightPillPresets : root.darkPillPresets
                 onEdited: value => root.app.setBarColor("pill", value)
             }
 
             ColorField {
                 Layout.fillWidth: true
+                app: root.app
                 label: "Border"
                 value: root.app.barPillBorder
-                presets: ["#232a37", "#2b3547", "#33415c", "#3a4a63", "#465a78", "#4c6485", "#5b7fa6", "#1f4a5c", "#235f63", "#2e7d78", "#3f6f8f", "#68e0c8"]
                 onEdited: value => { root.app.barPillBorder = value; root.app.queueSave() }
             }
         }
@@ -396,6 +432,7 @@ ColumnLayout {
     // ---- Geometry -----------------------------------------------------
     Rectangle {
         Layout.fillWidth: true
+        visible: root.section === "theme"
         implicitHeight: geometryColumn.implicitHeight + 28
         radius: Theme.panelRadius
         color: Theme.surfaceAlt
@@ -420,12 +457,12 @@ ColumnLayout {
 
             SliderField {
                 Layout.fillWidth: true
-                label: "Pill height"
-                from: 26
-                to: 44
-                value: root.app.barPillHeight
+                label: "Panel height"
+                from: 30
+                to: 56
+                value: root.app.barPanelHeight
                 suffix: "px"
-                onMoved: value => { root.app.barPillHeight = Math.round(value); root.app.queueSave() }
+                onMoved: value => { root.app.barPanelHeight = Math.round(value); root.app.queueSave() }
             }
 
             SliderField {
@@ -483,34 +520,36 @@ ColumnLayout {
 
     WallpaperPage {
         Layout.fillWidth: true
+        visible: root.section === "wallpaper"
         app: root.app
     }
 
     SectionCard {
         Layout.fillWidth: true
+        visible: root.section === "windows"
         title: "WINDOW BORDERS"
 
         ColorField {
             Layout.fillWidth: true
+            app: root.app
             label: "Active border"
             value: root.app.hyprBorder1
-            presets: ["#0292e3", "#01d6be", "#7cc7f5", "#c6a0e8", "#e78a8a", "#e6c384"]
             onEdited: value => root.app.hyprBorder1 = value
         }
 
         ColorField {
             Layout.fillWidth: true
+            app: root.app
             label: "Gradient end"
             value: root.app.hyprBorder2
-            presets: ["#01d6be", "#0292e3", "#68e0c8", "#b9e6ff", "#c6a0e8"]
             onEdited: value => root.app.hyprBorder2 = value
         }
 
         ColorField {
             Layout.fillWidth: true
+            app: root.app
             label: "Inactive border"
             value: root.app.hyprInactive
-            presets: ["#0f3246", "#1a202b", "#232a37", "#2b3547", "#3a4a63"]
             onEdited: value => root.app.hyprInactive = value
         }
 
@@ -546,6 +585,7 @@ ColumnLayout {
 
     SectionCard {
         Layout.fillWidth: true
+        visible: root.section === "windows"
         title: "WINDOW SHAPE & GAPS"
 
         SliderField {
@@ -581,6 +621,7 @@ ColumnLayout {
 
     SectionCard {
         Layout.fillWidth: true
+        visible: root.section === "effects"
         title: "ANIMATIONS"
         subtitle: "Built-in Hyprland styles and curves only. Speed scales every animation. Press Apply to write hyprland/animations.lua."
 
@@ -729,6 +770,7 @@ ColumnLayout {
 
     SectionCard {
         Layout.fillWidth: true
+        visible: root.section === "effects"
         title: "BLUR"
 
         ToggleRow {
@@ -736,19 +778,10 @@ ColumnLayout {
             label: "Hyprland blur"
             hint: "Blur behind transparent windows"
             checked: root.app.hyprBlur
-            onToggled: value => root.app.hyprBlur = value
-        }
-
-        SliderField {
-            Layout.fillWidth: true
-            label: "Blur radius"
-            from: 1
-            to: 20
-            value: root.app.hyprBlurSize
-            suffix: "px"
-            enabled: root.app.hyprBlur
-            opacity: enabled ? 1 : 0.45
-            onMoved: value => root.app.hyprBlurSize = Math.round(value)
+            onToggled: value => {
+                root.app.hyprBlur = value
+                root.app.queueSave()
+            }
         }
 
         ToggleRow {
@@ -756,7 +789,10 @@ ColumnLayout {
             label: "Alacritty blur"
             hint: "Transparent terminal shows the desktop blur"
             checked: root.app.alacrittyBlur
-            onToggled: value => root.app.alacrittyBlur = value
+            onToggled: value => {
+                root.app.alacrittyBlur = value
+                root.app.queueSave()
+            }
         }
 
         SliderField {
@@ -768,7 +804,25 @@ ColumnLayout {
             suffix: "%"
             enabled: root.app.alacrittyBlur
             opacity: enabled ? 1 : 0.45
-            onMoved: value => root.app.alacrittyBlurStrength = Math.round(value)
+            onMoved: value => {
+                root.app.alacrittyBlurStrength = Math.round(value)
+                root.app.queueSave()
+            }
+        }
+
+        SliderField {
+            Layout.fillWidth: true
+            label: "Hyprland blur radius"
+            from: 1
+            to: 20
+            value: root.app.hyprBlurSize
+            suffix: "px"
+            enabled: root.app.hyprBlur
+            opacity: enabled ? 1 : 0.45
+            onMoved: value => {
+                root.app.hyprBlurSize = Math.round(value)
+                root.app.queueSave()
+            }
         }
     }
 

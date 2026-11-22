@@ -16,5 +16,9 @@ hl.config({
     },
     decoration = {
         rounding = 5,
+        blur = {
+            enabled = true,
+            size = 6,
+        },
     },
 })

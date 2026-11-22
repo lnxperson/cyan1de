@@ -1,5 +1,6 @@
 singleton Theme 1.0 Theme.qml
 BarPage 1.0 BarPage.qml
+BarPreview 1.0 BarPreview.qml
 ColorField 1.0 ColorField.qml
 NavItem 1.0 NavItem.qml
 OptionCombo 1.0 OptionCombo.qml

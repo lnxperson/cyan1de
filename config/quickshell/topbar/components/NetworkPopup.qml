@@ -3,9 +3,11 @@ import QtQuick.Layouts
 import QtQuick.Controls.Basic
 import Quickshell
 import Quickshell.Networking
+import Quickshell.Wayland
 
 PopupWindow {
     id: popup
+
 
     property var bar
     property Item target
@@ -38,22 +40,18 @@ PopupWindow {
         return null;
     }
 
-    implicitWidth: 380
-    implicitHeight: surface.contentHeight
+    implicitWidth: 400
+    // Fixed so the popup height stays stable while its contents load.
+    implicitHeight: 320
     color: "transparent"
     visible: false
 
     anchor.window: bar
-    anchor.rect.x: {
-        if (!bar || !target)
-            return 0;
-        const p = target.mapToItem(bar.contentItem, 0, 0);
-        return Math.round(Math.max(8, Math.min(p.x + target.width - width, bar.width - width - 8)));
-    }
-    anchor.rect.y: bar ? bar.height + 2 : 0
+    anchor.rect.x: bar ? bar.actionPopupX(width) : 0
+    anchor.rect.y: bar ? bar.actionPopupY(height) : 0
 
-    function open() { visible = true; }
-    function close() { visible = false; }
+    function open() { surface.open(); }
+    function close() { surface.close(); }
 
     function signalIcon(strength) {
         if (strength > 75) return "󰤨";
@@ -88,6 +86,7 @@ PopupWindow {
             if (wifiDevice)
                 wifiDevice.scannerEnabled = true;
         } else {
+            surface.reset();
             selectedNetwork = null;
             passwordField.text = "";
             if (wifiDevice)
@@ -97,6 +96,7 @@ PopupWindow {
 
     PopupSurface {
         id: surface
+        window: popup
         anchors.fill: parent
 
         // Header
@@ -151,7 +151,9 @@ PopupWindow {
         // Network list
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: Math.max(52, Math.min(288, popup.networks.length * 52))
+            Layout.fillHeight: true
+            Layout.minimumHeight: 0
+            Layout.preferredHeight: 0
 
             ListView {
                 id: listView

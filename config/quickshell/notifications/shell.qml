@@ -39,6 +39,39 @@ ShellRoot {
     ListModel { id: popupModel }
     readonly property int count: popupModel.count
 
+    property bool windowShown: false
+    property real reveal: 0
+    property bool closing: false
+
+    Behavior on reveal {
+        NumberAnimation {
+            duration: root.closing ? Theme.motionFast : Theme.motionBase
+            easing.type: Easing.OutCubic
+        }
+    }
+
+    Timer {
+        id: windowExitTimer
+        interval: Theme.motionFast + 20
+        onTriggered: {
+            windowShown = false;
+            closing = false;
+        }
+    }
+
+    function syncWindow(): void {
+        if (popupModel.count > 0) {
+            windowExitTimer.stop();
+            closing = false;
+            windowShown = true;
+            reveal = 1;
+        } else if (windowShown && !closing) {
+            closing = true;
+            reveal = 0;
+            windowExitTimer.restart();
+        }
+    }
+
     function loadHistory(): void {
         historyFile.reload();
         let list = [];
@@ -139,12 +172,14 @@ ShellRoot {
             const oldest = root.atBottom ? 0 : popupModel.count - 1;
             root.closeKey(popupModel.get(oldest).key, "expire");
         }
+        root.syncWindow();
     }
 
     function removeKey(key: int): void {
         const i = root.indexOfKey(key);
         if (i >= 0)
             popupModel.remove(i);
+        root.syncWindow();
     }
 
     function closeKey(key: int, how: string): void {
@@ -157,6 +192,7 @@ ShellRoot {
             notif.expire();
         else
             notif.dismiss();
+        root.syncWindow();
     }
 
     function durationFor(notif): int {
@@ -172,6 +208,7 @@ ShellRoot {
     function clear(): void {
         while (popupModel.count > 0)
             root.closeKey(popupModel.get(0).key, "dismiss");
+        root.syncWindow();
     }
 
     Component.onCompleted: root.loadHistory()
@@ -243,9 +280,41 @@ ShellRoot {
             width: root.cardWidth
             implicitHeight: content.implicitHeight + 24
             radius: Theme.panelRadius
-            color: Theme.surface
+            color: Theme.panelFill(Theme.surface, "notifications")
             border.width: 1
             border.color: Theme.border
+
+            opacity: 0
+            scale: Theme.motionEnterScale
+            transform: Translate {
+                x: root.atLeft ? -(1 - card.opacity) * Theme.motionEnterOffset
+                    : (1 - card.opacity) * Theme.motionEnterOffset
+            }
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Theme.motionBase
+                    easing.type: Easing.OutCubic
+                }
+            }
+            Behavior on scale {
+                NumberAnimation {
+                    duration: Theme.motionBase
+                    easing.type: Easing.OutCubic
+                }
+            }
+            Behavior on y {
+                NumberAnimation {
+                    duration: Theme.motionBase
+                    easing.type: Easing.OutCubic
+                }
+            }
+            Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+
+            Component.onCompleted: {
+                card.opacity = 1;
+                card.scale = 1;
+            }
 
             // Soft drop shadow.
             Rectangle {
@@ -411,7 +480,7 @@ ShellRoot {
     PanelWindow {
         id: window
 
-        visible: root.count > 0
+        visible: root.windowShown
 
         anchors {
             top: root.atTop
@@ -422,6 +491,12 @@ ShellRoot {
 
         implicitWidth: root.cardWidth + root.edgeMargin * 2
         implicitHeight: Math.max(1, cards.implicitHeight + root.edgeMargin * 2)
+        Behavior on implicitHeight {
+            NumberAnimation {
+                duration: Theme.motionBase
+                easing.type: Easing.OutCubic
+            }
+        }
         exclusiveZone: 0
         color: "transparent"
         focusable: false
@@ -436,6 +511,7 @@ ShellRoot {
             y: root.edgeMargin
             width: root.cardWidth
             spacing: 8
+            opacity: root.reveal
 
             Repeater {
                 model: popupModel

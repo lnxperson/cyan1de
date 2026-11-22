@@ -115,7 +115,7 @@ Rectangle {
             return "minus";
         case Qt.Key_Equal:
             return "equal";
-        case Qt.Key_Grave:
+        case Qt.Key_QuoteLeft:
             return "grave";
         case Qt.Key_VolumeUp:
             return "XF86AudioRaiseVolume";

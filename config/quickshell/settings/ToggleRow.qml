@@ -24,7 +24,7 @@ RowLayout {
             font.family: Theme.mono
             font.pixelSize: 11
             color: Theme.subtext
-            elide: Text.ElideRight
+            wrapMode: Text.WordWrap
         }
 
         Text {
@@ -34,19 +34,29 @@ RowLayout {
             font.family: Theme.mono
             font.pixelSize: 9
             color: Theme.dim
-            elide: Text.ElideRight
+            wrapMode: Text.WordWrap
         }
     }
 
     Rectangle {
-        width: 44
-        height: 24
+        id: toggleTrack
+
+        Layout.preferredWidth: 44
+        Layout.preferredHeight: 24
         radius: 12
         color: root.checked ? Theme.accent : Theme.bg
         border.width: 1
         border.color: root.checked ? Theme.accent : Theme.border
+        scale: 1 - 0.04 * (toggleMouse.containsPress ? 1 : 0)
 
-        Behavior on color { ColorAnimation { duration: 120 } }
+        Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+        Behavior on border.color { ColorAnimation { duration: Theme.motionFast } }
+        Behavior on scale {
+            NumberAnimation {
+                duration: Theme.motionFast
+                easing.type: Easing.OutCubic
+            }
+        }
 
         Rectangle {
             x: root.checked ? parent.width - width - 3 : 3
@@ -56,10 +66,17 @@ RowLayout {
             radius: 9
             color: root.checked ? Theme.bg : Theme.subtext
 
-            Behavior on x { NumberAnimation { duration: 120 } }
+            Behavior on x {
+                NumberAnimation {
+                    duration: Theme.motionFast
+                    easing.type: Easing.OutCubic
+                }
+            }
+            Behavior on color { ColorAnimation { duration: Theme.motionFast } }
         }
 
         MouseArea {
+            id: toggleMouse
             anchors.fill: parent
             cursorShape: Qt.PointingHandCursor
             onClicked: root.toggled(!root.checked)

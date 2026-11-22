@@ -286,9 +286,6 @@ ColumnLayout {
                         border.color: pathField.activeFocus ? Theme.accent : Theme.border
                     }
 
-                    // Keep Apply in sync even if the field keeps focus when
-                    // the button is clicked.
-                    onTextEdited: root.app.wallpaperPath = text.trim()
                     onEditingFinished: {
                         const v = text.trim();
                         // Don't save an empty path just because the field lost

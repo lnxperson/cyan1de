@@ -20,7 +20,7 @@ hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd(terminal), { description = "Open
 local closeWindowBind = hl.bind(mainMod .. " + Q", hl.dsp.window.close(), { description = "Close window" })
 
 -- System power menu / session exit
-hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"), { description = "Run: command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'" })
+
 
 hl.bind(mainMod .. " + E",     hl.dsp.exec_cmd(fileManager), { description = "Open file manager" })
 hl.bind(mainMod .. " + V",     hl.dsp.window.float({ action = "toggle" }), { description = "Toggle Floating state" }) -- Toggle Floating state
@@ -30,14 +30,16 @@ hl.bind(mainMod .. " + J",     hl.dsp.layout("togglesplit"), { description = "To
 hl.bind(mainMod .. " + W",     hl.dsp.exec_cmd(browser), { description = "Open browser" })
 hl.bind(mainMod .. " + L",     hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/lockscreen/lock.sh"), { description = "Lock screen" })     -- Lock screen
 hl.bind(mainMod .. " + comma", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/settings/toggle.sh"), { description = "Desktop settings" })       -- Desktop settings
+hl.bind(mainMod .. " + period", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/emoji/toggle.sh"), { description = "Emoji picker" })             -- Emoji picker
+hl.bind(mainMod .. " + CTRL + P", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/performance/toggle.sh"), { locked = true, description = "Toggle performance mode" }) -- Performance mode
 
 
 -- -----------------------------------------------------------------------------
 -- Screenshots (Hyprshot)
 -- -----------------------------------------------------------------------------
-hl.bind("PRINT",            hl.dsp.exec_cmd(screenshot .. " -m region --clipboard-only"), { description = "Area selection to clipboard" })
-hl.bind(mainMod .. " + PRINT", hl.dsp.exec_cmd(screenshot .. " -m output"), { description = "Full active display" })
-hl.bind("SHIFT + PRINT",    hl.dsp.exec_cmd(screenshot .. " -m region"), { description = "Area selection save to disk" })
+hl.bind(mainMod .. " + SHIFT + S",            hl.dsp.exec_cmd(screenshot .. " -m region --clipboard-only"), { description = "Area selection to clipboard" })
+hl.bind(mainMod .. " + SHIFT + CTRL + S", hl.dsp.exec_cmd(screenshot .. " -m output"), { description = "Full active display" })
+hl.bind(mainMod .. " + CTRL + S",    hl.dsp.exec_cmd(screenshot .. " -m region"), { description = "Area selection save to disk" })
 
 -- -----------------------------------------------------------------------------
 -- Navigation & Focus Controls
@@ -56,8 +58,8 @@ for i = 1, 10 do
 end
 
 -- Special Workspace (Scratchpad)
-hl.bind(mainMod .. " + S",         hl.dsp.workspace.toggle_special("magic"), { description = "Toggle scratchpad view" })            -- Toggle scratchpad view
-hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:magic" }), { description = "Move active window to scratchpad" }) -- Move active window to scratchpad
+hl.bind(mainMod .. " + F",         hl.dsp.workspace.toggle_special("magic"), { description = "Toggle scratchpad view" })            -- Toggle scratchpad view
+hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.move({ workspace = "special:magic" }), { description = "Move active window to scratchpad" }) -- Move active window to scratchpad
 
 -- Scroll through existing workspaces with Super + Mouse Scroll Wheel
 hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }), { description = "Workspace e+1" })

@@ -15,9 +15,18 @@ ShellRoot {
     readonly property string statePath: home + "/.config/quickshell/welcome.json"
 
     property bool shown: false
+    property real reveal: 0
+    property bool closing: false
     property bool disabledWelcome: false
     property bool manualOpen: false
     property bool quitting: false
+
+    Behavior on reveal {
+        NumberAnimation {
+            duration: root.closing ? Theme.motionFast : Theme.motionBase
+            easing.type: Easing.OutCubic
+        }
+    }
 
     readonly property var sections: [
         {
@@ -25,6 +34,8 @@ ShellRoot {
             items: [
                 { keys: "SUPER + SPACE", text: "Search and launch applications." },
                 { keys: "SUPER + ,", text: "Open Settings: wallpaper, panel, input, monitors, notifications." },
+                { keys: "SUPER + .", text: "Open the emoji picker and paste into the focused app." },
+                { keys: "SUPER + CTRL + P", text: "Toggle performance mode: stop Quickshell except the lockscreen." },
                 { keys: "SUPER + L", text: "Lock the session using PAM and fingerprint." },
                 { keys: "SUPER + M", text: "Open the session / exit menu." }
             ]
@@ -83,23 +94,28 @@ ShellRoot {
     }
 
     function open() {
+        quitTimer.stop();
         root.loadState();
         root.manualOpen = true;
+        root.quitting = false;
+        root.closing = false;
         root.shown = true;
+        root.reveal = 1;
     }
 
     function close() {
-        if (root.quitting)
+        if (root.quitting || root.closing)
             return;
         root.quitting = true;
-        root.shown = false;
-        // Give a pending state-file write (for example the disable toggle) a
-        // moment to land before the process exits.
+        root.closing = true;
+        root.reveal = 0;
+        // Give the exit animation and any pending state-file write a moment to
+        // land before the process exits.
         quitTimer.restart();
     }
 
     function toggle() {
-        if (root.shown)
+        if (root.shown && !root.closing)
             root.close();
         else
             root.open();
@@ -115,15 +131,20 @@ ShellRoot {
         id: startupTimer
         interval: 900
         onTriggered: {
-            if (!root.manualOpen && !root.disabledWelcome)
+            if (!root.manualOpen && !root.disabledWelcome) {
                 root.shown = true;
+                root.reveal = 1;
+            }
         }
     }
 
     Timer {
         id: quitTimer
-        interval: 250
-        onTriggered: Qt.quit()
+        interval: Theme.motionFast + 80
+        onTriggered: {
+            shown = false;
+            Qt.quit();
+        }
     }
 
     FileView {
@@ -172,7 +193,7 @@ ShellRoot {
         focusable: true
 
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.namespace: "quickshell-welcome"
+        WlrLayershell.namespace: "quickshell-welcome-surface"
         WlrLayershell.keyboardFocus: root.shown
             ? WlrKeyboardFocus.Exclusive
             : WlrKeyboardFocus.None
@@ -188,6 +209,7 @@ ShellRoot {
             anchors.margins: -1
             radius: card.radius + 1
             color: "#66000000"
+            opacity: root.reveal
             z: -1
         }
 
@@ -198,9 +220,18 @@ ShellRoot {
             height: Math.min(640, parent.height - 40)
             anchors.centerIn: parent
             radius: Theme.panelRadius
-            color: Theme.surface
+            color: Theme.panelFill(Theme.surface, "welcome")
             border.width: 1
             border.color: Theme.border
+
+            opacity: root.reveal
+            scale: Theme.motionEnterScale + (1 - Theme.motionEnterScale) * root.reveal
+            transform: Translate {
+                y: -(1 - root.reveal) * Theme.motionEnterOffset
+            }
+
+            Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+            Behavior on border.color { ColorAnimation { duration: Theme.motionFast } }
 
             MouseArea {
                 anchors.fill: parent
@@ -390,6 +421,8 @@ ShellRoot {
                                 radius: 9
                                 color: root.disabledWelcome ? Theme.accent : Theme.border
 
+                                Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+
                                 Rectangle {
                                     x: root.disabledWelcome ? 17 : 2
                                     y: 2
@@ -399,7 +432,10 @@ ShellRoot {
                                     color: Theme.text
 
                                     Behavior on x {
-                                        NumberAnimation { duration: 120 }
+                                        NumberAnimation {
+                                            duration: Theme.motionFast
+                                            easing.type: Easing.OutCubic
+                                        }
                                     }
                                 }
                             }

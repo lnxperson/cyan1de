@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Layouts
 
 // Navigation entry in the settings sidebar.
 Rectangle {
@@ -9,14 +8,29 @@ Rectangle {
     property string label: ""
     property bool active: false
     property bool hovered: false
+    property real press: 0
 
     signal clicked()
 
+    activeFocusOnTab: true
+
     implicitHeight: 40
     radius: 9
-    color: active ? Theme.active : (hovered ? Theme.hover : "transparent")
+    // The active fill is a single sliding highlight in the sidebar, so this
+    // background only handles hover on inactive rows.
+    color: active ? "transparent" : (hovered ? Theme.hover : "transparent")
+    border.width: root.activeFocus ? 1 : 0
+    border.color: Theme.accent
+    scale: 1 - 0.02 * root.press
 
-    Behavior on color { ColorAnimation { duration: 110 } }
+    Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+    Behavior on border.width { NumberAnimation { duration: Theme.motionFast } }
+    Behavior on scale {
+        NumberAnimation {
+            duration: Theme.motionFast
+            easing.type: Easing.OutCubic
+        }
+    }
 
     Row {
         anchors.verticalCenter: parent.verticalCenter
@@ -25,20 +39,26 @@ Rectangle {
         spacing: 10
 
         Text {
+            id: iconText
             text: root.icon
             font.family: Theme.font
             font.pixelSize: 16
             color: root.active ? Theme.accent : Theme.subtext
             anchors.verticalCenter: parent.verticalCenter
+
+            Behavior on color { ColorAnimation { duration: Theme.motionFast } }
         }
 
         Text {
+            id: labelText
             text: root.label
             font.family: Theme.mono
             font.pixelSize: 12
             font.weight: root.active ? Font.DemiBold : Font.Normal
             color: root.active ? Theme.accentSoft : Theme.text
             anchors.verticalCenter: parent.verticalCenter
+
+            Behavior on color { ColorAnimation { duration: Theme.motionFast } }
         }
     }
 
@@ -47,6 +67,13 @@ Rectangle {
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
         onContainsMouseChanged: root.hovered = containsMouse
-        onClicked: root.clicked()
+        onPressedChanged: root.press = containsPress ? 1 : 0
+        onClicked: {
+            root.forceActiveFocus();
+            root.clicked();
+        }
     }
+
+    Keys.onReturnPressed: root.clicked()
+    Keys.onSpacePressed: root.clicked()
 }

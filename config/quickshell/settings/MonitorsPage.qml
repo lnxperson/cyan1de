@@ -442,7 +442,7 @@ ColumnLayout {
 
             Text {
                 Layout.fillWidth: true
-                text: "Display-off (330s) and suspend (900s) are kept as power-saving follow-ups. Press Apply layout to rewrite hypridle.conf."
+                text: "Display-off (330s) and suspend (900s) are kept as power-saving follow-ups. Press Apply to rewrite hypridle.conf."
                 font.family: Theme.mono
                 font.pixelSize: 10
                 color: Theme.dim
@@ -465,7 +465,7 @@ ColumnLayout {
 
         SettingsButton {
             icon: "󰄬"
-            text: "Apply layout"
+            text: "Apply all settings"
             primary: true
             onClicked: app.applyAll()
         }

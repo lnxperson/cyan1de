@@ -17,9 +17,109 @@ ShellRoot {
     readonly property string hyprDir: home + "/.config/hypr/hyprland"
 
     property bool shown: false
+    property real reveal: 0
+    property bool closing: false
+    property Item dragOverlayHost: null
     property int page: 0
-    property string status: "Changes are saved automatically"
+    property int renderedPage: 0
+    property string appearanceSection: "panel"
+    readonly property var appearanceSections: [
+        { label: "Panel", value: "panel" },
+        { label: "Theme", value: "theme" },
+        { label: "Cursor", value: "cursor" },
+        { label: "Wallpaper", value: "wallpaper" },
+        { label: "Effects", value: "effects" },
+        { label: "Windows", value: "windows" }
+    ]
+    readonly property var appearanceSectionHints: ({
+        panel: "Layout, elements, calendar, preview",
+        theme: "Theme, colours, sizing",
+        cursor: "Pointer theme and size",
+        wallpaper: "Wallpaper source and fit",
+        effects: "Animations and blur",
+        windows: "Borders, rounding, gaps"
+    })
+    property bool confirmReset: false
+    readonly property string statusIdle: "Saved locally — press Apply for Hyprland changes"
+    readonly property var pages: [
+        { icon: "󰖲", title: "Appearance",
+            subtitle: "Wallpaper, panel, colors and blur" },
+        { icon: "", title: "Input",
+            subtitle: "Keyboard, mouse and touchpad behavior" },
+        { icon: "󰌋", title: "Keybindings",
+            subtitle: "Keyboard shortcuts and window actions" },
+        { icon: "󰒲", title: "Autostart",
+            subtitle: "Applications launched with your session" },
+        { icon: "󰀻", title: "Programs",
+            subtitle: "Default terminal, browser and utilities" },
+        { icon: "󰫧", title: "Environment",
+            subtitle: "Variables exported to every application" },
+        { icon: "󰍹", title: "Monitors",
+            subtitle: "Display layout and idle timeouts" },
+        { icon: "󰰞", title: "Rules",
+            subtitle: "Window rules and per-app overrides" },
+        { icon: "󰎟", title: "Notifications",
+            subtitle: "Notification style and behavior" }
+    ]
+    readonly property var currentPage: pages[page] || pages[0]
+    property string status: statusIdle
     property color statusColor: Theme.dim
+
+    // Sliding sidebar highlight, driven by the same rect-sync pattern as the
+    // top bar's action indicator.
+    property rect navHighlightRect: Qt.rect(0, 0, 0, 0)
+    property bool navHighlightVisible: false
+    property bool navHighlightAnimate: false
+
+    function navHighlightGeometry() {
+        const item = navRepeater.itemAt(root.page);
+        if (!item || !navList)
+            return null;
+        const origin = item.mapToItem(navList, 0, 0);
+        return Qt.rect(0, origin.y, navList.width, item.height);
+    }
+
+    function syncNavHighlight() {
+        const rect = root.navHighlightGeometry();
+        if (!rect) {
+            root.navHighlightVisible = false;
+            root.navHighlightAnimate = false;
+            return;
+        }
+
+        if (!root.navHighlightVisible) {
+            // First layout snaps into place; later page changes slide.
+            root.navHighlightAnimate = false;
+            root.navHighlightRect = rect;
+            root.navHighlightVisible = true;
+            Qt.callLater(function () {
+                if (root.navHighlightVisible)
+                    root.navHighlightAnimate = true;
+            });
+        } else {
+            root.navHighlightRect = rect;
+        }
+    }
+
+    Component.onCompleted: Qt.callLater(root.syncNavHighlight)
+
+    Behavior on reveal {
+        NumberAnimation {
+            duration: root.closing ? Theme.motionFast : Theme.motionBase
+            easing.type: Easing.OutCubic
+        }
+    }
+
+    // Page swaps fade the old page out before the Loader changes component.
+    Connections {
+        target: root
+
+        function onPageChanged() {
+            pageSwapTimer.restart();
+            pageLoader.opacity = 0;
+            root.syncNavHighlight();
+        }
+    }
 
     // Wallpaper
     property string wallpaperPath: ""
@@ -32,18 +132,93 @@ ShellRoot {
     })
     property var wallpapers: []
 
+    // Cursor
+    property string cursorTheme: "default"
+    property int cursorSize: 24
+    property var cursorThemes: []
+    readonly property var cursorThemeOptions: {
+        const list = root.cursorThemes.slice();
+        if (list.indexOf("default") < 0)
+            list.unshift("default");
+        if (root.cursorTheme && list.indexOf(root.cursorTheme) < 0)
+            list.push(root.cursorTheme);
+        return list;
+    }
+    readonly property var cursorThemeLabels: {
+        const labels = {};
+        const list = root.cursorThemeOptions;
+        for (let i = 0; i < list.length; i++) {
+            const value = list[i];
+            labels[value] = value === "default"
+                ? "System default"
+                : String(value).replace(/_/g, " ").replace(/-/g, " ");
+        }
+        return labels;
+    }
+
     // Bar
     property string barAccent: "#7cc7f5"
     property string barSurface: "#11141b"
     property string barPill: "#121722"
     property string barPillBorder: "#2b3547"
-    property int barPillHeight: 34
+    property string barText: "#cdd6e6"
+    // "pills" = three floating pills, "unified" = one full-width bar,
+    // "island" = one compact floating bar centred on the edge.
+    property string barLayout: "pills"
+    property string barEdge: "top"
+    property string barDisplay: "all"
+    // Unified bar only: false keeps the rounded, margin-inset bar; true makes
+    // it fill the edge from corner to corner.
+    property bool barUnifiedCorners: false
+    readonly property var barLayoutOptions: ["pills", "unified", "island"]
+    readonly property var barLayoutLabels: ({
+        "pills": "Floating pills",
+        "unified": "Unified bar",
+        "island": "Floating island"
+    })
+    readonly property var barEdgeOptions: ["top", "bottom", "left", "right"]
+    readonly property var barEdgeLabels: ({
+        "top": "Top",
+        "bottom": "Bottom",
+        "left": "Left",
+        "right": "Right"
+    })
+    property int barPanelHeight: 34
     property int barPillRadius: 12
     property int barSideMargin: 10
     property int barFontSize: 12
     property int barIconSize: 15
     property real barPillOpacity: 1.0
     property bool calendarMedia: true
+    property string calendarMediaPosition: "bottom"
+    property string calendarNotificationsSide: "right"
+    property int calendarWidth: 680
+
+    // Individual panel elements. All are visible by default so existing
+    // configs keep the panel they already have.
+    property bool barShowAppMenu: true
+    property bool barShowWorkspaces: true
+    property bool barShowClock: true
+    property bool barShowTray: true
+    property bool barShowBluetooth: true
+    property bool barShowNetwork: true
+    property bool barShowVolume: true
+    property bool barShowBrightness: true
+    property bool barShowBattery: true
+    property bool barShowPower: true
+
+    readonly property var barElementKeys: [
+        "appMenu", "workspaces", "clock", "tray", "bluetooth",
+        "network", "volume", "brightness", "battery", "power"
+    ]
+    readonly property var barSectionKeys: ["left", "center", "right"]
+    property var barElementLayout: ({
+        left: ["appMenu", "workspaces"],
+        center: ["clock"],
+        right: ["tray", "bluetooth", "network", "volume",
+                "brightness", "battery", "power"]
+    })
+
     property real barPillLeft: 0
     property real barPillCenter: 0.5
     property real barPillRight: 1
@@ -74,7 +249,7 @@ ShellRoot {
     property int hyprGapsIn: 5
     property int hyprGapsOut: 5
     property bool hyprBlur: true
-    property int hyprBlurSize: 5
+    property int hyprBlurSize: 10
     property bool alacrittyBlur: true
     property int alacrittyBlurStrength: 60
 
@@ -247,19 +422,48 @@ ShellRoot {
             },
             wallpaper: "",
             wallpaperMode: "crop",
+            cursor: {
+                theme: "default",
+                size: 24
+            },
             bar: {
                 accent: "#7cc7f5",
                 surface: "#11141b",
                 pill: "#121722",
                 pillBorder: "#2b3547",
                 text: "#cdd6e6",
-                pillHeight: 34,
+                layout: "pills",
+                edge: "top",
+                display: "all",
+                unifiedCorners: false,
+                panelHeight: 34,
                 pillRadius: 12,
                 sideMargin: 10,
                 fontSize: 12,
                 iconSize: 15,
                 pillOpacity: 1.0,
                 calendarMedia: true,
+                calendarMediaPosition: "bottom",
+                calendarNotificationsSide: "right",
+                calendarWidth: 680,
+                elements: {
+                    appMenu: true,
+                    workspaces: true,
+                    clock: true,
+                    tray: true,
+                    bluetooth: true,
+                    network: true,
+                    volume: true,
+                    brightness: true,
+                    battery: true,
+                    power: true
+                },
+                elementLayout: {
+                    left: ["appMenu", "workspaces"],
+                    center: ["clock"],
+                    right: ["tray", "bluetooth", "network", "volume",
+                            "brightness", "battery", "power"]
+                },
                 pills: {
                     left: 0,
                     center: 0.5,
@@ -277,7 +481,7 @@ ShellRoot {
                 gapsIn: 5,
                 gapsOut: 5,
                 blur: true,
-                blurSize: 5,
+                blurSize: 10,
                 alacrittyBlur: true,
                 alacrittyBlurStrength: 60,
                 animWindowOpen: "popin 87%",
@@ -383,13 +587,68 @@ ShellRoot {
         return (typeof v === "boolean") ? v : fallback;
     }
 
+    function defaultBarElementSection(key) {
+        if (key === "appMenu" || key === "workspaces") return "left";
+        if (key === "clock") return "center";
+        return "right";
+    }
+
+    // Keep saved layouts complete and free of duplicates. Unknown keys are
+    // ignored and anything missing returns to its original section.
+    function normalizeBarElementLayout(layout) {
+        const fallback = defaults().bar.elementLayout;
+        const out = { left: [], center: [], right: [] };
+        const seen = {};
+        for (let s = 0; s < root.barSectionKeys.length; s++) {
+            const section = root.barSectionKeys[s];
+            const list = layout && Array.isArray(layout[section])
+                ? layout[section] : fallback[section];
+            for (let i = 0; i < list.length; i++) {
+                const key = list[i];
+                if (root.barElementKeys.indexOf(key) < 0 || seen[key])
+                    continue;
+                out[section].push(key);
+                seen[key] = true;
+            }
+        }
+        for (let i = 0; i < root.barElementKeys.length; i++) {
+            const key = root.barElementKeys[i];
+            if (!seen[key])
+                out[defaultBarElementSection(key)].push(key);
+        }
+        return out;
+    }
+
+    function moveBarElement(key, section, index) {
+        if (root.barElementKeys.indexOf(key) < 0
+            || root.barSectionKeys.indexOf(section) < 0)
+            return;
+        const next = { left: [], center: [], right: [] };
+        for (let s = 0; s < root.barSectionKeys.length; s++) {
+            const name = root.barSectionKeys[s];
+            const list = barElementLayout[name] || [];
+            for (let i = 0; i < list.length; i++) {
+                if (list[i] !== key)
+                    next[name].push(list[i]);
+            }
+        }
+        const target = next[section];
+        const at = (typeof index === "number")
+            ? Math.max(0, Math.min(index, target.length)) : target.length;
+        target.splice(at, 0, key);
+        barElementLayout = normalizeBarElementLayout(next);
+        queueSave();
+    }
+
     function applySettings(s) {
         const d = defaults();
         const b = (s && s.bar) || ({});
         const p = b.pills || ({});
+        const e = b.elements || ({});
         const h = (s && s.hypr) || ({});
         const idle = (s && s.idle) || ({});
         const n = (s && s.notifications) || ({});
+        const c = (s && s.cursor) || ({});
 
         wallpaperPath = asText(s && s.wallpaper, d.wallpaper);
         wallpaperMode = (s && s.wallpaperMode === "fit")
@@ -397,6 +656,9 @@ ShellRoot {
             || (s && s.wallpaperMode === "crop")
             ? s.wallpaperMode : d.wallpaperMode;
         themeMode = (s && s.themeMode === "light") ? "light" : d.themeMode;
+        cursorTheme = asText(c.theme, d.cursor.theme);
+        cursorSize = Math.max(8, Math.min(96,
+            asInt(c.size, d.cursor.size)));
 
         const savedColors = (s && s.themeColors) || ({});
         const savedDark = savedColors.dark || ({});
@@ -416,13 +678,42 @@ ShellRoot {
         barSurface = themeColors[themeMode].surface;
         barPill = themeColors[themeMode].pill;
         barPillBorder = asText(b.pillBorder, d.bar.pillBorder);
-        barPillHeight = asInt(b.pillHeight, d.bar.pillHeight);
+        barText = asText(b.text, d.bar.text);
+        barLayout = ["pills", "unified", "island"].indexOf(b.layout) >= 0
+            ? b.layout : d.bar.layout;
+        barEdge = ["top", "bottom", "left", "right"].indexOf(b.edge) >= 0
+            ? b.edge : d.bar.edge;
+        barDisplay = asText(b.display, d.bar.display);
+        barUnifiedCorners = asBool(b.unifiedCorners, d.bar.unifiedCorners);
+        // Old configs stored the visible pill thickness under pillHeight.
+        // The new panelHeight value is that same thickness for every layout.
+        barPanelHeight = Math.max(30, Math.min(56,
+            b.panelHeight !== undefined
+                ? asInt(b.panelHeight, d.bar.panelHeight)
+                : asInt(b.pillHeight, d.bar.panelHeight)));
         barPillRadius = asInt(b.pillRadius, d.bar.pillRadius);
         barSideMargin = asInt(b.sideMargin, d.bar.sideMargin);
         barFontSize = asInt(b.fontSize, d.bar.fontSize);
         barIconSize = asInt(b.iconSize, d.bar.iconSize);
         barPillOpacity = asReal(b.pillOpacity, d.bar.pillOpacity);
         calendarMedia = asBool(b.calendarMedia, d.bar.calendarMedia);
+        calendarMediaPosition = ["top", "bottom"].indexOf(b.calendarMediaPosition) >= 0
+            ? b.calendarMediaPosition : d.bar.calendarMediaPosition;
+        calendarNotificationsSide = ["left", "right"].indexOf(b.calendarNotificationsSide) >= 0
+            ? b.calendarNotificationsSide : d.bar.calendarNotificationsSide;
+        calendarWidth = Math.max(380, Math.min(1100,
+            asInt(b.calendarWidth, d.bar.calendarWidth)));
+        barShowAppMenu = asBool(e.appMenu, d.bar.elements.appMenu);
+        barShowWorkspaces = asBool(e.workspaces, d.bar.elements.workspaces);
+        barShowClock = asBool(e.clock, d.bar.elements.clock);
+        barShowTray = asBool(e.tray, d.bar.elements.tray);
+        barShowBluetooth = asBool(e.bluetooth, d.bar.elements.bluetooth);
+        barShowNetwork = asBool(e.network, d.bar.elements.network);
+        barShowVolume = asBool(e.volume, d.bar.elements.volume);
+        barShowBrightness = asBool(e.brightness, d.bar.elements.brightness);
+        barShowBattery = asBool(e.battery, d.bar.elements.battery);
+        barShowPower = asBool(e.power, d.bar.elements.power);
+        barElementLayout = normalizeBarElementLayout(b.elementLayout);
         barPillLeft = barPillSnapSlot(asFraction(p.left, d.bar.pills.left));
         barPillCenter = barPillSnapSlot(asFraction(p.center, d.bar.pills.center));
         barPillRight = barPillSnapSlot(asFraction(p.right, d.bar.pills.right));
@@ -489,19 +780,43 @@ ShellRoot {
             themeColors: themeColors,
             wallpaper: wallpaperPath,
             wallpaperMode: wallpaperMode,
+            cursor: {
+                theme: cursorTheme,
+                size: cursorSize
+            },
             bar: {
                 accent: barAccent,
                 surface: barSurface,
                 pill: barPill,
                 pillBorder: barPillBorder,
-                text: "#cdd6e6",
-                pillHeight: barPillHeight,
+                text: barText,
+                layout: barLayout,
+                edge: barEdge,
+                display: barDisplay,
+                unifiedCorners: barUnifiedCorners,
+                panelHeight: barPanelHeight,
                 pillRadius: barPillRadius,
                 sideMargin: barSideMargin,
                 fontSize: barFontSize,
                 iconSize: barIconSize,
                 pillOpacity: Math.round(barPillOpacity * 100) / 100,
                 calendarMedia: calendarMedia,
+                calendarMediaPosition: calendarMediaPosition,
+                calendarNotificationsSide: calendarNotificationsSide,
+                calendarWidth: calendarWidth,
+                elements: {
+                    appMenu: barShowAppMenu,
+                    workspaces: barShowWorkspaces,
+                    clock: barShowClock,
+                    tray: barShowTray,
+                    bluetooth: barShowBluetooth,
+                    network: barShowNetwork,
+                    volume: barShowVolume,
+                    brightness: barShowBrightness,
+                    battery: barShowBattery,
+                    power: barShowPower
+                },
+                elementLayout: barElementLayout,
                 pills: {
                     left: Math.round(barPillLeft * 1000) / 1000,
                     center: Math.round(barPillCenter * 1000) / 1000,
@@ -611,6 +926,52 @@ ShellRoot {
         statusTimer.restart();
     }
 
+    function isCursorEnvKey(key) {
+        return ["XCURSOR_THEME", "HYPRCURSOR_THEME",
+            "XCURSOR_SIZE", "HYPRCURSOR_SIZE"].indexOf(key) >= 0;
+    }
+
+    function cursorThemeLabel(value) {
+        if (value === "default")
+            return "System default";
+        return String(value).replace(/_/g, " ").replace(/-/g, " ");
+    }
+
+    function applyCursor() {
+        Quickshell.execDetached(["hyprctl", "setcursor", cursorTheme, String(cursorSize)]);
+        Quickshell.execDetached(["gsettings", "set", "org.gnome.desktop.interface",
+            "cursor-theme", cursorTheme]);
+        Quickshell.execDetached(["gsettings", "set", "org.gnome.desktop.interface",
+            "cursor-size", String(cursorSize)]);
+    }
+
+    function setCursorTheme(value) {
+        const theme = String(value).trim();
+        if (theme.length === 0 || theme === cursorTheme)
+            return;
+        cursorTheme = theme;
+        if (cursorThemes.indexOf(theme) < 0)
+            cursorThemes = cursorThemes.concat([theme]);
+        applyCursor();
+        saveSettings();
+        status = "Cursor theme: " + cursorThemeLabel(theme);
+        statusColor = Theme.green;
+        statusTimer.restart();
+    }
+
+    function setCursorSize(value) {
+        const size = Math.max(8, Math.min(96,
+            Math.round(asInt(value, cursorSize))));
+        if (size === cursorSize)
+            return;
+        cursorSize = size;
+        applyCursor();
+        queueSave();
+        status = "Cursor size: " + size + "px";
+        statusColor = Theme.green;
+        statusTimer.restart();
+    }
+
     function setBarColor(which, value) {
         const mode = (themeMode === "light") ? "light" : "dark";
         if (which === "surface") {
@@ -687,12 +1048,17 @@ ShellRoot {
         parseRules();
 
         scanWallpapers();
-        status = "Changes are saved automatically";
+        scanCursors();
+        status = statusIdle;
         statusColor = Theme.dim;
     }
 
     function scanWallpapers() {
         wallpaperScan.running = true;
+    }
+
+    function scanCursors() {
+        cursorScan.running = true;
     }
 
     function escLua(s) {
@@ -723,11 +1089,15 @@ ShellRoot {
         const list = [];
         const re = /hl\s*\.\s*env\s*\(\s*"((?:[^"\\]|\\.)*)"\s*,\s*"((?:[^"\\]|\\.)*)"\s*\)/g;
         let m;
-        while ((m = re.exec(t)) !== null)
+        while ((m = re.exec(t)) !== null) {
+            const key = m[1].replace(/\\"/g, "\"").replace(/\\\\/g, "\\");
+            if (root.isCursorEnvKey(key))
+                continue;
             list.push({
-                key: m[1].replace(/\\"/g, "\"").replace(/\\\\/g, "\\"),
+                key: key,
                 value: m[2].replace(/\\"/g, "\"").replace(/\\\\/g, "\\")
             });
+        }
         envVars = list;
     }
 
@@ -1449,13 +1819,24 @@ ShellRoot {
     }
 
     function generateEnv() {
-        const lines = envVars.map(e => "hl.env(\"" + escLua(e.key) + "\", \"" + escLua(e.value) + "\")").join("\n");
+        const managed = [
+            { key: "XCURSOR_THEME", value: cursorTheme },
+            { key: "HYPRCURSOR_THEME", value: cursorTheme },
+            { key: "XCURSOR_SIZE", value: String(cursorSize) },
+            { key: "HYPRCURSOR_SIZE", value: String(cursorSize) }
+        ];
+        const lines = envVars
+            .filter(e => !root.isCursorEnvKey(e.key))
+            .concat(managed)
+            .map(e => "hl.env(\"" + escLua(e.key) + "\", \"" + escLua(e.value) + "\")")
+            .join("\n");
         return "--------------------------------------------------------------------------------\n"
             + "-- ENVIRONMENT VARIABLES\n"
             + "-- Managed by Quickshell Settings - regenerated when you press Apply.\n"
             + "--------------------------------------------------------------------------------\n\n"
             + lines + "\n";
     }
+
 
     function generateManaged() {
         const active = hyprGradient
@@ -1729,6 +2110,7 @@ ShellRoot {
 
     function resetAll() {
         applySettings(defaults());
+        applyCursor();
         saveDebounce.stop();
         saveSettings();
         updateAutostartTheme("dark");
@@ -1740,6 +2122,12 @@ ShellRoot {
 
     function applyAll() {
         saveDebounce.stop();
+
+        // Apply can also be called over IPC without opening the UI first. In
+        // that case nothing has populated the parsed file state yet, so reload
+        // from disk before writing any managed files back out.
+        if (!shown)
+            loadAll();
 
         // Clicking Apply does not necessarily pull focus out of a TextField
         // (SettingsButton is a plain MouseArea), so flush any pending edit.
@@ -1766,6 +2154,15 @@ ShellRoot {
             script += "printf '%s' '" + encoded + "' | base64 -d > '" + files[i][0] + "'\n";
         }
         script += "hyprctl reload >/dev/null 2>&1\n";
+        // Cursor env vars only reach a fresh session, so set the live cursor
+        // after the reload as well. Base64 keeps odd theme names shell-safe.
+        const cursorThemeB64 = b64Utf8(cursorTheme);
+        script += "cursor_theme=$(printf '%s' '" + cursorThemeB64 + "' | base64 -d)\n";
+        script += "hyprctl setcursor \"$cursor_theme\" " + cursorSize + " >/dev/null 2>&1\n";
+        script += "command -v gsettings >/dev/null 2>&1 && "
+            + "gsettings set org.gnome.desktop.interface cursor-theme \"$cursor_theme\" >/dev/null 2>&1\n";
+        script += "command -v gsettings >/dev/null 2>&1 && "
+            + "gsettings set org.gnome.desktop.interface cursor-size " + cursorSize + " >/dev/null 2>&1\n";
         // autostart only runs at Hyprland start, so restart hypridle here to
         // make a freshly applied idle config take effect immediately.
         script += "if command -v hypridle >/dev/null 2>&1; then\n";
@@ -1785,24 +2182,105 @@ ShellRoot {
     // Window plumbing
     // ---------------------------------------------------------------------
     function open() {
-        if (shown)
+        if (shown && !closing)
             return;
+        quitTimer.stop();
         loadAll();
+        closing = false;
         shown = true;
+        reveal = 1;
     }
 
     // Quit instead of hiding: every open is then a fresh process that reads
     // the config files from disk, so a new daemon can never show stale state.
-    // ~/.config/quickshell/settings/toggle.sh relaunches it on demand.
+    // ~/.config/quickshell/settings/toggle.sh relaunches it on demand. The exit
+    // is delayed so the card can animate out first.
     function close() {
-        Qt.quit();
+        if (closing)
+            return;
+        closing = true;
+        reveal = 0;
+        quitTimer.restart();
+    }
+
+    Timer {
+        id: quitTimer
+        interval: Theme.motionFast + 20
+        onTriggered: {
+            shown = false;
+            Qt.quit();
+        }
+    }
+
+    Timer {
+        id: pageSwapTimer
+        interval: Theme.motionFast
+        onTriggered: {
+            renderedPage = page;
+            pageLoader.opacity = 1;
+            scroller.contentItem.contentY = 0;
+        }
+    }
+
+    Timer {
+        id: resetConfirmTimer
+        interval: 3200
+        onTriggered: {
+            confirmReset = false;
+            status = statusIdle;
+            statusColor = Theme.dim;
+        }
     }
 
     function toggle() {
-        if (shown)
+        if (shown && !closing)
             close();
         else
             open();
+    }
+
+    function setPage(index) {
+        const next = Math.max(0, Math.min(pages.length - 1, index));
+        if (next === page)
+            return;
+        page = next;
+        confirmReset = false;
+    }
+
+    function setAppearanceSection(value) {
+        if (value === appearanceSection)
+            return;
+        appearanceSection = value;
+        confirmReset = false;
+        scroller.contentItem.contentY = 0;
+    }
+
+    function componentForPage(index) {
+        switch (index) {
+            case 0: return barPage;
+            case 1: return inputPage;
+            case 2: return keybindingsPage;
+            case 3: return autostartPage;
+            case 4: return programsPage;
+            case 5: return environmentPage;
+            case 6: return monitorsPage;
+            case 7: return rulesPage;
+            case 8: return notificationsPage;
+        }
+        return barPage;
+    }
+
+    function handleReset() {
+        if (!confirmReset) {
+            confirmReset = true;
+            status = "Click Reset again to restore defaults";
+            statusColor = Theme.yellow;
+            resetConfirmTimer.restart();
+            return;
+        }
+        confirmReset = false;
+        resetConfirmTimer.stop();
+        resetAll();
     }
 
     IpcHandler {
@@ -1815,13 +2293,13 @@ ShellRoot {
         function reset(): void { root.resetAll() }
         function theme(mode: string): void { root.setThemeMode(mode) }
         function section(index: int): void {
-            root.page = Math.max(0, Math.min(8, index));
+            root.setPage(index);
             root.open();
         }
         // Kept as an alias for existing scripts: Hyprland tab 0..7 now
         // corresponds to top-level pages 0..7.
         function hsection(index: int): void {
-            root.page = Math.max(0, Math.min(7, index));
+            root.setPage(index);
             root.open();
         }
     }
@@ -1836,7 +2314,7 @@ ShellRoot {
         id: statusTimer
         interval: 2600
         onTriggered: {
-            root.status = "Changes are saved automatically";
+            root.status = statusIdle;
             root.statusColor = Theme.dim;
         }
     }
@@ -1939,6 +2417,31 @@ ShellRoot {
     }
 
     Process {
+        id: cursorScan
+        running: false
+
+        command: ["sh", "-c",
+            "find \"$HOME/.icons\" \"$HOME/.local/share/icons\" \"$HOME/.local/share/hyprcursor\" "
+            + "/usr/local/share/icons /usr/local/share/hyprcursor /usr/share/icons /usr/share/hyprcursor "
+            + "-mindepth 1 -maxdepth 3 -type d \\( -name cursors -o -name hyprcursor \\) "
+            + "-printf '%h\\n' 2>/dev/null | sed 's#.*/##' | sort -u; "
+            + "[ -f /usr/share/icons/default/index.theme ] && echo default"]
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const themes = text.split("\n")
+                    .map(function(value) { return value.trim(); })
+                    .filter(function(value) { return value.length > 0; });
+                if (themes.indexOf("default") < 0)
+                    themes.unshift("default");
+                if (root.cursorTheme && themes.indexOf(root.cursorTheme) < 0)
+                    themes.push(root.cursorTheme);
+                root.cursorThemes = themes;
+            }
+        }
+    }
+
+    Process {
         id: monitorScan
         running: false
 
@@ -1970,7 +2473,7 @@ ShellRoot {
         focusable: true
 
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.namespace: "quickshell-settings"
+        WlrLayershell.namespace: "quickshell-settings-surface"
         WlrLayershell.keyboardFocus: root.shown
             ? WlrKeyboardFocus.Exclusive
             : WlrKeyboardFocus.None
@@ -1987,9 +2490,18 @@ ShellRoot {
             height: Math.min(720, parent.height - 60)
             anchors.centerIn: parent
             radius: Theme.panelRadius
-            color: Theme.surface
+            color: Theme.panelFill(Theme.surface, "settings")
             border.width: 1
             border.color: Theme.border
+
+            opacity: root.reveal
+            scale: Theme.motionEnterScale + (1 - Theme.motionEnterScale) * root.reveal
+            transform: Translate {
+                y: -(1 - root.reveal) * Theme.motionEnterOffset
+            }
+
+            Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+            Behavior on border.color { ColorAnimation { duration: Theme.motionFast } }
 
             MouseArea {
                 anchors.fill: parent
@@ -2005,6 +2517,8 @@ ShellRoot {
             }
 
             ColumnLayout {
+                id: settingsLayout
+
                 anchors.fill: parent
                 anchors.margins: 18
                 spacing: 14
@@ -2022,28 +2536,32 @@ ShellRoot {
                     }
 
                     ColumnLayout {
+                        Layout.maximumWidth: 420
                         spacing: 0
 
                         Text {
-                            text: "Settings"
+                            text: "Settings / " + root.currentPage.title
                             font.family: Theme.mono
                             font.pixelSize: 16
                             font.weight: Font.DemiBold
                             color: Theme.text
+                            elide: Text.ElideRight
                         }
 
                         Text {
-                            text: "Desktop control center"
+                            text: root.currentPage.subtitle
                             font.family: Theme.mono
                             font.pixelSize: 10
                             color: Theme.dim
+                            elide: Text.ElideRight
                         }
                     }
 
                     Item { Layout.fillWidth: true }
 
                     SettingsButton {
-                        icon: "󰅖"
+                        icon: "󰅙"
+                        tooltip: "Close Settings"
                         onClicked: root.close()
                     }
                 }
@@ -2056,6 +2574,8 @@ ShellRoot {
 
                 // Body
                 RowLayout {
+                    id: bodyRow
+
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     spacing: 14
@@ -2065,76 +2585,71 @@ ShellRoot {
                         Layout.fillHeight: true
                         spacing: 4
 
-                        NavItem {
-                            Layout.fillWidth: true
-                            icon: "󰖲"
-                            label: "Appearance"
-                            active: root.page === 0
-                            onClicked: root.page = 0
-                        }
+                        Item {
+                            id: navList
 
-                        NavItem {
                             Layout.fillWidth: true
-                            icon: ""
-                            label: "Input"
-                            active: root.page === 1
-                            onClicked: root.page = 1
-                        }
+                            Layout.preferredHeight: navColumn.implicitHeight
 
-                        NavItem {
-                            Layout.fillWidth: true
-                            icon: "󰌋"
-                            label: "Keybindings"
-                            active: root.page === 2
-                            onClicked: root.page = 2
-                        }
+                            Rectangle {
+                                x: root.navHighlightRect.x
+                                y: root.navHighlightRect.y
+                                width: root.navHighlightRect.width
+                                height: root.navHighlightRect.height
+                                radius: 9
+                                color: Theme.active
+                                visible: root.navHighlightVisible
 
-                        NavItem {
-                            Layout.fillWidth: true
-                            icon: "󰒲"
-                            label: "Autostart"
-                            active: root.page === 3
-                            onClicked: root.page = 3
-                        }
+                                Behavior on x {
+                                    enabled: root.navHighlightAnimate
+                                    NumberAnimation {
+                                        duration: Theme.motionBase
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
+                                Behavior on y {
+                                    enabled: root.navHighlightAnimate
+                                    NumberAnimation {
+                                        duration: Theme.motionBase
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
+                                Behavior on width {
+                                    enabled: root.navHighlightAnimate
+                                    NumberAnimation {
+                                        duration: Theme.motionBase
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
+                                Behavior on height {
+                                    enabled: root.navHighlightAnimate
+                                    NumberAnimation {
+                                        duration: Theme.motionBase
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
+                            }
 
-                        NavItem {
-                            Layout.fillWidth: true
-                            icon: "󰀻"
-                            label: "Programs"
-                            active: root.page === 4
-                            onClicked: root.page = 4
-                        }
+                            Column {
+                                id: navColumn
 
-                        NavItem {
-                            Layout.fillWidth: true
-                            icon: "󰫧"
-                            label: "Environment"
-                            active: root.page === 5
-                            onClicked: root.page = 5
-                        }
+                                anchors.fill: parent
+                                spacing: 4
 
-                        NavItem {
-                            Layout.fillWidth: true
-                            icon: "󰍹"
-                            label: "Monitors"
-                            active: root.page === 6
-                            onClicked: root.page = 6
-                        }
+                                Repeater {
+                                    id: navRepeater
+                                    model: root.pages
 
-                        NavItem {
-                            Layout.fillWidth: true
-                            icon: "󰰞"
-                            label: "Rules"
-                            active: root.page === 7
-                            onClicked: root.page = 7
-                        }
-
-                        NavItem {
-                            Layout.fillWidth: true
-                            icon: "󰎟"
-                            label: "Notifications"
-                            active: root.page === 8
-                            onClicked: root.page = 8
+                                    NavItem {
+                                        width: navColumn.width
+                                        height: 40
+                                        icon: modelData.icon
+                                        label: modelData.title
+                                        active: root.page === index
+                                        onClicked: root.setPage(index)
+                                    }
+                                }
+                            }
                         }
 
                         Item { Layout.fillHeight: true }
@@ -2148,7 +2663,7 @@ ShellRoot {
                         Text {
                             Layout.fillWidth: true
                             Layout.topMargin: 6
-                            text: "Quickshell 0.3.2\nHyprland 0.57"
+                            text: "cyan1de\npowered by Quickshell + Hyprland"
                             font.family: Theme.mono
                             font.pixelSize: 9
                             color: Theme.dim
@@ -2178,17 +2693,24 @@ ShellRoot {
                             width: scroller.availableWidth
                             height: implicitHeight
                             implicitHeight: pageLoader.implicitHeight + 32
+                                + (root.page === 0 ? 50 : 0)
 
                             Loader {
                                 id: pageLoader
-                                x: 16
-                                y: 16
+                                x: 16 + (1 - opacity) * 10
+                                y: 16 + (root.page === 0 ? 50 : 0)
                                 width: parent.width - 32
-                                sourceComponent: [
-                                    barPage, inputPage, keybindingsPage, autostartPage,
-                                    programsPage, environmentPage, monitorsPage,
-                                    rulesPage, notificationsPage
-                                ][root.page]
+                                opacity: 1
+                                scale: 0.99 + 0.01 * opacity
+                                transformOrigin: Item.TopLeft
+                                sourceComponent: root.componentForPage(root.renderedPage)
+
+                                Behavior on opacity {
+                                    NumberAnimation {
+                                        duration: Theme.motionFast
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
                             }
                         }
                     }
@@ -2222,24 +2744,92 @@ ShellRoot {
                     }
 
                     SettingsButton {
-                        text: "Reset"
-                        onClicked: root.resetAll()
+                        icon: "󰄲"
+                        text: root.confirmReset ? "Confirm reset" : "Reset"
+                        danger: true
+                        tooltip: "Restore the shipped defaults (requires a second click)"
+                        onClicked: root.handleReset()
                     }
 
                     SettingsButton {
                         icon: "󰄬"
                         text: "Apply"
                         primary: true
+                        tooltip: "Write Hyprland settings and reload the compositor"
                         onClicked: root.applyAll()
                     }
                 }
             }
+
+            // Appearance section bar floats over page content only. It is
+            // positioned from the scroll view so the section tabs stay clear.
+            Rectangle {
+                id: appearanceTabs
+
+                x: settingsLayout.x + bodyRow.x + scroller.x
+                y: settingsLayout.y + bodyRow.y + scroller.y
+                width: scroller.width
+                height: 40
+                z: 5
+                visible: root.page === 0
+                radius: Theme.panelRadius
+                color: Theme.surfaceAlt
+                border.width: 1
+                border.color: Theme.border
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: 6
+                    spacing: 10
+
+                    Text {
+                        text: "SECTION"
+                        font.family: Theme.mono
+                        font.pixelSize: 9
+                        font.weight: Font.DemiBold
+                        color: Theme.dim
+                    }
+
+                    Segmented {
+                        options: root.appearanceSections
+                        value: root.appearanceSection
+                        onSelected: value => root.setAppearanceSection(value)
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    Text {
+                        Layout.fillWidth: true
+                        Layout.maximumWidth: 240
+                        horizontalAlignment: Text.AlignRight
+                        text: String(root.appearanceSectionHints[root.appearanceSection] || "")
+                        font.family: Theme.mono
+                        font.pixelSize: 9
+                        color: Theme.dim
+                        elide: Text.ElideRight
+                    }
+                }
+            }
+        }
+
+        // The panel preview lifts its drag ghost into this full-screen layer
+        // so it can follow the pointer outside the settings card.
+        Item {
+            id: dragOverlayLayer
+            anchors.fill: parent
+            enabled: false
+            z: 100
+
+            Component.onCompleted: root.dragOverlayHost = dragOverlayLayer
         }
     }
 
     Component {
         id: barPage
-        BarPage { app: root }
+        BarPage {
+            app: root
+            section: root.appearanceSection
+        }
     }
 
     Component {

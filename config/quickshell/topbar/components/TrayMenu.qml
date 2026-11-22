@@ -1,7 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
-import "."
+import Quickshell.Wayland
 
 // QML-drawn SNI menu. The native QtWidgets QMenu used by item.display() cannot
 // create a grabbing xdg_popup from a Wayland layer shell, so we render the
@@ -9,14 +9,44 @@ import "."
 PopupWindow {
     id: root
 
+
     property var handle: null
     property var anchorItem: null
     property var ownerWindow: null
     property var parentMenu: null
     property int edge: Edges.Bottom
     property var childMenu: null
+    property real reveal: 0
+    property bool closing: false
 
     signal dismissed()
+
+    Behavior on reveal {
+        NumberAnimation {
+            duration: root.closing ? Theme.motionFast : Theme.motionBase
+            easing.type: Easing.OutCubic
+        }
+    }
+
+    Timer {
+        id: hideTimer
+        interval: Theme.motionFast + 20
+        onTriggered: {
+            root.visible = false;
+            root.closing = false;
+        }
+    }
+
+    function open() {
+        hideTimer.stop();
+        root.closing = false;
+        root.visible = true;
+        root.reveal = 1;
+    }
+
+    function isOpen() {
+        return root.visible && !root.closing;
+    }
 
     visible: false
     // Qt's xdg popup grab cannot be created from a layer-shell parent on
@@ -26,14 +56,23 @@ PopupWindow {
     implicitWidth: 244
     implicitHeight: menuColumn.implicitHeight + 8
 
+    Behavior on implicitHeight {
+        NumberAnimation {
+            duration: Theme.motionBase
+            easing.type: Easing.OutCubic
+        }
+    }
+
     anchor.item: root.anchorItem
     anchor.edges: root.edge
 
     function hide() {
-        if (!root.visible)
+        if (!root.visible || root.closing)
             return;
 
-        root.visible = false;
+        root.closing = true;
+        root.reveal = 0;
+        hideTimer.start();
         if (root.childMenu)
             root.childMenu.hide();
         root.dismissed();
@@ -52,7 +91,7 @@ PopupWindow {
         if (!row || !row.entry || !row.entry.hasChildren)
             return;
 
-        if (root.childMenu && root.childMenu.visible && root.childMenu.handle === row.entry)
+        if (root.childMenu && root.childMenu.isOpen() && root.childMenu.handle === row.entry)
             return;
 
         if (root.childMenu)
@@ -67,6 +106,7 @@ PopupWindow {
         const menu = component.createObject(null, {
             handle: row.entry,
             anchorItem: row,
+            ownerWindow: root.ownerWindow,
             parentMenu: root,
             edge: Edges.Right
         });
@@ -80,7 +120,7 @@ PopupWindow {
             if (root.childMenu === menu)
                 root.childMenu = null;
         });
-        menu.visible = true;
+        menu.open();
     }
 
     onVisibleChanged: {
@@ -89,6 +129,9 @@ PopupWindow {
             if (root.parentMenu === null)
                 TrayMenuState.show(root);
         } else {
+            hideTimer.stop();
+            root.closing = false;
+            root.reveal = 0;
             TrayMenuState.clear(root);
         }
     }
@@ -107,10 +150,8 @@ PopupWindow {
         active: root.visible && root.parentMenu === null
         windows: {
             const list = [];
-            // Keep the bar in the grab so right-clicking the same icon is
-            // handled by the icon itself instead of dismissing the menu first.
-            if (root.ownerWindow)
-                list.push(root.ownerWindow);
+            // The bar is intentionally excluded: including a layer-shell
+            // window clears the grab almost immediately and breaks clicks.
             let menu = root;
             while (menu) {
                 list.push(menu);
@@ -128,11 +169,21 @@ PopupWindow {
     }
 
     Rectangle {
+        id: surface
         anchors.fill: parent
         radius: 10
-        color: Theme.surface
+        color: Theme.popupFill(Theme.surface)
         border.width: 1
         border.color: Theme.border
+
+        opacity: root.reveal
+        scale: Theme.motionEnterScale + (1 - Theme.motionEnterScale) * root.reveal
+        transform: Translate {
+            y: -(1 - root.reveal) * 6
+        }
+
+        Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+        Behavior on border.color { ColorAnimation { duration: Theme.motionFast } }
     }
 
     Column {
@@ -140,6 +191,10 @@ PopupWindow {
 
         x: 4
         y: 4
+        opacity: root.reveal
+        transform: Translate {
+            y: -(1 - root.reveal) * 6
+        }
         width: root.implicitWidth - 8
         spacing: 0
 
@@ -176,6 +231,8 @@ PopupWindow {
                     radius: 6
                     color: mouse.containsMouse ? Theme.hover : "transparent"
                     visible: !row.isSeparator
+
+                    Behavior on color { ColorAnimation { duration: Theme.motionFast } }
                 }
 
                 Text {
@@ -229,6 +286,8 @@ PopupWindow {
                     elide: Text.ElideRight
                     verticalAlignment: Text.AlignVCenter
                     visible: !row.isSeparator
+
+                    Behavior on color { ColorAnimation { duration: Theme.motionFast } }
                 }
 
                 Text {
@@ -242,6 +301,8 @@ PopupWindow {
                     font.family: Theme.font
                     font.pixelSize: Theme.barFontSize + 2
                     visible: !row.isSeparator && row.entry && row.entry.hasChildren
+
+                    Behavior on color { ColorAnimation { duration: Theme.motionFast } }
                 }
 
                 Timer {

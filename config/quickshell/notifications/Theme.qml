@@ -11,8 +11,58 @@ QtObject {
     property var data: ({})
     property var barData: data.bar || ({})
     property var pillData: barData.pills || ({})
+    property var elementData: barData.elements || ({})
+
+    readonly property var elementLayout: {
+        const fallback = {
+            left: ["appMenu", "workspaces"],
+            center: ["clock"],
+            right: ["tray", "bluetooth", "network", "volume",
+                    "brightness", "battery", "power"]
+        };
+        const saved = barData.elementLayout;
+        if (!saved || typeof saved !== "object")
+            return fallback;
+        const keys = ["appMenu", "workspaces", "clock", "tray", "bluetooth",
+                      "network", "volume", "brightness", "battery", "power"];
+        const sectionOf = {
+            appMenu: "left", workspaces: "left", clock: "center",
+            tray: "right", bluetooth: "right", network: "right",
+            volume: "right", brightness: "right", battery: "right", power: "right"
+        };
+        const seen = {};
+        const out = { left: [], center: [], right: [] };
+        const sections = ["left", "center", "right"];
+        for (let s = 0; s < sections.length; s++) {
+            const section = sections[s];
+            const list = Array.isArray(saved[section]) ? saved[section] : fallback[section];
+            for (let i = 0; i < list.length; i++) {
+                const key = list[i];
+                if (keys.indexOf(key) < 0 || seen[key])
+                    continue;
+                out[section].push(key);
+                seen[key] = true;
+            }
+        }
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            if (!seen[key])
+                out[sectionOf[key]].push(key);
+        }
+        return out;
+    }
     property var hyprData: data.hypr || ({})
     property var notifyData: data.notifications || ({})
+
+    // Quickshell surfaces use their saved opaque colours. Blur remains a
+    // compositor effect for ordinary windows only.
+    function panelFill(color, panel, alpha) {
+        return color;
+    }
+
+    function popupFill(color) {
+        return color;
+    }
     property string lastText: ""
 
     // Typography
@@ -73,8 +123,18 @@ QtObject {
     readonly property color red: "#e78a8a"
     readonly property color mauve: "#c6a0e8"
 
-    // Bar geometry
-    readonly property int pillHeight: barData.pillHeight !== undefined ? barData.pillHeight : 34
+    // Panel geometry. panelHeight is the actual thickness of every layout;
+    // older configs may still contain pillHeight, which meant the same thing.
+    readonly property int panelHeight: {
+        if (barData.panelHeight !== undefined)
+            return Math.max(30, Math.min(56, barData.panelHeight));
+        if (barData.pillHeight !== undefined)
+            return Math.max(30, Math.min(56, barData.pillHeight));
+        return 34;
+    }
+    // Reserved panel area. Keeps the original gap between the screen edge and
+    // window space while panelHeight controls the visible bar thickness.
+    readonly property int barHeight: Math.max(44, panelHeight + 10)
     readonly property int pillRadius: barData.pillRadius !== undefined ? barData.pillRadius : 12
     readonly property int sideMargin: barData.sideMargin !== undefined ? barData.sideMargin : 10
     readonly property int iconSize: barData.iconSize !== undefined ? barData.iconSize : 15
@@ -83,8 +143,45 @@ QtObject {
     readonly property color pill: lightMode ? lightSurfaceAlt : basePill
     readonly property color pillFill: Qt.rgba(pill.r, pill.g, pill.b, pillOpacity)
     readonly property color pillBorder: lightMode ? lightBorder : basePillBorder
-    readonly property int barHeight: Math.max(44, pillHeight + 10)
+
+    // Panel placement: layout mode, screen edge and display filter.
+    readonly property string barLayout: {
+        const v = barData.layout;
+        return (v === "unified" || v === "island") ? v : "pills";
+    }
+    readonly property string barEdge: {
+        const v = barData.edge;
+        return (v === "bottom" || v === "left" || v === "right") ? v : "top";
+    }
+    readonly property bool barVertical: barEdge === "left" || barEdge === "right"
+    readonly property string barDisplay: barData.display || "all"
+    readonly property bool barUnifiedCorners: barData.unifiedCorners === true
+
+    // Individually removable panel elements. Missing keys default to visible.
+    readonly property bool showAppMenu: elementData.appMenu !== false
+    readonly property bool showWorkspaces: elementData.workspaces !== false
+    readonly property bool showClock: elementData.clock !== false
+    readonly property bool showTray: elementData.tray !== false
+    readonly property bool showBluetooth: elementData.bluetooth !== false
+    readonly property bool showNetwork: elementData.network !== false
+    readonly property bool showVolume: elementData.volume !== false
+    readonly property bool showBrightness: elementData.brightness !== false
+    readonly property bool showBattery: elementData.battery !== false
+    readonly property bool showPower: elementData.power !== false
+
     readonly property bool calendarMedia: barData.calendarMedia !== undefined ? barData.calendarMedia : true
+    readonly property string calendarMediaPosition: {
+        const v = barData.calendarMediaPosition;
+        return (v === "top" || v === "bottom") ? v : "bottom";
+    }
+    readonly property string calendarNotificationsSide: {
+        const v = barData.calendarNotificationsSide;
+        return (v === "left" || v === "right") ? v : "right";
+    }
+    readonly property int calendarWidth: {
+        const n = Number(barData.calendarWidth);
+        return isFinite(n) ? Math.max(380, Math.min(1100, n)) : 680;
+    }
     readonly property bool calendarNotifications: notifyData.calendarNotifications !== undefined ? notifyData.calendarNotifications : true
     readonly property bool lowBatteryEnabled: notifyData.lowBatteryEnabled !== undefined ? notifyData.lowBatteryEnabled : true
     readonly property int lowBatteryThreshold: notifyData.lowBatteryThreshold !== undefined ? notifyData.lowBatteryThreshold : 20
@@ -96,6 +193,14 @@ QtObject {
 
     // Shared corner radius for all Quickshell panels.
     readonly property int panelRadius: pillRadius
+
+    // Shared motion language: short, deliberate transitions with one easing
+    // family across every Quickshell surface.
+    readonly property int motionFast: 90
+    readonly property int motionBase: 150
+    readonly property int motionSlow: 220
+    readonly property real motionEnterScale: 0.965
+    readonly property int motionEnterOffset: 10
 
     // Wallpaper
     readonly property string wallpaper: data.wallpaper || ""
