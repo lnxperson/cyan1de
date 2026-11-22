@@ -213,8 +213,7 @@ Hand-edited files that Settings does not rewrite:
 
 ## Monitor configuration
 
-The **Monitors** page can arrange displays, set scale and rotation, enable or disable outputs, and configure idle dimming and automatic lock timing.
-
+The **Monitors** page can arrange displays, set scale and rotation, enable or disable outputs, and configure resolution + refresh rate.
 ![Monitor settings](demopics/monitor_settings.png)
 
 *Monitor arrangement and display settings.*
@@ -235,7 +234,7 @@ Press **Super + period** to open the emoji picker. Search results can be copied 
 
 The default setup includes ten workspaces, a scratchpad, dwindle tiling, floating toggles, pseudo-tiling, split-direction toggling, and configurable window borders with a blue-to-teal gradient.
 
-![Eye-candy window management](demopics/eye_candy_window_management.png)
+![Easy Window Management](demopics/eye_candy_window_management.png)
 
 *Workspaces, borders, gaps, and window layout in use.*
 
