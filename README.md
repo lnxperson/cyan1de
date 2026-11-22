@@ -16,6 +16,7 @@ The shipped defaults use JetBrainsMono Nerd Font, a dark surface palette, and a 
 - Panel on **top / bottom / left / right**, on **all displays** or one selected monitor
 - Ten workspaces, scratchpad, floating-window controls, and per-monitor fullscreen bar hiding
 - Centered clock, system tray, Bluetooth, network, volume, brightness, battery, and power controls
+- Software-brightness monitors dim the panel and cursor without affecting DDC-controlled displays
 - Calendar popup with media controls and notification history
 - Notification banners with hover pause, history, low-battery warnings, and configurable placement
 - App launcher with application, file, and web-search actions

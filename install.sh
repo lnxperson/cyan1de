@@ -194,8 +194,8 @@ make_scripts_executable() {
     while IFS= read -r -d '' script; do
         chmod +x -- "$script"
         count=$((count + 1))
-    done < <(find "$dir" -type f -name '*.sh' -print0)
-    ok "Made $count shell script(s) executable in $dir"
+    done < <(find "$dir" -type f \( -name '*.sh' -o -name '*.py' \) -print0)
+    ok "Made $count helper script(s) executable in $dir"
 }
 
 install_config() {

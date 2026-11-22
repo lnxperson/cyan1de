@@ -4,7 +4,8 @@ import Quickshell.Wayland
 
 // Full-output software dimmer for monitors that cannot be controlled over
 // DDC/CI. The surface is click-through and never takes keyboard focus, so the
-// desktop remains fully usable underneath it.
+// desktop remains fully usable underneath it. It must be created after the
+// bar in shell.qml so it stacks above the bar on the overlay layer.
 PanelWindow {
     id: dim
 
@@ -27,7 +28,7 @@ PanelWindow {
     focusable: false
     exclusionMode: ExclusionMode.Ignore
 
-    WlrLayershell.layer: WlrLayer.Top
+    WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "quickshell-softdim-" + outputName
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 

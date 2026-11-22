@@ -64,16 +64,25 @@ ShellRoot {
     // One-shot-per-cycle low battery warnings, independent of any screen.
     BatteryMonitor { id: batteryMonitor }
 
-    // Software dimmers are created before the bars so the bars stay above
-    // them in the Wayland top layer.
-    Variants {
-        model: Quickshell.screens
+    // Hyprland draws the software cursor after every layer surface, so the
+    // dim overlay cannot cover it. The helper switches a dimmed Xcursor theme
+    // when the cursor is over a software-brightness monitor.
+    Process {
+        id: cursorDimProcess
+        command: [Brightness.cursorDimScript]
+    }
 
-        SoftwareDim {
-            property var modelData
-            screen: modelData
+    Timer {
+        interval: 600
+        repeat: true
+        running: true
+        onTriggered: {
+            if (!cursorDimProcess.running)
+                cursorDimProcess.running = true;
         }
     }
+
+    Component.onCompleted: cursorDimProcess.running = true
 
     readonly property var panelScreens: {
         const screens = Quickshell.screens;
@@ -106,6 +115,16 @@ ShellRoot {
         model: root.panelScreens
 
         WrapFrame {
+            property var modelData
+            screen: modelData
+        }
+    }
+
+    // Created last so the overlay-layer dimmer paints above the bar and wrap.
+    Variants {
+        model: Quickshell.screens
+
+        SoftwareDim {
             property var modelData
             screen: modelData
         }

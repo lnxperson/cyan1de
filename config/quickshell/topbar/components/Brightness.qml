@@ -11,6 +11,8 @@ QtObject {
 
     readonly property string scriptPath: (Quickshell.env("HOME") || "")
         + "/.config/quickshell/topbar/brightness.sh"
+    readonly property string cursorDimScript: (Quickshell.env("HOME") || "")
+        + "/.config/quickshell/topbar/cursor-dim.py"
 
     property ListModel displayModel: ListModel {
         id: displayStore
@@ -80,6 +82,7 @@ QtObject {
             displayModel.setProperty(index, "percent", v);
         root.updateSummary();
         Quickshell.execDetached([scriptPath, "set", uid, String(v)]);
+        Quickshell.execDetached([cursorDimScript]);
     }
 
     function applyAll(value) {
@@ -89,6 +92,7 @@ QtObject {
             displayModel.setProperty(i, "percent", v);
             Quickshell.execDetached([scriptPath, "set", item.uid, String(v)]);
         }
+        Quickshell.execDetached([cursorDimScript]);
         root.updateSummary();
     }
 

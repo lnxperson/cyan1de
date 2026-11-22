@@ -171,7 +171,8 @@ PanelWindow {
     // OnDemand focus lets the QtWidgets tray menu receive keyboard input.
     focusable: true
 
-    // Same layer as the software dimmer so the bar dims with the monitor.
+    // The software dimmer uses this same layer but is created after the bar,
+    // so it paints over the bar and the bar dims with the monitor.
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "quickshell-topbar-" + (screen ? screen.name : "x")
 
