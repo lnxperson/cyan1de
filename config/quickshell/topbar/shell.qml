@@ -158,6 +158,18 @@ ShellRoot {
         }
     }
 
+    // The wrap lives on its own full-screen surface so it can hug the display
+    // without expanding the bar's exclusive zone. It shares the bar's overlay
+    // layer and is created first so the bar paints above it.
+    Variants {
+        model: root.panelScreens
+
+        WrapFrame {
+            property var modelData
+            screen: modelData
+        }
+    }
+
     Variants {
         model: root.panelScreens
 
@@ -167,17 +179,6 @@ ShellRoot {
             screen: modelData
             cursorX: root.cursorX
             cursorY: root.cursorY
-        }
-    }
-
-    // The wrap lives on its own full-screen surface so it can hug the display
-    // without expanding the bar's exclusive zone.
-    Variants {
-        model: root.panelScreens
-
-        WrapFrame {
-            property var modelData
-            screen: modelData
         }
     }
 

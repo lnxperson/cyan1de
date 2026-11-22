@@ -24,7 +24,10 @@ Rectangle {
     // movement of the sliding action indicator in the bar.
     property bool sliding: false
     property bool slideHorizontal: true
-    property real slideOffset: 0
+    property real contentSlideOffset: 0
+    // During a switch the incoming surface is transparent, so the outgoing
+    // rounded surface is the only background until the slide finishes.
+    property bool backgroundHidden: false
     property int hideDelay: Theme.motionFast + 20
 
     // Keyboard navigation lives here so every popup gets the same Tab/arrow
@@ -45,15 +48,15 @@ Rectangle {
         : (root.attachEdge === "bottom" ? Theme.motionEnterOffset : 0)
 
     radius: Theme.panelRadius
-    color: Theme.popupFill(Theme.surface)
-    border.width: 1
+    color: root.backgroundHidden ? "transparent" : Theme.popupFill(Theme.surface)
+    border.width: root.backgroundHidden ? 0 : 1
     border.color: Theme.border
 
     opacity: root.reveal
     scale: Theme.motionEnterScale + (1 - Theme.motionEnterScale) * root.reveal
     transform: Translate {
-        x: root.enterX * (1 - root.reveal) + (root.slideHorizontal ? root.slideOffset : 0)
-        y: root.enterY * (1 - root.reveal) + (root.slideHorizontal ? 0 : root.slideOffset)
+        x: root.enterX * (1 - root.reveal)
+        y: root.enterY * (1 - root.reveal)
     }
 
     Behavior on reveal {
@@ -63,7 +66,7 @@ Rectangle {
         }
     }
 
-    Behavior on slideOffset {
+    Behavior on contentSlideOffset {
         enabled: root.sliding
         NumberAnimation {
             duration: Theme.motionBase
@@ -300,6 +303,12 @@ Rectangle {
     }
 
     Timer {
+        id: restoreBackgroundTimer
+        interval: Theme.motionBase + 20
+        onTriggered: root.backgroundHidden = false
+    }
+
+    Timer {
         id: hideTimer
         interval: root.hideDelay
         onTriggered: {
@@ -313,7 +322,9 @@ Rectangle {
             }
             root.closing = false;
             root.sliding = false;
-            root.slideOffset = 0;
+            root.contentSlideOffset = 0;
+            root.backgroundHidden = false;
+            root.z = 1;
         }
     }
 
@@ -332,7 +343,10 @@ Rectangle {
         hideTimer.stop();
         root.closing = false;
         root.sliding = false;
-        root.slideOffset = 0;
+        root.contentSlideOffset = 0;
+        root.backgroundHidden = false;
+        root.z = 1;
+        restoreBackgroundTimer.stop();
         root.hideDelay = Theme.motionFast + 20;
         root.ensureVisible();
         root.reveal = 1;
@@ -349,26 +363,32 @@ Rectangle {
         hideTimer.start();
     }
 
-    // Bring a popup in from the side the action indicator is travelling from.
+    // Bring the incoming content in from the side the action indicator is
+    // travelling from. The rounded surface itself stays put so the panel
+    // corners never turn square mid-slide.
     function slideIn(direction, horizontal) {
         hideTimer.stop();
+        restoreBackgroundTimer.stop();
         root.closing = false;
         root.hideDelay = Theme.motionBase + 30;
         root.slideHorizontal = horizontal;
         root.sliding = false;
-        root.slideOffset = direction * root.slideDistance(horizontal);
+        root.backgroundHidden = true;
+        root.contentSlideOffset = direction * root.slideDistance(horizontal);
         root.sliding = true;
+        root.z = 2;
         root.ensureVisible();
         root.reveal = 1;
         Qt.callLater(root.focusFirst);
         Qt.callLater(function () {
             if (root.sliding)
-                root.slideOffset = 0;
+                root.contentSlideOffset = 0;
         });
+        restoreBackgroundTimer.start();
     }
 
-    // Move the previous content out in the same direction, without the generic
-    // fade so the two surfaces read as one sliding panel.
+    // Move the previous content out in the same direction. Both rounded
+    // backgrounds stay stacked, so the visible panel keeps one clean outline.
     function slideOut(direction, horizontal) {
         if (!root.window || !root.window.visible || root.closing)
             return;
@@ -376,7 +396,9 @@ Rectangle {
         root.hideDelay = Theme.motionBase + 30;
         root.slideHorizontal = horizontal;
         root.sliding = true;
-        root.slideOffset = -direction * root.slideDistance(horizontal);
+        root.backgroundHidden = false;
+        root.z = 1;
+        root.contentSlideOffset = -direction * root.slideDistance(horizontal);
         root.clearKeyboardFocus();
         hideTimer.start();
     }
@@ -387,7 +409,10 @@ Rectangle {
         hideTimer.stop();
         root.closing = false;
         root.sliding = false;
-        root.slideOffset = 0;
+        root.contentSlideOffset = 0;
+        root.backgroundHidden = false;
+        restoreBackgroundTimer.stop();
+        root.z = 1;
         root.reveal = 0;
         root.clearKeyboardFocus();
     }
@@ -399,6 +424,7 @@ Rectangle {
         z: -1
         radius: parent.radius + 1
         color: "#55000000"
+        visible: !root.backgroundHidden
     }
 
     Flickable {
@@ -418,6 +444,13 @@ Rectangle {
             width: flick.width
             height: Math.max(flick.height, implicitHeight)
             spacing: 12
+
+            // Sliding the content inside the stationary clipped viewport keeps
+            // the rounded surface outline fixed during action switches.
+            transform: Translate {
+                x: root.slideHorizontal ? root.contentSlideOffset : 0
+                y: root.slideHorizontal ? 0 : root.contentSlideOffset
+            }
         }
     }
 
@@ -426,5 +459,6 @@ Rectangle {
         radius: parent.radius
         reveal: root.reveal
         active: root.reveal > 0 && (!root.window || root.window.visible)
+        visible: !root.backgroundHidden
     }
 }

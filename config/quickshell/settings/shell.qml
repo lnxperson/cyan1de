@@ -70,6 +70,12 @@ ShellRoot {
     property string status: statusIdle
     property color statusColor: Theme.dim
 
+    // The settings card keeps its native layout and is scaled as a whole when
+    // Hyprland reports a small logical surface (high display scale). Letting
+    // the layout reflow into that tiny surface is what pushed rows off screen.
+    readonly property real settingsBaseWidth: 1100
+    readonly property real settingsBaseHeight: 720
+
     // Sliding sidebar highlight, driven by the same rect-sync pattern as the
     // top bar's action indicator.
     property rect navHighlightRect: Qt.rect(0, 0, 0, 0)
@@ -2613,8 +2619,12 @@ ShellRoot {
         Rectangle {
             id: card
 
-            width: Math.min(1100, parent.width - 80)
-            height: Math.min(720, parent.height - 60)
+            readonly property real fitScale: Math.max(0.1, Math.min(1,
+                (parent.width - 80) / root.settingsBaseWidth,
+                (parent.height - 60) / root.settingsBaseHeight))
+
+            width: root.settingsBaseWidth
+            height: root.settingsBaseHeight
             anchors.centerIn: parent
             radius: Theme.panelRadius
             color: Theme.panelFill(Theme.surface, "settings")
@@ -2622,9 +2632,9 @@ ShellRoot {
             border.color: Theme.border
 
             opacity: root.reveal
-            scale: Theme.motionEnterScale + (1 - Theme.motionEnterScale) * root.reveal
+            scale: fitScale * (Theme.motionEnterScale + (1 - Theme.motionEnterScale) * root.reveal)
             transform: Translate {
-                y: -(1 - root.reveal) * Theme.motionEnterOffset
+                y: -(1 - root.reveal) * Theme.motionEnterOffset * card.fitScale
             }
 
             Behavior on color { ColorAnimation { duration: Theme.motionFast } }

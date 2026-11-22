@@ -53,7 +53,7 @@ PanelWindow {
     exclusiveZone: -1
     exclusionMode: ExclusionMode.Ignore
 
-    WlrLayershell.layer: WlrLayer.Bottom
+    WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "quickshell-wrap-" + (screen ? screen.name : "x")
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
