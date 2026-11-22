@@ -9,6 +9,7 @@ import Quickshell.Io
 Rectangle {
     id: root
 
+    property string monitorName: ""
     property int level: 100
     property real reveal: 1
     readonly property real dimAlpha: Math.max(0, Math.min(0.95, (100 - level) / 100))
@@ -29,25 +30,51 @@ Rectangle {
         onLoadedChanged: if (loaded) root.reload()
     }
 
+    // PanelWindow.screen is not reliable for Hyprland popups, so ask the
+    // compositor which monitor is focused and dim only that output.
+    Process {
+        id: focusProbe
+        command: ["hyprctl", "-j", "activeworkspace"]
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const parsed = JSON.parse(text);
+                    if (parsed && parsed.monitor)
+                        root.monitorName = parsed.monitor;
+                } catch (e) {
+                    // Keep the last known monitor if the reply is malformed.
+                }
+            }
+        }
+    }
+
     Timer {
-        interval: 300
+        interval: 500
         repeat: true
         running: true
-        onTriggered: root.reload()
+        onTriggered: {
+            root.reload();
+            if (!focusProbe.running)
+                focusProbe.running = true;
+        }
     }
 
     function reload() {
         try {
             brightnessFile.reload();
             const parsed = JSON.parse(brightnessFile.text());
-            const values = Object.values(parsed).filter(v => typeof v === "number");
-            root.level = values.length > 0
-                ? Math.max(0, Math.min(100, Math.round(Math.min(...values))))
+            const value = parsed[root.monitorName];
+            root.level = typeof value === "number"
+                ? Math.max(0, Math.min(100, Math.round(value)))
                 : 100;
         } catch (e) {
             // Keep the last good value if the file is mid-write or missing.
         }
     }
 
-    Component.onCompleted: root.reload()
+    Component.onCompleted: {
+        focusProbe.running = true;
+        root.reload();
+    }
 }
