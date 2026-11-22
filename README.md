@@ -52,9 +52,10 @@ You can decline package installation and install them yourself.
 
 ## Installation
 
-Download or clone this folder, then run the installer:
+Simply run these commands in your terminal:
 
 ```bash
+git clone https://github.com/lnxperson/cyan1de
 cd cyan1de
 chmod +x install.sh
 ./install.sh
