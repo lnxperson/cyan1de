@@ -14,7 +14,7 @@ Rectangle {
 
     activeFocusOnTab: true
 
-    implicitHeight: 40
+    implicitHeight: 36
     radius: 9
     // The active fill is a single sliding highlight in the sidebar, so this
     // background only handles hover on inactive rows.

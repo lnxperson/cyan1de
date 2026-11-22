@@ -5,6 +5,77 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SRC="$SCRIPT_DIR/config"
 CONFIG_HOME="${HOME}/.config"
 
+# ---- Output styling ----------------------------------------------------
+# Colour is optional: pipes, NO_COLOR and dumb terminals get plain text.
+if [[ -t 1 && -z ${NO_COLOR:-} && ${TERM:-dumb} != dumb ]]; then
+    BOLD=$'\033[1m'
+    DIM=$'\033[2m'
+    RESET=$'\033[0m'
+    CYAN=$'\033[36m'
+    BLUE=$'\033[34m'
+    GREEN=$'\033[32m'
+    YELLOW=$'\033[33m'
+    RED=$'\033[31m'
+    MAGENTA=$'\033[35m'
+else
+    BOLD=''; DIM=''; RESET=''
+    CYAN=''; BLUE=''; GREEN=''; YELLOW=''; RED=''; MAGENTA=''
+fi
+
+banner_line() {
+    local text="$1" color="$2"
+    local len=${#text} left right padded
+    left=$(( (50 - 2 - len) / 2 ))
+    right=$(( 50 - 2 - len - left ))
+    printf -v padded '%*s%s%*s' "$left" '' "$text" "$right" ''
+    printf '  %s│%s %s%s%s %s│%s\n' "$CYAN" "$RESET" "$color" "$padded" "$RESET" "$CYAN" "$RESET"
+}
+
+show_banner() {
+    local bar rule_bar
+    printf -v bar '%*s' 50 ''
+    rule_bar="${bar// /─}"
+    printf '\n  %s╭%s╮%s\n' "$CYAN" "$rule_bar" "$RESET"
+    banner_line "cyan1de" "$BOLD$MAGENTA"
+    banner_line "portable Hyprland + Quickshell desktop" "$DIM"
+    printf '  %s╰%s╯%s\n' "$CYAN" "$rule_bar" "$RESET"
+}
+
+section() {
+    local bar
+    printf -v bar '%*s' 50 ''
+    printf '\n  %s%s%s\n' "$BOLD$BLUE" "$1" "$RESET"
+    printf '  %s%s%s\n' "$DIM" "${bar// /─}" "$RESET"
+}
+
+ok()   { printf '  %s✓%s %s\n' "$GREEN"  "$RESET" "$1"; }
+note() { printf '  %s·%s %s\n' "$DIM"    "$RESET" "$1"; }
+warn() { printf '  %s!%s %s\n' "$YELLOW" "$RESET" "$1"; }
+err()  { printf '  %sx%s %s\n' "$RED"    "$RESET" "$1" >&2; }
+
+ask() {
+    local prompt="$1" hint="$2"
+    local answer
+    if ! read -r -p "  ${YELLOW}▸${RESET} ${prompt} ${DIM}${hint}${RESET} " answer; then
+        printf '\n'
+        exit 0
+    fi
+    printf '%s' "$answer"
+}
+
+menu_item() {
+    printf '  %s[%s]%s %s%s%s\n' "$CYAN" "$1" "$RESET" "$BOLD" "$2" "$RESET"
+    printf '      %s%s%s\n' "$DIM" "$3" "$RESET"
+}
+
+show_menu() {
+    printf '\n  %sWhat would you like to do?%s\n\n' "$BOLD" "$RESET"
+    menu_item 1 "Install"  "Copy the config into ~/.config and set up defaults"
+    menu_item 2 "Remove"   "Delete the installed hypr and quickshell configs"
+    menu_item 3 "Quit"     "Leave the installer"
+    printf '\n'
+}
+
 # Packages actually referenced by the shipped Hyprland/Quickshell config.
 PACKAGES=(
     hyprland
@@ -45,21 +116,23 @@ privileged() {
     elif command -v sudo >/dev/null 2>&1; then
         sudo "$@"
     else
-        echo "Cannot run privileged command: sudo is not available." >&2
+        err "Cannot run privileged command: sudo is not available."
         return 1
     fi
 }
 
 install_packages() {
-    echo "Installing required packages with pacman..."
+    section "Packages"
+    note "Installing ${#PACKAGES[@]} packages with pacman..."
     privileged pacman -S --needed --noconfirm "${PACKAGES[@]}"
+    ok "Packages are up to date"
 }
 
 # Set the recommended default applications. Each entry is only applied when
 # its desktop file is present, so skipping packages never leaves broken defaults.
 set_mime_defaults() {
     if ! command -v xdg-mime >/dev/null 2>&1; then
-        echo "xdg-mime not found; skipping MIME defaults."
+        warn "xdg-mime not found; skipping MIME defaults."
         return 0
     fi
 
@@ -76,14 +149,14 @@ set_mime_defaults() {
             fi
         done
         if [ -z "$found" ]; then
-            echo "  skip $desktop (not installed)"
+            note "skip $desktop (not installed)"
             return 0
         fi
         xdg-mime default "$desktop" "$@"
-        echo "  default: $desktop -> $*"
+        ok "default: $desktop -> $*"
     }
 
-    echo "Setting default applications..."
+    section "Default applications"
     (
         export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-Hyprland}"
         mime_default org.gnome.Nautilus.desktop inode/directory
@@ -96,12 +169,13 @@ set_mime_defaults() {
 
 enable_services() {
     command -v systemctl >/dev/null 2>&1 || return 0
-    echo "Enabling fingerprint, Bluetooth and power-profiles services (best effort)..."
+    section "Services"
+    note "Enabling fingerprint, Bluetooth and power-profiles (best effort)..."
     for service in fprintd.service bluetooth.service power-profiles-daemon.service; do
         if privileged systemctl enable --now "$service" >/dev/null 2>&1; then
-            echo "  enabled $service"
+            ok "enabled $service"
         else
-            echo "  skip $service (not available or already enabled)"
+            note "skip $service (not available or already enabled)"
         fi
     done
 }
@@ -111,7 +185,7 @@ backup_dir() {
     [ -e "$target" ] || return 0
     local saved="${target}.bak.$(date +%Y%m%d%H%M%S)"
     mv -- "$target" "$saved"
-    echo "Backed up: $target -> $saved"
+    ok "Backed up: $target -> $saved"
 }
 
 make_scripts_executable() {
@@ -121,31 +195,32 @@ make_scripts_executable() {
         chmod +x -- "$script"
         count=$((count + 1))
     done < <(find "$dir" -type f -name '*.sh' -print0)
-    echo "Made $count shell script(s) executable in $dir"
+    ok "Made $count shell script(s) executable in $dir"
 }
 
 install_config() {
-    [ -d "$SRC/hypr" ] || { echo "Missing: $SRC/hypr" >&2; return 1; }
-    [ -d "$SRC/quickshell" ] || { echo "Missing: $SRC/quickshell" >&2; return 1; }
-
-    if ! read -r -p "Install cyan1de into ~/.config/hypr and ~/.config/quickshell? Existing dirs will be backed up. [y/N] " answer; then
-        exit 0
+    section "Install cyan1de"
+    if [ ! -d "$SRC/hypr" ] || [ ! -d "$SRC/quickshell" ]; then
+        err "Missing config source: $SRC"
+        return 1
     fi
+
+    local answer
+    answer=$(ask "Install into ~/.config/hypr and ~/.config/quickshell?" "[y/N]")
     case "$answer" in
         y|Y|yes|YES) ;;
-        *) echo "Cancelled."; return 0 ;;
+        *) note "Cancelled."; return 0 ;;
     esac
 
-    if ! read -r -p "Install required packages with pacman? [Y/n] " pkg_answer; then
-        exit 0
-    fi
-    case "${pkg_answer:-y}" in
+    note "Existing directories will be backed up before copying."
+    answer=$(ask "Install required packages with pacman?" "[Y/n]")
+    case "${answer:-y}" in
         n|N|no|NO)
-            echo "Skipping package installation."
+            note "Skipping package installation."
             ;;
         *)
             if ! install_packages; then
-                echo "Package installation failed; config was not installed." >&2
+                err "Package installation failed; config was not installed."
                 return 1
             fi
             set_mime_defaults
@@ -153,6 +228,7 @@ install_config() {
             ;;
     esac
 
+    section "Configuration"
     mkdir -p "$CONFIG_HOME"
     backup_dir "$CONFIG_HOME/hypr"
     backup_dir "$CONFIG_HOME/quickshell"
@@ -163,40 +239,34 @@ install_config() {
     # every Quickshell helper works even if an archive/transfer dropped +x.
     make_scripts_executable "$CONFIG_HOME/quickshell"
 
-    echo "Installed cyan1de."
-    echo "Reload Hyprland or log out and back in."
+    section "Done"
+    ok "cyan1de is installed"
+    note "Reload Hyprland or log out and back in."
 }
 
 remove_config() {
-    if ! read -r -p "Remove ~/.config/hypr and ~/.config/quickshell? [y/N] " answer; then
-        exit 0
-    fi
+    section "Remove cyan1de"
+    local answer
+    answer=$(ask "Remove ~/.config/hypr and ~/.config/quickshell?" "[y/N]")
     case "$answer" in
         y|Y|yes|YES) ;;
-        *) echo "Cancelled."; return 0 ;;
+        *) note "Cancelled."; return 0 ;;
     esac
 
+    warn "This permanently deletes both config directories."
     rm -rf -- "$CONFIG_HOME/hypr" "$CONFIG_HOME/quickshell"
-    echo "Removed cyan1de config directories."
+    ok "Removed cyan1de config directories."
 }
 
-printf '%s\n' "------------------------------------" \
-             "          cyan1de installer          " \
-             "------------------------------------"
+show_banner
 
 while true; do
-    echo
-    echo "1) Install"
-    echo "2) Remove"
-    echo "3) Quit"
-    if ! read -r -p "Choose [1-3]: " choice; then
-        exit 0
-    fi
-
+    show_menu
+    choice=$(ask "Choose an option" "[1-3]")
     case "$choice" in
         1|install)  install_config ;;
         2|remove)   remove_config ;;
-        3|quit|q)   echo "Bye."; exit 0 ;;
-        *)          echo "Invalid choice." ;;
+        3|quit|q)   printf '\n  %sBye.%s\n\n' "$DIM" "$RESET"; exit 0 ;;
+        *)          warn "Invalid choice. Please enter 1, 2 or 3." ;;
     esac
 done

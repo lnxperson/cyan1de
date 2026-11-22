@@ -4,6 +4,10 @@ A clean, dark, portable **Hyprland + Quickshell** desktop configuration for Arch
 
 The shipped defaults use JetBrainsMono Nerd Font, a dark surface palette, and a blue-to-teal window-border gradient. Quickshell surfaces are opaque for crisp text; blur is limited to Hyprland windows and Alacritty.
 
+![cyan1de default desktop showcase](demopics/default_app_showcase.png)
+
+*Default desktop with the shipped panel and applications.*
+
 ---
 
 ## Highlights
@@ -46,10 +50,9 @@ You can decline package installation and install them yourself.
 
 ## Installation
 
-Simply run this command in your terminal:
+Download or clone this folder, then run the installer:
 
 ```bash
-git clone https://github.com/lnxperson/cyan1de
 cd cyan1de
 chmod +x install.sh
 ./install.sh
@@ -103,10 +106,18 @@ Change this in **Settings → Appearance → Panel → Layout**:
 | Mode | Behavior |
 | --- | --- |
 | `pills` | Separate floating pills for each group — default |
-| `unified` | One continuous panel |
+| `unified` | One continuous rounded panel with side margins |
+| `unifiedCorners` | Unified bar attached flush to the screen corners |
+| `unifiedWrap` | Unified bar plus a same-color frame around the other three screen edges, with every inner corner curved into the bar using Hyprland's window rounding radius |
 | `island` | Compact panel that reveals near the selected screen edge |
 
-The panel can sit on any edge and can follow all monitors or a single display.
+The corners and wrap options are layout choices, not separate toggles. Existing configs that used the old **Unified bar + Corners on** combination are migrated to `unifiedCorners`, and configs saved with the earlier side-ramp option are migrated to `unifiedWrap` automatically.
+
+The panel can sit on any edge and can follow all monitors or a single display. On left/right edges the clock shows a stacked date and time instead of a horizontal label.
+
+The reserved bar area follows **Outer gaps**. Detached layouts keep one outer gap between the screen edge and the bar; attached layouts sit flush. In both cases the gap between the bar and window space matches the normal window outer gap.
+
+With `unifiedWrap`, the frame genuinely acts as the display border: **Outer gaps** is applied between the wrap and the window space, so tiled windows sit one gap away from the bar on its edge and one gap away from the frame on the other three edges. The frame stays a fixed 7px wide, so the frame edges use `7 + Outer gaps` while the bar edge uses `Outer gaps` directly. New floating windows that Hyprland would centre in the usable area are centred in that window space instead. Layout, edge, display and **Outer gaps** changes refresh the window gaps immediately from Settings; **Apply** is still needed for other Hyprland settings. Per-side wrap gaps apply only in `unifiedWrap` when the panel follows all displays; a single-display filter keeps gaps uniform on the other monitors. Every other layout leaves `gaps_out` uniform, so the outer gap is measured from the real screen edge and no wrap frame is involved.
 
 The bar hides automatically on a monitor when that monitor’s active workspace has a fullscreen window, so fullscreen video is not covered. Other monitors keep their bars.
 
@@ -124,7 +135,7 @@ Press **Super + Space** to open the launcher. It supports application search, fi
 
 ## Calendar and notifications
 
-Click the clock to open the calendar. The popup can include media controls and notification history, and its width is configurable in Settings.
+Click the clock to open the calendar. The popup can include media controls and notification history, and its layout and width are configurable in **Settings → Notifications → Calendar**.
 
 Notifications support:
 
@@ -146,15 +157,20 @@ Notifications support:
 
 Press **Super + comma** to open the settings app. It includes pages for:
 
-- Appearance — wallpaper, panel, colors, cursor, effects, and window styling
+- Appearance — wallpaper, panel, colors, and cursor
+- Windows — borders, corner rounding, and gaps
+- Effects — animations and blur
 - Input — keyboard, pointer, touchpad, and gestures
 - Keybindings — shortcuts and window actions
+- Monitors — arrangement, scale, rotation, and refresh rate
+- Session — idle dimming and screen lock
+- Notifications — banners, history, calendar layout, and low-battery behavior
 - Autostart — commands launched with Hyprland
 - Programs — terminal, browser, file manager, and other defaults
 - Environment — variables exported to applications
-- Monitors — arrangement, scale, rotation, idle dimming, and locking
 - Rules — window rules and per-app overrides
-- Notifications — banners, history, and low-battery behavior
+
+Hover any setting name for a short explanation of what it does. Ambiguous names such as **Layout** and **Sensitivity** have page-specific help text.
 
 ![Settings app](demopics/settings_app.png)
 

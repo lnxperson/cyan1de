@@ -27,39 +27,41 @@ ShellRoot {
         { label: "Panel", value: "panel" },
         { label: "Theme", value: "theme" },
         { label: "Cursor", value: "cursor" },
-        { label: "Wallpaper", value: "wallpaper" },
-        { label: "Effects", value: "effects" },
-        { label: "Windows", value: "windows" }
+        { label: "Wallpaper", value: "wallpaper" }
     ]
     readonly property var appearanceSectionHints: ({
-        panel: "Layout, elements, calendar, preview",
+        panel: "Layout, elements, preview",
         theme: "Theme, colours, sizing",
         cursor: "Pointer theme and size",
-        wallpaper: "Wallpaper source and fit",
-        effects: "Animations and blur",
-        windows: "Borders, rounding, gaps"
+        wallpaper: "Wallpaper source and fit"
     })
     property bool confirmReset: false
     readonly property string statusIdle: "Saved locally — press Apply for Hyprland changes"
     readonly property var pages: [
         { icon: "󰖲", title: "Appearance",
-            subtitle: "Wallpaper, panel, colors and blur" },
+            subtitle: "Wallpaper, panel, theme and cursor" },
+        { icon: "", title: "Windows",
+            subtitle: "Borders, rounding and gaps" },
+        { icon: "", title: "Effects",
+            subtitle: "Animations and blur" },
         { icon: "", title: "Input",
             subtitle: "Keyboard, mouse and touchpad behavior" },
         { icon: "󰌋", title: "Keybindings",
             subtitle: "Keyboard shortcuts and window actions" },
+        { icon: "󰍹", title: "Monitors",
+            subtitle: "Display layout and scaling" },
+        { icon: "󰥔", title: "Session",
+            subtitle: "Idle dimming and screen lock" },
+        { icon: "󰎟", title: "Notifications",
+            subtitle: "Notification style and behavior" },
         { icon: "󰒲", title: "Autostart",
             subtitle: "Applications launched with your session" },
         { icon: "󰀻", title: "Programs",
             subtitle: "Default terminal, browser and utilities" },
         { icon: "󰫧", title: "Environment",
             subtitle: "Variables exported to every application" },
-        { icon: "󰍹", title: "Monitors",
-            subtitle: "Display layout and idle timeouts" },
         { icon: "󰰞", title: "Rules",
-            subtitle: "Window rules and per-app overrides" },
-        { icon: "󰎟", title: "Notifications",
-            subtitle: "Notification style and behavior" }
+            subtitle: "Window rules and per-app overrides" }
     ]
     readonly property var currentPage: pages[page] || pages[0]
     property string status: statusIdle
@@ -162,18 +164,21 @@ ShellRoot {
     property string barPill: "#121722"
     property string barPillBorder: "#2b3547"
     property string barText: "#cdd6e6"
-    // "pills" = three floating pills, "unified" = one full-width bar,
-    // "island" = one compact floating bar centred on the edge.
+    // Layouts are now exposed as single choices instead of a unified bar plus
+    // a separate corners toggle. Old unifiedCorners and unifiedRamp settings
+    // migrate to the attached variants on load.
     property string barLayout: "pills"
     property string barEdge: "top"
     property string barDisplay: "all"
-    // Unified bar only: false keeps the rounded, margin-inset bar; true makes
-    // it fill the edge from corner to corner.
-    property bool barUnifiedCorners: false
-    readonly property var barLayoutOptions: ["pills", "unified", "island"]
+    readonly property bool barUnifiedCorners: barLayout === "unifiedCorners"
+        || barLayout === "unifiedWrap"
+    readonly property var barLayoutOptions: ["pills", "unified",
+        "unifiedCorners", "unifiedWrap", "island"]
     readonly property var barLayoutLabels: ({
         "pills": "Floating pills",
         "unified": "Unified bar",
+        "unifiedCorners": "Unified + corners",
+        "unifiedWrap": "Unified + wrap",
         "island": "Floating island"
     })
     readonly property var barEdgeOptions: ["top", "bottom", "left", "right"]
@@ -679,12 +684,18 @@ ShellRoot {
         barPill = themeColors[themeMode].pill;
         barPillBorder = asText(b.pillBorder, d.bar.pillBorder);
         barText = asText(b.text, d.bar.text);
-        barLayout = ["pills", "unified", "island"].indexOf(b.layout) >= 0
-            ? b.layout : d.bar.layout;
+        const layoutOptions = ["pills", "unified", "unifiedCorners",
+            "unifiedWrap", "island"];
+        const legacyCorners = asBool(b.unifiedCorners, d.bar.unifiedCorners);
+        barLayout = (b.layout === "unifiedRamp")
+            ? "unifiedWrap"
+            : ((b.layout === "unified" && legacyCorners)
+                ? "unifiedCorners"
+                : (layoutOptions.indexOf(b.layout) >= 0
+                    ? b.layout : d.bar.layout));
         barEdge = ["top", "bottom", "left", "right"].indexOf(b.edge) >= 0
             ? b.edge : d.bar.edge;
         barDisplay = asText(b.display, d.bar.display);
-        barUnifiedCorners = asBool(b.unifiedCorners, d.bar.unifiedCorners);
         // Old configs stored the visible pill thickness under pillHeight.
         // The new panelHeight value is that same thickness for every layout.
         barPanelHeight = Math.max(30, Math.min(56,
@@ -874,6 +885,30 @@ ShellRoot {
 
     function queueSave() {
         saveDebounce.restart();
+    }
+
+    // Layout, edge, display and outer-gap changes must refresh the generated
+    // gaps right away. The panel updates from settings.json, but Hyprland reads
+    // ui_overrides.lua, so leaving that file stale keeps wrap-only gaps alive
+    // after switching away from unified + wrap. Only this managed file is
+    // rewritten; other Hyprland files may contain live user edits.
+    function queueManaged() {
+        if (!shown)
+            return;
+        saveDebounce.restart();
+        managedDebounce.restart();
+    }
+
+    function applyManaged() {
+        if (!shown)
+            return;
+        const encoded = b64Utf8(generateManaged());
+        Quickshell.execDetached(["sh", "-c",
+            "printf '%s' '" + encoded + "' | base64 -d > '" + hyprDir
+                + "/ui_overrides.lua' && hyprctl reload >/dev/null 2>&1"]);
+        status = "Window gaps updated";
+        statusColor = Theme.green;
+        statusTimer.restart();
     }
 
     function themeGtkName(mode) {
@@ -1838,6 +1873,29 @@ ShellRoot {
     }
 
 
+    // The wrap is a fixed 7px display border; Outer gaps only set the space
+    // between that border and the window area. The bar edge uses the gap
+    // directly, while the frame edges add the fixed frame thickness. With a
+    // single-display filter the gaps stay uniform because the other screens
+    // have no bar or frame to align with.
+    function managedGapsOut() {
+        if (barLayout !== "unifiedWrap"
+                || (barDisplay !== "all" && barDisplay !== ""))
+            return String(hyprGapsOut);
+
+        const wrapThickness = 7;
+        const sides = {
+            top: wrapThickness + hyprGapsOut,
+            right: wrapThickness + hyprGapsOut,
+            bottom: wrapThickness + hyprGapsOut,
+            left: wrapThickness + hyprGapsOut
+        };
+        if (sides[barEdge] !== undefined)
+            sides[barEdge] = hyprGapsOut;
+        return "{ top = " + sides.top + ", right = " + sides.right
+            + ", bottom = " + sides.bottom + ", left = " + sides.left + " }";
+    }
+
     function generateManaged() {
         const active = hyprGradient
             ? "{ colors = { \"" + colorToLua(hyprBorder1) + "\", \"" + colorToLua(hyprBorder2) + "\" }, angle = " + hyprAngle + " }"
@@ -1851,7 +1909,7 @@ ShellRoot {
             + "hl.config({\n"
             + "    general = {\n"
             + "        gaps_in = " + hyprGapsIn + ",\n"
-            + "        gaps_out = " + hyprGapsOut + ",\n"
+            + "        gaps_out = " + managedGapsOut() + ",\n"
             + "        border_size = " + hyprBorderSize + ",\n"
             + "        col = {\n"
             + "            active_border = " + active + ",\n"
@@ -2258,14 +2316,17 @@ ShellRoot {
     function componentForPage(index) {
         switch (index) {
             case 0: return barPage;
-            case 1: return inputPage;
-            case 2: return keybindingsPage;
-            case 3: return autostartPage;
-            case 4: return programsPage;
-            case 5: return environmentPage;
-            case 6: return monitorsPage;
-            case 7: return rulesPage;
-            case 8: return notificationsPage;
+            case 1: return windowsPage;
+            case 2: return effectsPage;
+            case 3: return inputPage;
+            case 4: return keybindingsPage;
+            case 5: return monitorsPage;
+            case 6: return sessionPage;
+            case 7: return notificationsPage;
+            case 8: return autostartPage;
+            case 9: return programsPage;
+            case 10: return environmentPage;
+            case 11: return rulesPage;
         }
         return barPage;
     }
@@ -2296,8 +2357,7 @@ ShellRoot {
             root.setPage(index);
             root.open();
         }
-        // Kept as an alias for existing scripts: Hyprland tab 0..7 now
-        // corresponds to top-level pages 0..7.
+        // Alias for existing scripts: this selects a top-level page by index.
         function hsection(index: int): void {
             root.setPage(index);
             root.open();
@@ -2308,6 +2368,12 @@ ShellRoot {
         id: saveDebounce
         interval: 180
         onTriggered: root.saveSettings()
+    }
+
+    Timer {
+        id: managedDebounce
+        interval: 250
+        onTriggered: root.applyManaged()
     }
 
     Timer {
@@ -2634,7 +2700,7 @@ ShellRoot {
                                 id: navColumn
 
                                 anchors.fill: parent
-                                spacing: 4
+                                spacing: 3
 
                                 Repeater {
                                     id: navRepeater
@@ -2642,7 +2708,7 @@ ShellRoot {
 
                                     NavItem {
                                         width: navColumn.width
-                                        height: 40
+                                        height: 36
                                         icon: modelData.icon
                                         label: modelData.title
                                         active: root.page === index
@@ -2833,6 +2899,16 @@ ShellRoot {
     }
 
     Component {
+        id: windowsPage
+        WindowsPage { app: root }
+    }
+
+    Component {
+        id: effectsPage
+        EffectsPage { app: root }
+    }
+
+    Component {
         id: inputPage
         InputPage { app: root }
     }
@@ -2860,6 +2936,11 @@ ShellRoot {
     Component {
         id: monitorsPage
         MonitorsPage { app: root }
+    }
+
+    Component {
+        id: sessionPage
+        SessionPage { app: root }
     }
 
     Component {

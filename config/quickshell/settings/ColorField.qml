@@ -11,6 +11,7 @@ RowLayout {
     property string label: ""
     property string value: "#ffffff"
     property var app: null
+    property string tooltip: ""
 
     signal edited(string value)
 
@@ -71,12 +72,10 @@ RowLayout {
 
     Component.onCompleted: root.syncFromValue()
 
-    Text {
+    SettingLabel {
         Layout.preferredWidth: 132
         text: root.label
-        font.family: Theme.mono
-        font.pixelSize: 11
-        color: Theme.subtext
+        tooltipText: root.tooltip
         elide: Text.ElideRight
     }
 
@@ -239,11 +238,8 @@ RowLayout {
                 Layout.fillWidth: true
                 spacing: 8
 
-                Text {
+                SettingLabel {
                     text: "Hex"
-                    font.family: Theme.mono
-                    font.pixelSize: 11
-                    color: Theme.subtext
                 }
 
                 TextField {

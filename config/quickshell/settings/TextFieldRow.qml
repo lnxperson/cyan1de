@@ -11,17 +11,16 @@ RowLayout {
     property string placeholder: ""
     property int labelWidth: 132
     property bool monoValue: true
+    property string tooltip: ""
 
     signal edited(string value)
 
     spacing: 10
 
-    Text {
+    SettingLabel {
         Layout.preferredWidth: root.labelWidth
         text: root.label
-        font.family: Theme.mono
-        font.pixelSize: 11
-        color: Theme.subtext
+        tooltipText: root.tooltip
         elide: Text.ElideRight
     }
 

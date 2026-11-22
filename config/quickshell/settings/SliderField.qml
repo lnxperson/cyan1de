@@ -13,17 +13,16 @@ RowLayout {
     property real value: 0
     property string suffix: ""
     property int decimals: 0
+    property string tooltip: ""
 
     signal moved(real value)
 
     spacing: 10
 
-    Text {
+    SettingLabel {
         Layout.preferredWidth: 132
         text: root.label
-        font.family: Theme.mono
-        font.pixelSize: 11
-        color: Theme.subtext
+        tooltipText: root.tooltip
         elide: Text.ElideRight
     }
 

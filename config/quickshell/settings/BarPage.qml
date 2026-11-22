@@ -9,12 +9,10 @@ ColumnLayout {
     property string section: "panel"
 
     readonly property var sectionHints: ({
-        panel: "Panel layout, elements, calendar and the live drag preview.",
+        panel: "Layout, elements and the live drag preview.",
         theme: "Theme mode, panel colours and sizing.",
         cursor: "Pointer theme and size, applied instantly.",
-        wallpaper: "Choose the wallpaper and how it fills the screen.",
-        effects: "Animation styles, speed and blur. Press Apply for Hyprland changes.",
-        windows: "Window borders, rounding and gaps. Press Apply for Hyprland changes."
+        wallpaper: "Choose the wallpaper and how it fills the screen."
     })
 
     // Displays offered by the panel placement controls. The saved value is
@@ -40,11 +38,8 @@ ColumnLayout {
 
     spacing: 14
 
-    Text {
+    SettingLabel {
         text: String(root.sectionHints[root.section] || "")
-        font.family: Theme.mono
-        font.pixelSize: 11
-        color: Theme.subtext
         wrapMode: Text.WordWrap
         Layout.fillWidth: true
     }
@@ -73,12 +68,9 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: 10
 
-            Text {
+            SettingLabel {
                 Layout.preferredWidth: 150
                 text: "Theme"
-                font.family: Theme.mono
-                font.pixelSize: 11
-                color: Theme.subtext
             }
 
             OptionCombo {
@@ -128,29 +120,18 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: 10
 
-            Text {
+            SettingLabel {
                 Layout.preferredWidth: 150
                 text: "Layout"
-                font.family: Theme.mono
-                font.pixelSize: 11
-                color: Theme.subtext
+                tooltipText: "Panel layout: floating pills, unified, wrap, corners or island."
             }
 
             OptionCombo {
                 options: root.app.barLayoutOptions
                 labels: root.app.barLayoutLabels
                 selected: root.app.barLayout
-                onPicked: value => { root.app.barLayout = value; root.app.queueSave() }
-            }
-
-            SettingsButton {
-                visible: root.app.barLayout === "unified"
-                text: root.app.barUnifiedCorners ? "Corners: on" : "Corners: off"
-                primary: root.app.barUnifiedCorners
-                onClicked: {
-                    root.app.barUnifiedCorners = !root.app.barUnifiedCorners;
-                    root.app.queueSave();
-                }
+                tooltip: "Panel layout: floating pills, unified, wrap, corners or island."
+                onPicked: value => { root.app.barLayout = value; root.app.queueManaged() }
             }
 
             Item { Layout.fillWidth: true }
@@ -160,19 +141,16 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: 10
 
-            Text {
+            SettingLabel {
                 Layout.preferredWidth: 150
                 text: "Edge"
-                font.family: Theme.mono
-                font.pixelSize: 11
-                color: Theme.subtext
             }
 
             OptionCombo {
                 options: root.app.barEdgeOptions
                 labels: root.app.barEdgeLabels
                 selected: root.app.barEdge
-                onPicked: value => { root.app.barEdge = value; root.app.queueSave() }
+                onPicked: value => { root.app.barEdge = value; root.app.queueManaged() }
             }
 
             Item { Layout.fillWidth: true }
@@ -182,19 +160,16 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: 10
 
-            Text {
+            SettingLabel {
                 Layout.preferredWidth: 150
                 text: "Display"
-                font.family: Theme.mono
-                font.pixelSize: 11
-                color: Theme.subtext
             }
 
             OptionCombo {
                 options: root.panelDisplayOptions
                 labels: root.panelDisplayLabels
                 selected: root.app.barDisplay
-                onPicked: value => { root.app.barDisplay = value; root.app.queueSave() }
+                onPicked: value => { root.app.barDisplay = value; root.app.queueManaged() }
             }
 
             Item { Layout.fillWidth: true }
@@ -282,75 +257,6 @@ ColumnLayout {
         }
     }
 
-    SectionCard {
-        Layout.fillWidth: true
-        visible: root.section === "panel"
-        title: "CALENDAR LAYOUT"
-        subtitle: "Arrange what appears inside the calendar pop-up."
-
-        ToggleRow {
-            Layout.fillWidth: true
-            label: "Media controls"
-            hint: "Show media player controls"
-            checked: root.app.calendarMedia
-            onToggled: value => { root.app.calendarMedia = value; root.app.queueSave() }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 10
-
-            Text {
-                Layout.preferredWidth: 150
-                text: "Media position"
-                font.family: Theme.mono
-                font.pixelSize: 11
-                color: Theme.subtext
-            }
-
-            OptionCombo {
-                options: ["bottom", "top"]
-                labels: ({ "bottom": "Bottom", "top": "Top" })
-                selected: root.app.calendarMediaPosition
-                onPicked: value => { root.app.calendarMediaPosition = value; root.app.queueSave() }
-            }
-
-            Item { Layout.fillWidth: true }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 10
-
-            Text {
-                Layout.preferredWidth: 150
-                text: "Notifications"
-                font.family: Theme.mono
-                font.pixelSize: 11
-                color: Theme.subtext
-            }
-
-            OptionCombo {
-                options: ["right", "left"]
-                labels: ({ "right": "Right", "left": "Left" })
-                selected: root.app.calendarNotificationsSide
-                onPicked: value => { root.app.calendarNotificationsSide = value; root.app.queueSave() }
-            }
-
-            Item { Layout.fillWidth: true }
-        }
-
-        SliderField {
-            Layout.fillWidth: true
-            label: "Popup width"
-            from: 380
-            to: 1100
-            stepSize: 10
-            value: root.app.calendarWidth
-            suffix: "px"
-            onMoved: value => { root.app.calendarWidth = Math.round(value); root.app.queueSave() }
-        }
-    }
 
     // ---- Live preview -------------------------------------------------
     BarPreview {
@@ -523,327 +429,4 @@ ColumnLayout {
         visible: root.section === "wallpaper"
         app: root.app
     }
-
-    SectionCard {
-        Layout.fillWidth: true
-        visible: root.section === "windows"
-        title: "WINDOW BORDERS"
-
-        ColorField {
-            Layout.fillWidth: true
-            app: root.app
-            label: "Active border"
-            value: root.app.hyprBorder1
-            onEdited: value => root.app.hyprBorder1 = value
-        }
-
-        ColorField {
-            Layout.fillWidth: true
-            app: root.app
-            label: "Gradient end"
-            value: root.app.hyprBorder2
-            onEdited: value => root.app.hyprBorder2 = value
-        }
-
-        ColorField {
-            Layout.fillWidth: true
-            app: root.app
-            label: "Inactive border"
-            value: root.app.hyprInactive
-            onEdited: value => root.app.hyprInactive = value
-        }
-
-        ToggleRow {
-            Layout.fillWidth: true
-            label: "Gradient border"
-            checked: root.app.hyprGradient
-            onToggled: value => root.app.hyprGradient = value
-        }
-
-        SliderField {
-            Layout.fillWidth: true
-            label: "Gradient angle"
-            from: 0
-            to: 90
-            value: root.app.hyprAngle
-            suffix: "°"
-            enabled: root.app.hyprGradient
-            opacity: enabled ? 1 : 0.45
-            onMoved: value => root.app.hyprAngle = Math.round(value)
-        }
-
-        SliderField {
-            Layout.fillWidth: true
-            label: "Border size"
-            from: 0
-            to: 5
-            value: root.app.hyprBorderSize
-            suffix: "px"
-            onMoved: value => root.app.hyprBorderSize = Math.round(value)
-        }
-    }
-
-    SectionCard {
-        Layout.fillWidth: true
-        visible: root.section === "windows"
-        title: "WINDOW SHAPE & GAPS"
-
-        SliderField {
-            Layout.fillWidth: true
-            label: "Corner rounding"
-            from: 0
-            to: 20
-            value: root.app.hyprRounding
-            suffix: "px"
-            onMoved: value => root.app.hyprRounding = Math.round(value)
-        }
-
-        SliderField {
-            Layout.fillWidth: true
-            label: "Inner gaps"
-            from: 0
-            to: 20
-            value: root.app.hyprGapsIn
-            suffix: "px"
-            onMoved: value => root.app.hyprGapsIn = Math.round(value)
-        }
-
-        SliderField {
-            Layout.fillWidth: true
-            label: "Outer gaps"
-            from: 0
-            to: 20
-            value: root.app.hyprGapsOut
-            suffix: "px"
-            onMoved: value => root.app.hyprGapsOut = Math.round(value)
-        }
-    }
-
-    SectionCard {
-        Layout.fillWidth: true
-        visible: root.section === "effects"
-        title: "ANIMATIONS"
-        subtitle: "Built-in Hyprland styles and curves only. Speed scales every animation. Press Apply to write hyprland/animations.lua."
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 10
-
-            Text {
-                Layout.preferredWidth: 150
-                text: "Window open"
-                font.family: Theme.mono
-                font.pixelSize: 11
-                color: Theme.subtext
-            }
-
-            OptionCombo {
-                options: root.app.windowAnimStyles
-                labels: root.app.animStyleLabels
-                selected: root.app.animWindowOpen
-                onPicked: value => root.app.animWindowOpen = value
-            }
-
-            Item { Layout.fillWidth: true }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 10
-
-            Text {
-                Layout.preferredWidth: 150
-                text: "Window close"
-                font.family: Theme.mono
-                font.pixelSize: 11
-                color: Theme.subtext
-            }
-
-            OptionCombo {
-                options: root.app.windowAnimStyles
-                labels: root.app.animStyleLabels
-                selected: root.app.animWindowClose
-                onPicked: value => root.app.animWindowClose = value
-            }
-
-            Item { Layout.fillWidth: true }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 10
-
-            Text {
-                Layout.preferredWidth: 150
-                text: "Workspace switch"
-                font.family: Theme.mono
-                font.pixelSize: 11
-                color: Theme.subtext
-            }
-
-            OptionCombo {
-                options: root.app.workspaceAnimStyles
-                labels: root.app.animStyleLabels
-                selected: root.app.animWorkspace
-                onPicked: value => root.app.animWorkspace = value
-            }
-
-            Item { Layout.fillWidth: true }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 10
-
-            Text {
-                Layout.preferredWidth: 150
-                text: "Layer / popup"
-                font.family: Theme.mono
-                font.pixelSize: 11
-                color: Theme.subtext
-            }
-
-            OptionCombo {
-                options: root.app.layerAnimStyles
-                labels: root.app.animStyleLabels
-                selected: root.app.animLayer
-                onPicked: value => root.app.animLayer = value
-            }
-
-            Item { Layout.fillWidth: true }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 10
-
-            Text {
-                Layout.preferredWidth: 150
-                text: "Open easing"
-                font.family: Theme.mono
-                font.pixelSize: 11
-                color: Theme.subtext
-            }
-
-            OptionCombo {
-                options: root.app.animCurves
-                labels: root.app.animCurveLabels
-                selected: root.app.animOpenCurve
-                onPicked: value => root.app.animOpenCurve = value
-            }
-
-            Item { Layout.fillWidth: true }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 10
-
-            Text {
-                Layout.preferredWidth: 150
-                text: "Close easing"
-                font.family: Theme.mono
-                font.pixelSize: 11
-                color: Theme.subtext
-            }
-
-            OptionCombo {
-                options: root.app.animCurves
-                labels: root.app.animCurveLabels
-                selected: root.app.animCloseCurve
-                onPicked: value => root.app.animCloseCurve = value
-            }
-
-            Item { Layout.fillWidth: true }
-        }
-
-        SliderField {
-            Layout.fillWidth: true
-            label: "Animation speed"
-            from: 1
-            to: 20
-            value: root.app.animSpeed
-            suffix: ""
-            onMoved: value => root.app.animSpeed = Math.round(value)
-        }
-    }
-
-    SectionCard {
-        Layout.fillWidth: true
-        visible: root.section === "effects"
-        title: "BLUR"
-
-        ToggleRow {
-            Layout.fillWidth: true
-            label: "Hyprland blur"
-            hint: "Blur behind transparent windows"
-            checked: root.app.hyprBlur
-            onToggled: value => {
-                root.app.hyprBlur = value
-                root.app.queueSave()
-            }
-        }
-
-        ToggleRow {
-            Layout.fillWidth: true
-            label: "Alacritty blur"
-            hint: "Transparent terminal shows the desktop blur"
-            checked: root.app.alacrittyBlur
-            onToggled: value => {
-                root.app.alacrittyBlur = value
-                root.app.queueSave()
-            }
-        }
-
-        SliderField {
-            Layout.fillWidth: true
-            label: "Alacritty blur strength"
-            from: 0
-            to: 100
-            value: root.app.alacrittyBlurStrength
-            suffix: "%"
-            enabled: root.app.alacrittyBlur
-            opacity: enabled ? 1 : 0.45
-            onMoved: value => {
-                root.app.alacrittyBlurStrength = Math.round(value)
-                root.app.queueSave()
-            }
-        }
-
-        SliderField {
-            Layout.fillWidth: true
-            label: "Hyprland blur radius"
-            from: 1
-            to: 20
-            value: root.app.hyprBlurSize
-            suffix: "px"
-            enabled: root.app.hyprBlur
-            opacity: enabled ? 1 : 0.45
-            onMoved: value => {
-                root.app.hyprBlurSize = Math.round(value)
-                root.app.queueSave()
-            }
-        }
-    }
-
-    RowLayout {
-        Layout.fillWidth: true
-        spacing: 10
-
-        SettingsButton {
-            icon: "󰉋"
-            text: "Open config folder"
-            onClicked: root.app.openHyprFolder()
-        }
-
-        Item { Layout.fillWidth: true }
-
-        Text {
-            text: "hyprland/ui_overrides.lua + animations.lua"
-            font.family: Theme.mono
-            font.pixelSize: 10
-            color: Theme.dim
-        }
-    }
-
 }

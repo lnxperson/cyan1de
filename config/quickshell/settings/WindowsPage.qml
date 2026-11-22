@@ -1,7 +1,8 @@
 import QtQuick
 import QtQuick.Layouts
 
-// Hyprland look & feel. Written to ui_overrides.lua (loaded last).
+// Hyprland window decoration settings. These describe the windows themselves,
+// so they live here rather than being buried under shell appearance.
 ColumnLayout {
     id: root
 
@@ -10,25 +11,15 @@ ColumnLayout {
     spacing: 14
 
     Text {
-        text: "Appearance"
+        text: "Windows"
         font.family: Theme.mono
-        font.pixelSize: 18
+        font.pixelSize: 20
         font.weight: Font.DemiBold
         color: Theme.text
     }
 
-    Text {
-        text: "Wallpaper and Hyprland look & feel. Window values apply with the Apply button."
-        font.family: Theme.mono
-        font.pixelSize: 11
-        color: Theme.subtext
-        wrapMode: Text.WordWrap
-        Layout.fillWidth: true
-    }
-
-    WallpaperPage {
-        Layout.fillWidth: true
-        app: root.app
+    SettingLabel {
+        text: "Borders, corner rounding and gaps. Press Apply to write the Hyprland look and feel."
     }
 
     SectionCard {
@@ -37,25 +28,25 @@ ColumnLayout {
 
         ColorField {
             Layout.fillWidth: true
+            app: root.app
             label: "Active border"
             value: root.app.hyprBorder1
-            presets: ["#0292e3", "#01d6be", "#7cc7f5", "#c6a0e8", "#e78a8a", "#e6c384"]
             onEdited: value => root.app.hyprBorder1 = value
         }
 
         ColorField {
             Layout.fillWidth: true
+            app: root.app
             label: "Gradient end"
             value: root.app.hyprBorder2
-            presets: ["#01d6be", "#0292e3", "#68e0c8", "#b9e6ff", "#c6a0e8"]
             onEdited: value => root.app.hyprBorder2 = value
         }
 
         ColorField {
             Layout.fillWidth: true
+            app: root.app
             label: "Inactive border"
             value: root.app.hyprInactive
-            presets: ["#0f3246", "#1a202b", "#232a37", "#2b3547", "#3a4a63"]
             onEdited: value => root.app.hyprInactive = value
         }
 
@@ -120,7 +111,10 @@ ColumnLayout {
             to: 20
             value: root.app.hyprGapsOut
             suffix: "px"
-            onMoved: value => root.app.hyprGapsOut = Math.round(value)
+            onMoved: value => {
+                root.app.hyprGapsOut = Math.round(value);
+                root.app.queueManaged()
+            }
         }
     }
 
@@ -136,11 +130,11 @@ ColumnLayout {
 
         Item { Layout.fillWidth: true }
 
-        Text {
-            text: "hyprland/ui_overrides.lua"
-            font.family: Theme.mono
-            font.pixelSize: 10
-            color: Theme.dim
+        SettingsButton {
+            icon: "󰄬"
+            text: "Apply all settings"
+            primary: true
+            onClicked: root.app.applyAll()
         }
     }
 }

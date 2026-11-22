@@ -75,26 +75,39 @@ ShellRoot {
         }
     }
 
-    Variants {
-        model: {
-            const screens = Quickshell.screens;
-            const want = Theme.barDisplay;
-            if (!want || want === "all")
-                return screens;
-            const matched = [];
-            for (let i = 0; i < screens.length; i++) {
-                if (screens[i].name === want)
-                    matched.push(screens[i]);
-            }
-            // Keep a panel visible if the saved display is disconnected.
-            return matched.length > 0 ? matched : screens;
+    readonly property var panelScreens: {
+        const screens = Quickshell.screens;
+        const want = Theme.barDisplay;
+        if (!want || want === "all")
+            return screens;
+        const matched = [];
+        for (let i = 0; i < screens.length; i++) {
+            if (screens[i].name === want)
+                matched.push(screens[i]);
         }
+        // Keep a panel visible if the saved display is disconnected.
+        return matched.length > 0 ? matched : screens;
+    }
+
+    Variants {
+        model: root.panelScreens
 
         Bar {
             property var modelData
             screen: modelData
             cursorX: root.cursorX
             cursorY: root.cursorY
+        }
+    }
+
+    // The wrap lives on its own full-screen surface so it can hug the display
+    // without expanding the bar's exclusive zone.
+    Variants {
+        model: root.panelScreens
+
+        WrapFrame {
+            property var modelData
+            screen: modelData
         }
     }
 }

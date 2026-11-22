@@ -24,3 +24,4 @@ TrayMenu 1.0 TrayMenu.qml
 singleton TrayMenuState 1.0 TrayMenuState.qml
 VolumePopup 1.0 VolumePopup.qml
 Workspaces 1.0 Workspaces.qml
+WrapFrame 1.0 WrapFrame.qml

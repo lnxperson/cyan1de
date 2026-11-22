@@ -93,10 +93,13 @@ PanelWindow {
     readonly property string edge: Theme.barEdge
     readonly property bool vertical: Theme.barVertical
     readonly property bool island: Theme.barLayout === "island"
-    readonly property bool unified: Theme.barLayout === "unified"
+    readonly property bool wrap: Theme.barLayout === "unifiedWrap"
+    readonly property bool cornersAttached: Theme.barLayout === "unifiedCorners"
+        || bar.wrap
+    readonly property bool unifiedRounded: Theme.barLayout === "unified"
+    readonly property bool unified: bar.unifiedRounded || bar.cornersAttached
     readonly property bool pills: Theme.barLayout === "pills"
     readonly property bool bottom: edge === "bottom"
-    readonly property bool cornersAttached: unified && Theme.barUnifiedCorners
 
     // Bar position inside its monitor, used by the popup placement helpers.
     readonly property int screenOriginX: {
@@ -117,14 +120,21 @@ PanelWindow {
     }
 
     // Island is hidden until the pointer reaches its screen edge. The bar also
-    // stays visible while the pointer is over it or a popup is open.
+    // stays visible while the pointer is over it, an action popup is open, or
+    // a tray menu launched from this bar is still showing. The tray menu is a
+    // separate window, so without that last check moving into it would look
+    // like leaving the island and fade the bar out.
     readonly property int edgeHotZone: 14
     readonly property bool cursorKnown: cursorX >= 0 && cursorY >= 0
+    readonly property bool trayMenuOpenHere: TrayMenuState.current !== null
+        && TrayMenuState.current.visible
+        && TrayMenuState.current.ownerWindow === bar
     readonly property bool islandRevealed: !island
         || !cursorKnown
         || bar.cursorNearEdge()
         || bar.cursorInsideIsland()
         || activePopup !== null
+        || trayMenuOpenHere
 
     // Shared spacing for the unified and island layouts.
     readonly property int pillPad: 7
@@ -146,8 +156,8 @@ PanelWindow {
     anchors.left: edge === "left" || (!vertical && !island)
     anchors.right: edge === "right" || (!vertical && !island)
 
-    // Reserved area keeps the original top gap. The visible panel thickness
-    // is controlled by Theme.panelHeight on the backgrounds below.
+    // Reserved area keeps the original top gap while panelHeight controls the
+    // visible bar thickness.
     implicitWidth: vertical
         ? Theme.barHeight
         : (island ? islandWidth : 0)
@@ -348,7 +358,7 @@ PanelWindow {
     function componentFor(key) {
         if (key === "appMenu") return appMenuComponent;
         if (key === "workspaces") return workspacesComponent;
-        if (key === "clock") return clockComponent;
+        if (key === "clock") return bar.vertical ? clockVerticalComponent : clockComponent;
         if (key === "tray") return trayComponent;
         if (key === "bluetooth") return bluetoothComponent;
         if (key === "network") return networkComponent;
@@ -833,6 +843,121 @@ PanelWindow {
         }
     }
 
+    // Vertical bars have no room for the horizontal date/time label, and the
+    // old invisible icon left the clock blank. Show the date above a small
+    // rule and the time as two stacked lines instead.
+    Component {
+        id: clockVerticalComponent
+
+        Item {
+            id: clockBtn
+            anchors.centerIn: parent
+            width: 26
+            height: 66
+            implicitWidth: 26
+            implicitHeight: 66
+
+            readonly property Item activeIconItem: clockStack
+            function iconVisualCenterX() {
+                return clockStack.x + clockStack.width / 2;
+            }
+            function iconVisualWidth() {
+                return Math.min(18, Math.max(10, clockStack.width - 2));
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                radius: 7
+                color: calendarPopup.visible
+                    ? Theme.active
+                    : (mouse.containsMouse ? Theme.hover : "transparent")
+
+                Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+            }
+
+            Column {
+                id: clockStack
+                anchors.centerIn: parent
+                spacing: 1
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: Qt.formatDateTime(clock.date, "dd")
+                    font.family: Theme.mono
+                    font.pixelSize: 12
+                    font.weight: Font.DemiBold
+                    color: calendarPopup.visible ? Theme.accentSoft : Theme.text
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: Qt.formatDateTime(clock.date, "MMM").toLowerCase()
+                    font.family: Theme.mono
+                    font.pixelSize: 9
+                    color: calendarPopup.visible ? Theme.accentSoft : Theme.subtext
+                }
+
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 16
+                    height: 1
+                    color: calendarPopup.visible ? Theme.accent : Theme.border
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: Qt.formatDateTime(clock.date, "HH")
+                    font.family: Theme.mono
+                    font.pixelSize: 13
+                    font.weight: Font.DemiBold
+                    color: calendarPopup.visible ? Theme.accentSoft : Theme.text
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: Qt.formatDateTime(clock.date, "mm")
+                    font.family: Theme.mono
+                    font.pixelSize: 13
+                    font.weight: Font.DemiBold
+                    color: calendarPopup.visible ? Theme.accentSoft : Theme.text
+                }
+            }
+
+            Rectangle {
+                visible: bar.clockBadgeText !== ""
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.margins: 2
+                width: 16
+                height: 16
+                radius: width / 2
+                color: Theme.surfaceAlt
+                border.width: 1
+                border.color: calendarPopup.visible ? Theme.accent : Theme.border
+
+                Text {
+                    anchors.centerIn: parent
+                    text: bar.clockBadgeText
+                    font.family: Theme.mono
+                    font.pixelSize: 9
+                    font.weight: Font.DemiBold
+                    color: calendarPopup.visible ? Theme.accentSoft : Theme.text
+                }
+            }
+
+            MouseArea {
+                id: mouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: bar.togglePopup(calendarPopup)
+            }
+
+            Component.onCompleted: bar.registerElement("clock", clockBtn)
+            Component.onDestruction: bar.unregisterElement("clock", clockBtn)
+        }
+    }
+
     Component {
         id: trayComponent
 
@@ -1024,11 +1149,15 @@ PanelWindow {
             ? leftContent.implicitHeight + bar.pillPad * 2
             : Theme.panelHeight
         x: bar.vertical
-            ? (bar.width - width) / 2
+            ? (bar.edge === "left"
+                ? Theme.barOuterInset
+                : bar.width - Theme.barOuterInset - width)
             : bar.axisX(Theme.pillLeft, width)
         y: bar.vertical
             ? bar.axisY(Theme.pillLeft, height)
-            : (bar.height - height) / 2
+            : (bar.bottom
+                ? bar.height - Theme.barOuterInset - height
+                : Theme.barOuterInset)
         radius: Theme.pillRadius
         color: Theme.panelFill(Theme.pillFill, "topbar", 0.78)
         border.width: 1
@@ -1046,11 +1175,15 @@ PanelWindow {
             ? centerContent.implicitHeight + bar.pillPad * 2
             : Theme.panelHeight
         x: bar.vertical
-            ? (bar.width - width) / 2
+            ? (bar.edge === "left"
+                ? Theme.barOuterInset
+                : bar.width - Theme.barOuterInset - width)
             : bar.axisX(Theme.pillCenter, width)
         y: bar.vertical
             ? bar.axisY(Theme.pillCenter, height)
-            : (bar.height - height) / 2
+            : (bar.bottom
+                ? bar.height - Theme.barOuterInset - height
+                : Theme.barOuterInset)
         radius: Theme.pillRadius
         color: Theme.panelFill(Theme.pillFill, "topbar", 0.78)
         border.width: 1
@@ -1068,11 +1201,15 @@ PanelWindow {
             ? rightContent.implicitHeight + bar.pillPad * 2
             : Theme.panelHeight
         x: bar.vertical
-            ? (bar.width - width) / 2
+            ? (bar.edge === "left"
+                ? Theme.barOuterInset
+                : bar.width - Theme.barOuterInset - width)
             : bar.axisX(Theme.pillRight, width)
         y: bar.vertical
             ? bar.axisY(Theme.pillRight, height)
-            : (bar.height - height) / 2
+            : (bar.bottom
+                ? bar.height - Theme.barOuterInset - height
+                : Theme.barOuterInset)
         radius: Theme.pillRadius
         color: Theme.panelFill(Theme.pillFill, "topbar", 0.78)
         border.width: 1
@@ -1083,14 +1220,23 @@ PanelWindow {
     Rectangle {
         id: unifiedBg
         visible: bar.unified && bar.visibleSectionCount() > 0
-        // Attached mode still follows panelHeight; it only removes the side
-        // margins and rounding, not the thickness control.
+        // Attached modes still follow panelHeight; they only remove the side
+        // margins and rounding, not the thickness control. Detached modes use
+        // one outer gap on both sides so the window gap can match the bottom.
         x: bar.cornersAttached
             ? (bar.vertical && bar.edge === "right" ? bar.width - Theme.panelHeight : 0)
-            : (bar.vertical ? (bar.width - width) / 2 : Theme.sideMargin)
+            : (bar.vertical
+                ? (bar.edge === "right"
+                    ? bar.width - Theme.barOuterInset - Theme.panelHeight
+                    : Theme.barOuterInset)
+                : Theme.sideMargin)
         y: bar.cornersAttached
             ? (!bar.vertical && bar.bottom ? bar.height - Theme.panelHeight : 0)
-            : (bar.vertical ? Theme.sideMargin : (bar.height - height) / 2)
+            : (bar.vertical
+                ? Theme.sideMargin
+                : (bar.bottom
+                    ? bar.height - Theme.barOuterInset - Theme.panelHeight
+                    : Theme.barOuterInset))
         width: bar.cornersAttached
             ? (bar.vertical ? Theme.panelHeight : bar.width)
             : (bar.vertical ? Theme.panelHeight : bar.width - Theme.sideMargin * 2)

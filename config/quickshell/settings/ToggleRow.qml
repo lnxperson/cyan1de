@@ -9,6 +9,7 @@ RowLayout {
     property bool checked: false
     property int labelWidth: 150
     property string hint: ""
+    property string tooltip: ""
 
     signal toggled(bool value)
 
@@ -18,12 +19,10 @@ RowLayout {
         Layout.preferredWidth: root.labelWidth
         spacing: 0
 
-        Text {
+        SettingLabel {
             Layout.fillWidth: true
             text: root.label
-            font.family: Theme.mono
-            font.pixelSize: 11
-            color: Theme.subtext
+            tooltipText: root.tooltip
             wrapMode: Text.WordWrap
         }
 

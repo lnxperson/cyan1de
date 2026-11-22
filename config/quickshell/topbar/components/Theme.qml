@@ -132,9 +132,6 @@ QtObject {
             return Math.max(30, Math.min(56, barData.pillHeight));
         return 34;
     }
-    // Reserved panel area. Keeps the original gap between the screen edge and
-    // window space while panelHeight controls the visible bar thickness.
-    readonly property int barHeight: Math.max(44, panelHeight + 10)
     readonly property int pillRadius: barData.pillRadius !== undefined ? barData.pillRadius : 12
     readonly property int sideMargin: barData.sideMargin !== undefined ? barData.sideMargin : 10
     readonly property int iconSize: barData.iconSize !== undefined ? barData.iconSize : 15
@@ -147,7 +144,15 @@ QtObject {
     // Panel placement: layout mode, screen edge and display filter.
     readonly property string barLayout: {
         const v = barData.layout;
-        return (v === "unified" || v === "island") ? v : "pills";
+        const known = ["pills", "unified", "unifiedCorners",
+            "unifiedWrap", "island"];
+        if (v === "unifiedRamp")
+            return "unifiedWrap";
+        if (v === "unified" && barData.unifiedCorners === true)
+            return "unifiedCorners";
+        if (known.indexOf(v) >= 0)
+            return v;
+        return "pills";
     }
     readonly property string barEdge: {
         const v = barData.edge;
@@ -155,7 +160,21 @@ QtObject {
     }
     readonly property bool barVertical: barEdge === "left" || barEdge === "right"
     readonly property string barDisplay: barData.display || "all"
-    readonly property bool barUnifiedCorners: barData.unifiedCorners === true
+
+    // Outer gaps now set both the window gap and the bar's breathing room.
+    // Detached layouts reserve one gap around the bar; attached layouts sit
+    // flush and leave all spacing to the compositor's outer gap.
+    readonly property int outerGap: hyprData.gapsOut !== undefined
+        ? Math.max(0, Math.min(20, hyprData.gapsOut)) : 5
+    // Hyprland's window corner rounding, reused by the wrap frame so its
+    // inner corners match the windows sitting inside it.
+    readonly property int windowRounding: hyprData.rounding !== undefined
+        ? Math.max(0, Math.min(20, hyprData.rounding)) : 5
+    readonly property int barOuterInset: (barLayout === "pills"
+        || barLayout === "unified") ? outerGap : 0
+    readonly property int barHeight: panelHeight + barOuterInset
+    readonly property bool barUnifiedCorners: barLayout === "unifiedCorners"
+        || barLayout === "unifiedWrap"
 
     // Individually removable panel elements. Missing keys default to visible.
     readonly property bool showAppMenu: elementData.appMenu !== false

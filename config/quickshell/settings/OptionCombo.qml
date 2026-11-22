@@ -9,6 +9,7 @@ ComboBox {
     property string selected: ""
     // Optional canonical-value -> display-name map (used by animation styles).
     property var labels: ({})
+    property string tooltip: ""
     signal picked(string value)
 
     function labelFor(value) {
@@ -98,5 +99,11 @@ ComboBox {
             border.width: 1
             border.color: Theme.border
         }
+    }
+
+    ToolTip {
+        visible: root.hovered && root.tooltip !== ""
+        text: root.tooltip
+        delay: 250
     }
 }

@@ -19,11 +19,8 @@ ColumnLayout {
         color: Theme.text
     }
 
-    Text {
+    SettingLabel {
         text: "Popup behaviour and appearance. Changes are saved automatically."
-        font.family: Theme.mono
-        font.pixelSize: 11
-        color: Theme.subtext
     }
 
     SectionCard {
@@ -34,12 +31,9 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: 10
 
-            Text {
+            SettingLabel {
                 Layout.preferredWidth: 150
                 text: "Position"
-                font.family: Theme.mono
-                font.pixelSize: 11
-                color: Theme.subtext
             }
 
             OptionCombo {
@@ -116,6 +110,7 @@ ColumnLayout {
     SectionCard {
         Layout.fillWidth: true
         title: "CALENDAR"
+        subtitle: "What appears inside the calendar pop-up and where it goes."
 
         ToggleRow {
             Layout.fillWidth: true
@@ -123,6 +118,63 @@ ColumnLayout {
             hint: "Show recent notifications beside the calendar"
             checked: root.app.calendarNotifications
             onToggled: value => { root.app.calendarNotifications = value; root.app.queueSave() }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            SettingLabel {
+                Layout.preferredWidth: 150
+                text: "Notifications"
+            }
+
+            OptionCombo {
+                options: ["right", "left"]
+                labels: ({ "right": "Right", "left": "Left" })
+                selected: root.app.calendarNotificationsSide
+                onPicked: value => { root.app.calendarNotificationsSide = value; root.app.queueSave() }
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "Media controls"
+            hint: "Show media player controls"
+            checked: root.app.calendarMedia
+            onToggled: value => { root.app.calendarMedia = value; root.app.queueSave() }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            SettingLabel {
+                Layout.preferredWidth: 150
+                text: "Media position"
+            }
+
+            OptionCombo {
+                options: ["bottom", "top"]
+                labels: ({ "bottom": "Bottom", "top": "Top" })
+                selected: root.app.calendarMediaPosition
+                onPicked: value => { root.app.calendarMediaPosition = value; root.app.queueSave() }
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
+        SliderField {
+            Layout.fillWidth: true
+            label: "Popup width"
+            from: 380
+            to: 1100
+            stepSize: 10
+            value: root.app.calendarWidth
+            suffix: "px"
+            onMoved: value => { root.app.calendarWidth = Math.round(value); root.app.queueSave() }
         }
     }
 
