@@ -162,37 +162,69 @@ ShellRoot {
 
         const key = root.nextKey++;
         popupModel.insert(root.atBottom ? popupModel.count : 0,
-            { key: key, notif: notif });
+            { key: key, notif: notif, closing: false });
 
         // The client can close its own notification at any time.
         notif.closed.connect(function () { root.removeKey(key); });
 
         const limit = Math.max(1, Theme.notifyMaxVisible);
-        if (popupModel.count > limit) {
-            const oldest = root.atBottom ? 0 : popupModel.count - 1;
-            root.closeKey(popupModel.get(oldest).key, "expire");
+        let active = 0;
+        for (let i = 0; i < popupModel.count; i++) {
+            if (!popupModel.get(i).closing)
+                active++;
+        }
+
+        if (active > limit) {
+            let oldestIndex = -1;
+            if (root.atBottom) {
+                for (let i = 0; i < popupModel.count; i++) {
+                    if (!popupModel.get(i).closing) {
+                        oldestIndex = i;
+                        break;
+                    }
+                }
+            } else {
+                for (let i = popupModel.count - 1; i >= 0; i--) {
+                    if (!popupModel.get(i).closing) {
+                        oldestIndex = i;
+                        break;
+                    }
+                }
+            }
+            if (oldestIndex >= 0)
+                root.beginClose(popupModel.get(oldestIndex).key, "expire");
         }
         root.syncWindow();
     }
 
-    function removeKey(key: int): void {
+    // Closing cards stay in the model until their slide-out finishes. The
+    // client is told immediately, but a "closed" signal is ignored because the
+    // card is already marked as leaving.
+    function beginClose(key: int, how: string): void {
+        const i = root.indexOfKey(key);
+        if (i < 0 || popupModel.get(i).closing)
+            return;
+        popupModel.setProperty(i, "closing", true);
+        const notif = popupModel.get(i).notif;
+        if (notif && how === "expire")
+            notif.expire();
+        else if (notif && how === "dismiss")
+            notif.dismiss();
+    }
+
+    function finalizeClose(key: int): void {
         const i = root.indexOfKey(key);
         if (i >= 0)
             popupModel.remove(i);
         root.syncWindow();
     }
 
+    function removeKey(key: int): void {
+        root.beginClose(key, "closed");
+    }
+
     function closeKey(key: int, how: string): void {
-        const i = root.indexOfKey(key);
-        if (i < 0)
-            return;
-        const notif = popupModel.get(i).notif;
-        popupModel.remove(i);
-        if (how === "expire")
-            notif.expire();
-        else
-            notif.dismiss();
-        root.syncWindow();
+        root.beginClose(key, how);
     }
 
     function durationFor(notif): int {
@@ -206,9 +238,13 @@ ShellRoot {
     }
 
     function clear(): void {
-        while (popupModel.count > 0)
-            root.closeKey(popupModel.get(0).key, "dismiss");
-        root.syncWindow();
+        const keys = [];
+        for (let i = 0; i < popupModel.count; i++) {
+            if (!popupModel.get(i).closing)
+                keys.push(popupModel.get(i).key);
+        }
+        for (let i = 0; i < keys.length; i++)
+            root.beginClose(keys[i], "dismiss");
     }
 
     Component.onCompleted: root.loadHistory()
@@ -238,8 +274,13 @@ ShellRoot {
         function clearHistory(): void { root.clearHistory() }
         function removeHistory(id: int): void { root.removeHistory(id) }
         function expireAll(): void {
-            while (popupModel.count > 0)
-                root.closeKey(popupModel.get(0).key, "expire");
+            const keys = [];
+            for (let i = 0; i < popupModel.count; i++) {
+                if (!popupModel.get(i).closing)
+                    keys.push(popupModel.get(i).key);
+            }
+            for (let i = 0; i < keys.length; i++)
+                root.beginClose(keys[i], "expire");
         }
         function notificationCount(): int { return root.count }
         function debug(): string {
@@ -263,6 +304,7 @@ ShellRoot {
 
             required property int key
             required property var notif
+            required property bool closing
 
             readonly property string appName: card.notif ? (card.notif.appName || "") : ""
             readonly property string appIcon: card.notif ? (card.notif.appIcon || "") : ""
@@ -271,6 +313,9 @@ ShellRoot {
             readonly property var actions: card.notif ? card.notif.actions : []
             readonly property bool iconIsGlyph: appIcon.length > 0 && appIcon.charCodeAt(0) > 0xd7ff
             readonly property int duration: root.durationFor(card.notif)
+            // The card's own opacity drives both entrance and exit. It stays
+            // alive in the model until the slide-out animation has finished.
+            readonly property real slideProgress: Math.min(card.opacity, root.reveal)
 
             readonly property color urgencyColor: !card.notif ? Theme.accent
                 : (card.notif.urgency === NotificationUrgency.Critical ? Theme.red
@@ -287,8 +332,12 @@ ShellRoot {
             opacity: 0
             scale: Theme.motionEnterScale
             transform: Translate {
-                x: root.atLeft ? -(1 - card.opacity) * Theme.motionEnterOffset
-                    : (1 - card.opacity) * Theme.motionEnterOffset
+                x: root.atLeft
+                    ? -(1 - card.slideProgress) * root.cardWidth
+                    : (root.atRight ? (1 - card.slideProgress) * root.cardWidth : 0)
+                y: root.atTop
+                    ? -(1 - card.slideProgress) * card.implicitHeight
+                    : (root.atBottom ? (1 - card.slideProgress) * card.implicitHeight : 0)
             }
 
             Behavior on opacity {
@@ -316,6 +365,20 @@ ShellRoot {
                 card.scale = 1;
             }
 
+            onClosingChanged: {
+                if (!card.closing)
+                    return;
+                card.opacity = 0;
+                card.scale = Theme.motionEnterScale;
+                exitRemoveTimer.start();
+            }
+
+            Timer {
+                id: exitRemoveTimer
+                interval: Theme.motionBase + 20
+                onTriggered: root.finalizeClose(card.key)
+            }
+
             // Soft drop shadow.
             Rectangle {
                 anchors.fill: parent
@@ -332,18 +395,10 @@ ShellRoot {
                 id: dismissArea
 
                 anchors.fill: parent
+                enabled: !card.closing
                 cursorShape: Qt.PointingHandCursor
                 hoverEnabled: true
                 onClicked: root.closeKey(card.key, "dismiss")
-            }
-
-            // Urgency stripe.
-            Rectangle {
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                width: 3
-                color: card.urgencyColor
             }
 
             RowLayout {
@@ -470,7 +525,8 @@ ShellRoot {
 
                 interval: card.duration > 0 ? card.duration : 60000
                 repeat: false
-                running: card.duration > 0
+                running: !card.closing
+                    && card.duration > 0
                     && (!Theme.notifyPauseOnHover || !dismissArea.containsMouse)
                 onTriggered: root.closeKey(card.key, "expire")
             }
