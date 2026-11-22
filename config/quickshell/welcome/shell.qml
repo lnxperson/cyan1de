@@ -194,6 +194,15 @@ ShellRoot {
 
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "quickshell-welcome-surface"
+
+        Loader {
+            anchors.fill: card
+            source: "SoftwareDimOverlay.qml"
+            onLoaded: {
+                item.screen = window.screen;
+                item.radius = card.radius;
+            }
+        }
         WlrLayershell.keyboardFocus: root.shown
             ? WlrKeyboardFocus.Exclusive
             : WlrKeyboardFocus.None

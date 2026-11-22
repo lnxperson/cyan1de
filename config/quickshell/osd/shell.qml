@@ -298,6 +298,15 @@ ShellRoot {
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "quickshell-osd"
 
+        Loader {
+            anchors.fill: card
+            source: "SoftwareDimOverlay.qml"
+            onLoaded: {
+                item.screen = window.screen;
+                item.radius = card.radius;
+            }
+        }
+
         Rectangle {
             anchors.fill: card
             anchors.margins: -1

@@ -504,6 +504,12 @@ ShellRoot {
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "quickshell-notifications"
 
+        Loader {
+            anchors.fill: parent
+            source: "SoftwareDimOverlay.qml"
+            onLoaded: item.screen = window.screen
+        }
+
         Column {
             id: cards
 
