@@ -44,12 +44,6 @@ ShellRoot {
             ? Theme.mauve
             : (kind === "mic" ? Theme.accentAlt : Theme.accent))
 
-    readonly property string title: kind === "brightness"
-        ? "Brightness"
-        : (kind === "kbd"
-            ? "Keyboard"
-            : (kind === "mic" ? "Microphone" : "Volume"))
-
     readonly property string glyph: {
         if (kind === "brightness")
             return "󰃠";
@@ -318,7 +312,7 @@ ShellRoot {
             id: card
 
             width: 340
-            height: 78
+            height: 52
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 56
@@ -339,12 +333,12 @@ ShellRoot {
 
             Item {
                 anchors.fill: parent
-                anchors.margins: 16
+                anchors.margins: 14
 
                 Text {
                     id: iconText
                     anchors.left: parent.left
-                    anchors.top: parent.top
+                    anchors.verticalCenter: parent.verticalCenter
                     text: osd.glyph
                     font.family: Theme.font
                     font.pixelSize: 20
@@ -352,19 +346,9 @@ ShellRoot {
                 }
 
                 Text {
-                    anchors.left: iconText.right
-                    anchors.leftMargin: 10
-                    anchors.verticalCenter: iconText.verticalCenter
-                    text: osd.title
-                    font.family: Theme.mono
-                    font.pixelSize: 12
-                    font.weight: Font.DemiBold
-                    color: Theme.subtext
-                }
-
-                Text {
+                    id: valueLabel
                     anchors.right: parent.right
-                    anchors.verticalCenter: iconText.verticalCenter
+                    anchors.verticalCenter: parent.verticalCenter
                     text: osd.valueText
                     font.family: Theme.mono
                     font.pixelSize: 14
@@ -374,9 +358,11 @@ ShellRoot {
 
                 Rectangle {
                     id: track
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
+                    anchors.left: iconText.right
+                    anchors.leftMargin: 12
+                    anchors.right: valueLabel.left
+                    anchors.rightMargin: 12
+                    anchors.verticalCenter: parent.verticalCenter
                     height: 6
                     radius: 3
                     color: Theme.surfaceAlt

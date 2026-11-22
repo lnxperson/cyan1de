@@ -926,9 +926,10 @@ PanelWindow {
 
             Rectangle {
                 visible: bar.clockBadgeText !== ""
-                anchors.top: parent.top
-                anchors.right: parent.right
-                anchors.margins: 2
+                anchors.bottom: parent.top
+                anchors.bottomMargin: 7
+                anchors.horizontalCenter: parent.horizontalCenter
+                z: 2
                 width: 16
                 height: 16
                 radius: width / 2

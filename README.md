@@ -1,12 +1,12 @@
 # cyan1de
 
-A clean, dark, portable **Hyprland + Quickshell** desktop configuration for Arch-based systems. It ships with floating pill panels, a full graphical settings app, a launcher, emoji picker, notification history, OSD, lockscreen, and sensible default applications.
+A clean, dark, portable **Hyprland + Quickshell** desktop configuration for Arch-based systems. It ships with floating pill panels, a full graphical settings app, a launcher, emoji picker, notification history, a compact OSD, lockscreen, and sensible default applications.
 
 The shipped defaults use JetBrainsMono Nerd Font, a dark surface palette, and a blue-to-teal window-border gradient. Quickshell surfaces are opaque for crisp text; blur is limited to Hyprland windows and Alacritty.
 
-![cyan1de default desktop showcase](demopics/default_app_showcase.png)
+![cyan1de desktop with the default applications](demopics/default_apps.png)
 
-*Default desktop with the shipped panel and applications.*
+*The default desktop with the shipped panel and applications.*
 
 ---
 
@@ -16,12 +16,13 @@ The shipped defaults use JetBrainsMono Nerd Font, a dark surface palette, and a 
 - Panel on **top / bottom / left / right**, on **all displays** or one selected monitor
 - Ten workspaces, scratchpad, floating-window controls, and per-monitor fullscreen bar hiding
 - Centered clock, system tray, Bluetooth, network, volume, brightness, battery, and power controls
+- On left/right bars, the clock stacks the date and time and the unread notification badge floats just above the calendar element
 - Software-brightness monitors dim the panel, topbar popups, other popups and cursor without affecting DDC-controlled displays
 - Calendar popup with media controls and notification history
 - Notification banners with hover pause, history, low-battery warnings, and configurable placement
-- App launcher with application, file, and web-search actions
-- Emoji picker with search and clipboard paste
-- On-screen display for volume, brightness, keyboard brightness, and night light
+- Single-line OSD for volume, brightness, keyboard brightness, and night light
+- App launcher with application, file, calculator, and web-search actions
+- Emoji picker with search, clipboard history, and paste
 - Lockscreen with a crash watchdog
 - Graphical settings app that rewrites the managed Hyprland Lua files
 - No Quickshell blur layers; Hyprland blur and Alacritty blur remain configurable
@@ -86,9 +87,7 @@ The installer sets these defaults when available:
 | PDF viewer | Papers |
 | Browser | Firefox |
 
-![Default applications showcase](demopics/default_app_showcase.png)
-
-*The default applications and desktop layout are selected to work together out of the box.*
+The default applications and desktop layout are selected to work together out of the box; the result is shown at the top of this README.
 
 ---
 
@@ -114,7 +113,7 @@ Change this in **Settings → Appearance → Panel → Layout**:
 
 The corners and wrap options are layout choices, not separate toggles. Existing configs that used the old **Unified bar + Corners on** combination are migrated to `unifiedCorners`, and configs saved with the earlier side-ramp option are migrated to `unifiedWrap` automatically.
 
-The panel can sit on any edge and can follow all monitors or a single display. On left/right edges the clock shows a stacked date and time instead of a horizontal label.
+The panel can sit on any edge and can follow all monitors or a single display. On left/right edges the clock shows a stacked date and time instead of a horizontal label. The unread notification badge sits just above that clock element rather than being buried inside it.
 
 The reserved bar area follows **Outer gaps**. Detached layouts keep one outer gap between the screen edge and the bar; attached layouts sit flush. In both cases the gap between the bar and window space matches the normal window outer gap.
 
@@ -126,17 +125,33 @@ The bar hides automatically on a monitor when that monitor’s active workspace 
 
 ## App launcher
 
-Press **Super + Space** to open the launcher. It supports application search, file search, and web queries. Results can be launched directly or opened with the configured terminal and helper apps.
+Press **Super + Space** to open the launcher. It supports application search, file search, calculator results, and web queries. Results can be launched directly or opened with the configured terminal and helper apps.
 
-![Application launcher](demopics/app_launcher.png)
+![Application launcher](demopics/launcher.png)
 
-*Application launcher with search and actions.*
+*Application search and quick actions.*
+
+![Launcher calculator](demopics/launcher_calculation.png)
+
+*Calculator results appear inline.*
+
+![Launcher file search](demopics/launcher_file_search.png)
+
+*File search opens results with the configured apps.*
+
+![Launcher web search](demopics/launcher_web_search.png)
+
+*Web queries can be sent straight to the browser.*
 
 ---
 
 ## Calendar and notifications
 
 Click the clock to open the calendar. The popup can include media controls and notification history, and its layout and width are configurable in **Settings → Notifications → Calendar**.
+
+![Calendar element and notification badge](demopics/calendar_element.png)
+
+*The clock, calendar popup, and unread notification badge.*
 
 Notifications support:
 
@@ -147,10 +162,6 @@ Notifications support:
 - app icon and app name
 - low-battery warnings
 - notification history inside the calendar
-
-![Calendar popup with notification history](demopics/calendar_pop_up.png)
-
-*Calendar popup with notification history.*
 
 ---
 
@@ -173,11 +184,7 @@ Press **Super + comma** to open the settings app. It includes pages for:
 
 Hover any setting name for a short explanation of what it does. Ambiguous names such as **Layout** and **Sensitivity** have page-specific help text.
 
-![Settings app](demopics/settings_app.png)
-
-*The settings app home screen.*
-
-![Easy-to-use settings](demopics/easy_to_use_settings.png)
+![Easy-to-configure settings](demopics/easy_to_configure_settings.png)
 
 *Grouped controls make appearance and behavior changes straightforward.*
 
@@ -216,11 +223,11 @@ The **Monitors** page can arrange displays, set scale and rotation, enable or di
 
 ## Emoji picker
 
-Press **Super + period** to open the emoji picker. Search results can be copied to the clipboard or pasted into the focused application.
+Press **Super + period** to open the emoji picker. Search results can be copied to the clipboard or pasted into the focused application, and copied emoji are kept in a local clipboard history.
 
-![Emoji picker](demopics/emoji_picker.png)
+![Emoji picker with clipboard history](demopics/emoji_picker_clipboard_history.png)
 
-*Searchable emoji picker.*
+*Searchable emoji picker with clipboard history.*
 
 ---
 
@@ -228,9 +235,23 @@ Press **Super + period** to open the emoji picker. Search results can be copied 
 
 The default setup includes ten workspaces, a scratchpad, dwindle tiling, floating toggles, pseudo-tiling, split-direction toggling, and configurable window borders with a blue-to-teal gradient.
 
-![Window management](demopics/window_management.png)
+![Eye-candy window management](demopics/eye_candy_window_management.png)
 
 *Workspaces, borders, gaps, and window layout in use.*
+
+![Workspace switcher](demopics/workspace_switcher.png)
+
+*Switching between workspaces.*
+
+---
+
+## Developer friendly
+
+Alacritty, the terminal-first launcher actions, and the compact OSD make this a comfortable daily driver for development. Window blur and transparency stay configurable without adding blur to Quickshell surfaces.
+
+![Great for developers](demopics/great_for_developers.png)
+
+*A terminal-focused desktop with the full panel and window effects available.*
 
 ---
 
@@ -307,3 +328,4 @@ Quickshell runs as separate named sessions: `topbar`, `osd`, `launcher`, `emoji`
 - Quickshell panels are intentionally opaque. The available blur options are **Hyprland blur** and **Alacritty blur** in Settings.
 - If a panel looks wrong after upgrading, remove the old `~/.config/quickshell` and `~/.config/hypr` directories and reinstall; the installer backs them up first.
 - Popup content uses a shared fixed size; the calendar has its own fixed height to keep month switching stable.
+- Demo screenshots live in `demopics/`.
