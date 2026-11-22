@@ -1,6 +1,6 @@
 # cyan1de
 
-A clean, dark, portable **Hyprland + Quickshell** desktop configuration for Arch-based systems. It ships with floating pill panels, a full graphical settings app, a launcher, emoji picker, notification history, a compact OSD, lockscreen, and sensible default applications.
+A clean and portable **Hyprland + Quickshell** desktop configuration for Arch-based systems. It ships with floating pill panels, a full graphical settings app, a launcher, emoji picker, notification history, a compact OSD, lockscreen, and sensible default applications.
 
 The shipped defaults use JetBrainsMono Nerd Font, a dark surface palette, and a blue-to-teal window-border gradient. Quickshell surfaces are opaque for crisp text; blur is limited to Hyprland windows and Alacritty.
 
