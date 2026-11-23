@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Services.Pipewire
 import Quickshell.Wayland
@@ -17,12 +18,70 @@ ShellRoot {
     property real reveal: 0
     property bool closing: false
     property bool ready: false
+    property real revealFrom: 0
+    property real revealTo: 0
+    property real revealStarted: 0
+    property bool revealAnimating: false
+    property real revealTickerValue: 0
 
-    Behavior on reveal {
-        NumberAnimation {
-            duration: osd.closing ? Theme.motionFast : Theme.motionBase
-            easing.type: Easing.OutCubic
+    // Follow Hyprland's focused monitor, mapped to the matching Quickshell
+    // screen. The window's own `screen` is unreliable while it is hidden, and
+    // pinning to the first screen puts the OSD on the wrong display.
+    readonly property var focusedScreen: {
+        const monitor = Hyprland.focusedMonitor;
+        const name = monitor ? monitor.name : "";
+        const screens = Quickshell.screens;
+        for (let i = 0; i < screens.length; i++) {
+            if (screens[i].name === name)
+                return screens[i];
         }
+        return screens.length > 0 ? screens[0] : null;
+    }
+
+    // The animation driver advances per frame in this Quickshell build, so a
+    // plain tween runs faster on high-refresh monitors. Use the animation only
+    // as a frame ticker and derive progress from real elapsed time instead.
+    NumberAnimation {
+        id: revealTicker
+        target: osd
+        property: "revealTickerValue"
+        from: 0
+        to: 1
+        duration: 60000
+        loops: Animation.Infinite
+        running: osd.revealAnimating
+    }
+
+    onRevealTickerValueChanged: {
+        if (!osd.revealAnimating)
+            return;
+
+        const elapsed = Date.now() - osd.revealStarted;
+        const t = Math.min(1, elapsed / Theme.motionSlow);
+        const eased = 1 - Math.pow(1 - t, 3);
+        osd.reveal = osd.revealFrom
+            + (osd.revealTo - osd.revealFrom) * eased;
+
+        if (t < 1)
+            return;
+
+        osd.reveal = osd.revealTo;
+        osd.revealAnimating = false;
+        if (osd.revealTo <= 0) {
+            osd.shown = false;
+            osd.closing = false;
+        }
+    }
+
+    function animateReveal(to) {
+        if (Math.abs(osd.reveal - to) < 0.001) {
+            osd.reveal = to;
+            return;
+        }
+        osd.revealFrom = osd.reveal;
+        osd.revealTo = to;
+        osd.revealStarted = Date.now();
+        osd.revealAnimating = true;
     }
 
     property string backlightDir: ""
@@ -59,10 +118,12 @@ ShellRoot {
     readonly property string valueText: muted ? "Muted" : Math.round(value * 100) + "%"
 
     function present() {
-        exitTimer.stop();
         closing = false;
         shown = true;
-        reveal = 1;
+        if (reveal < 1)
+            animateReveal(1);
+        else
+            reveal = 1;
         hideTimer.restart();
     }
 
@@ -158,17 +219,12 @@ ShellRoot {
         interval: 1400
         onTriggered: {
             osd.closing = true;
-            osd.reveal = 0;
-            exitTimer.restart();
-        }
-    }
-
-    Timer {
-        id: exitTimer
-        interval: Theme.motionFast + 20
-        onTriggered: {
-            shown = false;
-            closing = false;
+            if (osd.reveal > 0) {
+                osd.animateReveal(0);
+            } else {
+                osd.shown = false;
+                osd.closing = false;
+            }
         }
     }
 
@@ -276,12 +332,15 @@ ShellRoot {
         id: window
 
         visible: osd.shown
+        screen: osd.focusedScreen
         anchors {
             bottom: true
             left: true
         }
         margins {
-            left: (screen ? Math.max(0, (screen.width - 340) / 2) : 0)
+            left: osd.focusedScreen
+                ? Math.max(0, (osd.focusedScreen.width - 340) / 2)
+                : 0
         }
         implicitWidth: 340
         implicitHeight: 150
@@ -323,9 +382,12 @@ ShellRoot {
             border.color: Theme.border
 
             opacity: osd.reveal
-            scale: Theme.motionEnterScale + (1 - Theme.motionEnterScale) * osd.reveal
+            scale: 1
+            // Travel the full card height plus its bottom margin so the OSD
+            // enters from below the screen edge and retracts back down when
+            // the hide timer fires.
             transform: Translate {
-                y: (1 - osd.reveal) * Theme.motionEnterOffset
+                y: (1 - osd.reveal) * (card.height + card.anchors.bottomMargin)
             }
 
             Behavior on color { ColorAnimation { duration: Theme.motionFast } }
@@ -375,7 +437,7 @@ ShellRoot {
 
                         Behavior on width {
                             NumberAnimation {
-                                duration: Theme.motionBase
+                                duration: Theme.motionFast
                                 easing.type: Easing.OutCubic
                             }
                         }

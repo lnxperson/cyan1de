@@ -75,6 +75,31 @@ PanelWindow {
         }
     }
 
+    // Layout switches cross-fade the previous panel into the new one and slide
+    // the shared content into place, instead of snapping between layouts.
+    property real pillsFade: bar.pills ? 1 : 0
+    property real unifiedFade: bar.unified ? 1 : 0
+    property real islandFade: bar.island ? 1 : 0
+
+    Behavior on pillsFade {
+        NumberAnimation {
+            duration: Theme.motionBase
+            easing.type: Easing.OutCubic
+        }
+    }
+    Behavior on unifiedFade {
+        NumberAnimation {
+            duration: Theme.motionBase
+            easing.type: Easing.OutCubic
+        }
+    }
+    Behavior on islandFade {
+        NumberAnimation {
+            duration: Theme.motionBase
+            easing.type: Easing.OutCubic
+        }
+    }
+
     Connections {
         target: bar
 
@@ -190,8 +215,7 @@ PanelWindow {
     readonly property int contentInset: 12
     readonly property int sectionGap: 14
 
-    // Unified and island sections are flanked by short rulers. Top/bottom bars
-    // use vertical ticks; left/right bars rotate them into horizontal ticks.
+    // Vertical bars flank their stacked sections with short rulers.
     readonly property int rulerGap: 4
     readonly property int rulerLength: Math.max(10, Theme.panelHeight - 12)
     readonly property color rulerColor: Theme.pillBorder
@@ -479,22 +503,18 @@ PanelWindow {
         const cx = content.x + content.implicitWidth / 2;
         const cy = content.y + content.implicitHeight / 2;
 
-        if (bar.vertical) {
-            const half = bar.rulerLength / 2;
-            return [
-                Qt.rect(cx - content.implicitWidth / 2 - bar.rulerGap,
-                    cy - half, 1, bar.rulerLength),
-                Qt.rect(cx + content.implicitWidth / 2 + bar.rulerGap - 1,
-                    cy - half, 1, bar.rulerLength)
-            ];
-        }
+        // Horizontal bars used to get short ticks above and below each
+        // section. They read as stray lines, so only vertical bars keep
+        // rulers, where they flank the stack instead.
+        if (!bar.vertical)
+            return [];
 
         const half = bar.rulerLength / 2;
         return [
-            Qt.rect(cx - half, cy - content.implicitHeight / 2 - bar.rulerGap,
-                bar.rulerLength, 1),
-            Qt.rect(cx - half, cy + content.implicitHeight / 2 + bar.rulerGap - 1,
-                bar.rulerLength, 1)
+            Qt.rect(cx - content.implicitWidth / 2 - bar.rulerGap,
+                cy - half, 1, bar.rulerLength),
+            Qt.rect(cx + content.implicitWidth / 2 + bar.rulerGap - 1,
+                cy - half, 1, bar.rulerLength)
         ];
     }
 
@@ -803,7 +823,21 @@ PanelWindow {
         id: leftContent
         flow: bar.vertical ? Flow.TopToBottom : Flow.LeftToRight
         spacing: 2
-        opacity: bar.island ? bar.islandReveal : 1
+        opacity: Math.max(bar.pillsFade, bar.unifiedFade, bar.islandFade)
+            * (bar.island ? bar.islandReveal : 1)
+
+        Behavior on x {
+            NumberAnimation {
+                duration: Theme.motionBase
+                easing.type: Easing.OutCubic
+            }
+        }
+        Behavior on y {
+            NumberAnimation {
+                duration: Theme.motionBase
+                easing.type: Easing.OutCubic
+            }
+        }
 
         x: {
             if (bar.island)
@@ -812,7 +846,7 @@ PanelWindow {
                     : islandBg.x + bar.pillPad + bar.islandSectionStart("left");
             if (bar.unified)
                 return bar.vertical
-                    ? unifiedBg.x + (unifiedBg.width - leftContent.implicitWidth) / 2
+                    ? bar.unifiedX + (bar.unifiedWidth - leftContent.implicitWidth) / 2
                     : bar.axisX(Theme.pillLeft, leftContent.implicitWidth, bar.contentInset);
             return leftPillBg.x + (leftPillBg.width - leftContent.implicitWidth) / 2;
         }
@@ -824,7 +858,7 @@ PanelWindow {
             if (bar.unified)
                 return bar.vertical
                     ? bar.axisY(Theme.pillLeft, leftContent.implicitHeight, bar.contentInset)
-                    : unifiedBg.y + (unifiedBg.height - leftContent.implicitHeight) / 2;
+                    : bar.unifiedY + (bar.unifiedHeight - leftContent.implicitHeight) / 2;
             return leftPillBg.y + (leftPillBg.height - leftContent.implicitHeight) / 2;
         }
 
@@ -838,7 +872,21 @@ PanelWindow {
         id: centerContent
         flow: bar.vertical ? Flow.TopToBottom : Flow.LeftToRight
         spacing: 2
-        opacity: bar.island ? bar.islandReveal : 1
+        opacity: Math.max(bar.pillsFade, bar.unifiedFade, bar.islandFade)
+            * (bar.island ? bar.islandReveal : 1)
+
+        Behavior on x {
+            NumberAnimation {
+                duration: Theme.motionBase
+                easing.type: Easing.OutCubic
+            }
+        }
+        Behavior on y {
+            NumberAnimation {
+                duration: Theme.motionBase
+                easing.type: Easing.OutCubic
+            }
+        }
 
         x: {
             if (bar.island)
@@ -847,7 +895,7 @@ PanelWindow {
                     : islandBg.x + bar.pillPad + bar.islandSectionStart("center");
             if (bar.unified)
                 return bar.vertical
-                    ? unifiedBg.x + (unifiedBg.width - centerContent.implicitWidth) / 2
+                    ? bar.unifiedX + (bar.unifiedWidth - centerContent.implicitWidth) / 2
                     : bar.axisX(Theme.pillCenter, centerContent.implicitWidth, bar.contentInset);
             return centerPillBg.x + (centerPillBg.width - centerContent.implicitWidth) / 2;
         }
@@ -859,7 +907,7 @@ PanelWindow {
             if (bar.unified)
                 return bar.vertical
                     ? bar.axisY(Theme.pillCenter, centerContent.implicitHeight, bar.contentInset)
-                    : unifiedBg.y + (unifiedBg.height - centerContent.implicitHeight) / 2;
+                    : bar.unifiedY + (bar.unifiedHeight - centerContent.implicitHeight) / 2;
             return centerPillBg.y + (centerPillBg.height - centerContent.implicitHeight) / 2;
         }
 
@@ -873,7 +921,21 @@ PanelWindow {
         id: rightContent
         flow: bar.vertical ? Flow.TopToBottom : Flow.LeftToRight
         spacing: 2
-        opacity: bar.island ? bar.islandReveal : 1
+        opacity: Math.max(bar.pillsFade, bar.unifiedFade, bar.islandFade)
+            * (bar.island ? bar.islandReveal : 1)
+
+        Behavior on x {
+            NumberAnimation {
+                duration: Theme.motionBase
+                easing.type: Easing.OutCubic
+            }
+        }
+        Behavior on y {
+            NumberAnimation {
+                duration: Theme.motionBase
+                easing.type: Easing.OutCubic
+            }
+        }
 
         x: {
             if (bar.island)
@@ -882,7 +944,7 @@ PanelWindow {
                     : islandBg.x + bar.pillPad + bar.islandSectionStart("right");
             if (bar.unified)
                 return bar.vertical
-                    ? unifiedBg.x + (unifiedBg.width - rightContent.implicitWidth) / 2
+                    ? bar.unifiedX + (bar.unifiedWidth - rightContent.implicitWidth) / 2
                     : bar.axisX(Theme.pillRight, rightContent.implicitWidth, bar.contentInset);
             return rightPillBg.x + (rightPillBg.width - rightContent.implicitWidth) / 2;
         }
@@ -894,7 +956,7 @@ PanelWindow {
             if (bar.unified)
                 return bar.vertical
                     ? bar.axisY(Theme.pillRight, rightContent.implicitHeight, bar.contentInset)
-                    : unifiedBg.y + (unifiedBg.height - rightContent.implicitHeight) / 2;
+                    : bar.unifiedY + (bar.unifiedHeight - rightContent.implicitHeight) / 2;
             return rightPillBg.y + (rightPillBg.height - rightContent.implicitHeight) / 2;
         }
 
@@ -1284,10 +1346,41 @@ PanelWindow {
             + rightContent.implicitHeight + pillPad * 2
             + Math.max(0, bar.visibleSectionCount() - 1) * sectionGap)
 
+    // Unified panel target geometry. The background animates toward these and
+    // the sections are positioned from them, so a layout swap moves both in
+    // step instead of snapping the panel while the content slides.
+    // Attached modes still follow panelHeight; they only remove the side
+    // margins and rounding, not the thickness control. Detached modes use one
+    // outer gap on both sides so the window gap can match the bottom.
+    readonly property real unifiedX: bar.cornersAttached
+        ? (bar.vertical && bar.edge === "right" ? bar.width - Theme.panelHeight : 0)
+        : (bar.vertical
+            ? (bar.edge === "right"
+                ? bar.width - Theme.barOuterInset - Theme.panelHeight
+                : Theme.barOuterInset)
+            : Theme.sideMargin)
+    readonly property real unifiedY: bar.cornersAttached
+        ? (!bar.vertical && bar.bottom ? bar.height - Theme.panelHeight : 0)
+        : (bar.vertical
+            ? Theme.sideMargin
+            : (bar.bottom
+                ? bar.height - Theme.barOuterInset - Theme.panelHeight
+                : Theme.barOuterInset))
+    readonly property real unifiedWidth: bar.cornersAttached
+        ? (bar.vertical ? Theme.panelHeight : bar.width)
+        : (bar.vertical ? Theme.panelHeight : bar.width - Theme.sideMargin * 2)
+    readonly property real unifiedHeight: bar.cornersAttached
+        ? (bar.vertical ? bar.height : Theme.panelHeight)
+        : (bar.vertical ? bar.height - Theme.sideMargin * 2 : Theme.panelHeight)
+    readonly property real unifiedRadius: bar.cornersAttached ? 0 : Theme.pillRadius
+    readonly property int unifiedBorderWidth: bar.cornersAttached ? 0 : 1
+
     // Backgrounds are declared before the sections so content draws on top.
     Rectangle {
         id: leftPillBg
-        visible: bar.pills && bar.sectionVisible("left")
+        visible: (bar.pills || bar.pillsFade > 0.001)
+            && bar.sectionVisible("left")
+        opacity: bar.pillsFade
         width: bar.vertical
             ? Theme.panelHeight
             : leftContent.implicitWidth + bar.pillPad * 2
@@ -1313,7 +1406,9 @@ PanelWindow {
 
     Rectangle {
         id: centerPillBg
-        visible: bar.pills && bar.sectionVisible("center")
+        visible: (bar.pills || bar.pillsFade > 0.001)
+            && bar.sectionVisible("center")
+        opacity: bar.pillsFade
         width: bar.vertical
             ? Theme.panelHeight
             : centerContent.implicitWidth + bar.pillPad * 2
@@ -1339,7 +1434,9 @@ PanelWindow {
 
     Rectangle {
         id: rightPillBg
-        visible: bar.pills && bar.sectionVisible("right")
+        visible: (bar.pills || bar.pillsFade > 0.001)
+            && bar.sectionVisible("right")
+        opacity: bar.pillsFade
         width: bar.vertical
             ? Theme.panelHeight
             : rightContent.implicitWidth + bar.pillPad * 2
@@ -1365,41 +1462,63 @@ PanelWindow {
 
     Rectangle {
         id: unifiedBg
-        visible: bar.unified && bar.visibleSectionCount() > 0
-        // Attached modes still follow panelHeight; they only remove the side
-        // margins and rounding, not the thickness control. Detached modes use
-        // one outer gap on both sides so the window gap can match the bottom.
-        x: bar.cornersAttached
-            ? (bar.vertical && bar.edge === "right" ? bar.width - Theme.panelHeight : 0)
-            : (bar.vertical
-                ? (bar.edge === "right"
-                    ? bar.width - Theme.barOuterInset - Theme.panelHeight
-                    : Theme.barOuterInset)
-                : Theme.sideMargin)
-        y: bar.cornersAttached
-            ? (!bar.vertical && bar.bottom ? bar.height - Theme.panelHeight : 0)
-            : (bar.vertical
-                ? Theme.sideMargin
-                : (bar.bottom
-                    ? bar.height - Theme.barOuterInset - Theme.panelHeight
-                    : Theme.barOuterInset))
-        width: bar.cornersAttached
-            ? (bar.vertical ? Theme.panelHeight : bar.width)
-            : (bar.vertical ? Theme.panelHeight : bar.width - Theme.sideMargin * 2)
-        height: bar.cornersAttached
-            ? (bar.vertical ? bar.height : Theme.panelHeight)
-            : (bar.vertical ? bar.height - Theme.sideMargin * 2 : Theme.panelHeight)
-        radius: bar.cornersAttached ? 0 : Theme.pillRadius
+        visible: (bar.unified || bar.unifiedFade > 0.001)
+            && bar.visibleSectionCount() > 0
+        opacity: bar.unifiedFade
+        x: bar.unifiedX
+        y: bar.unifiedY
+        width: bar.unifiedWidth
+        height: bar.unifiedHeight
+        radius: bar.unifiedRadius
         color: Theme.panelFill(Theme.pillFill, "topbar", 0.78)
-        border.width: bar.cornersAttached ? 0 : 1
+        border.width: bar.unifiedBorderWidth
         border.color: Theme.pillBorder
         z: -1
+
+        // Morph between the rounded detached panel and the flush attached one.
+        Behavior on x {
+            NumberAnimation {
+                duration: Theme.motionBase
+                easing.type: Easing.OutCubic
+            }
+        }
+        Behavior on y {
+            NumberAnimation {
+                duration: Theme.motionBase
+                easing.type: Easing.OutCubic
+            }
+        }
+        Behavior on width {
+            NumberAnimation {
+                duration: Theme.motionBase
+                easing.type: Easing.OutCubic
+            }
+        }
+        Behavior on height {
+            NumberAnimation {
+                duration: Theme.motionBase
+                easing.type: Easing.OutCubic
+            }
+        }
+        Behavior on radius {
+            NumberAnimation {
+                duration: Theme.motionBase
+                easing.type: Easing.OutCubic
+            }
+        }
+        Behavior on border.width {
+            NumberAnimation {
+                duration: Theme.motionBase
+                easing.type: Easing.OutCubic
+            }
+        }
     }
 
     Rectangle {
         id: islandBg
-        visible: bar.island && bar.visibleSectionCount() > 0
-        opacity: bar.islandReveal
+        visible: (bar.island || bar.islandFade > 0.001)
+            && bar.visibleSectionCount() > 0
+        opacity: bar.islandFade * bar.islandReveal
         x: (bar.width - width) / 2
         y: (bar.height - height) / 2
         width: bar.vertical ? Theme.panelHeight : bar.islandWidth
@@ -1415,13 +1534,16 @@ PanelWindow {
         model: ["left", "center", "right"]
 
         Item {
-            property bool sectionIsVisible: (bar.unified || bar.island)
+            property bool sectionIsVisible:
+                (bar.unified || bar.unifiedFade > 0.001
+                    || bar.island || bar.islandFade > 0.001)
                 && bar.sectionVisible(modelData)
             readonly property var rects: sectionIsVisible
                 ? bar.sectionRulers(modelData)
                 : []
 
-            opacity: bar.island ? bar.islandReveal : 1
+            opacity: Math.max(bar.unifiedFade, bar.islandFade)
+                * (bar.island ? bar.islandReveal : 1)
 
             Repeater {
                 model: parent.rects

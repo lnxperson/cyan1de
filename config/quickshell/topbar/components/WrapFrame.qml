@@ -13,6 +13,16 @@ PanelWindow {
 
     readonly property bool active: Theme.barLayout === "unifiedWrap"
 
+    // Keep the frame mapped while it fades so switching in and out of wrap
+    // mode does not make the display border pop.
+    property real reveal: active ? 1 : 0
+    Behavior on reveal {
+        NumberAnimation {
+            duration: Theme.motionBase
+            easing.type: Easing.OutCubic
+        }
+    }
+
     // Match the bar: a fullscreen workspace should not get a frame either.
     readonly property bool fullscreenHere: {
         const workspaces = Hyprland.workspaces.values;
@@ -42,7 +52,7 @@ PanelWindow {
         right: true
         bottom: true
     }
-    visible: active && !fullscreenHere
+    visible: (active || reveal > 0.001) && !fullscreenHere
     // The Canvas may not have painted while the window was hidden, so paint
     // once more whenever the frame is shown.
     onVisibleChanged: if (visible) surface.requestPaint()
@@ -69,6 +79,7 @@ PanelWindow {
     Canvas {
         id: surface
         anchors.fill: parent
+        opacity: frame.reveal
 
         Component.onCompleted: if (frame.visible) requestPaint()
         onWidthChanged: requestPaint()
