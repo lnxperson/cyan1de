@@ -20,6 +20,8 @@ ShellRoot {
     readonly property string home: Quickshell.env("HOME") || ""
     readonly property string recentPath: home + "/.config/quickshell/emoji/recent.json"
     readonly property string clipboardPath: home + "/.config/quickshell/emoji/clipboard.json"
+    readonly property string clipboardImageDir: (Quickshell.env("XDG_CACHE_HOME")
+        || home + "/.cache") + "/quickshell/clipboard"
     property var recent: []
     property var clipboard: []
     property var results: []
@@ -806,7 +808,47 @@ ShellRoot {
         saveRecent();
     }
 
+    // Image clipboard entries are stored as a small marker pointing at a
+    // cached thumbnail, so the history file never carries raw image bytes.
+    function isImageMarker(value) {
+        return typeof value === "string"
+            && value.indexOf("clipboard-image:") === 0;
+    }
+
+    function imageMarkerType(value) {
+        const parts = String(value || "").split(":");
+        return parts.length > 1 ? parts[1] : "image/png";
+    }
+
+    function imageMarkerPath(value) {
+        const parts = String(value || "").split(":");
+        return parts.length > 2 ? parts.slice(2).join(":") : "";
+    }
+
+    function imageSource(value) {
+        const path = root.imageMarkerPath(value);
+        return path !== "" ? "file://" + path : "";
+    }
+
+    function imagePreviewLabel(type) {
+        const t = String(type || "");
+        if (t.indexOf("gif") >= 0)
+            return "GIF";
+        if (t.indexOf("jpeg") >= 0 || t.indexOf("jpg") >= 0)
+            return "JPG";
+        if (t.indexOf("webp") >= 0)
+            return "WEBP";
+        return "PNG";
+    }
+
     function clipboardPreview(text) {
+        const head = String(text || "").slice(0, 12);
+        // Older history kept raw image bytes as text. Never render that as a
+        // preview; newer entries carry a thumbnail marker instead.
+        if (head.indexOf("PNG") >= 0
+            && /[\u0000-\u001f\u007f-\u009f\ufffd]/.test(head))
+            return "Image";
+
         const lines = String(text || "").replace(/\r/g, "").split("\n");
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
@@ -819,13 +861,20 @@ ShellRoot {
 
     function clipboardItems() {
         return root.clipboard.map(function (text, index) {
+            const image = root.isImageMarker(text);
+            const type = image ? root.imageMarkerType(text) : "";
             return {
-                char: "📋",
-                name: "clipboard " + (index + 1),
+                char: image ? "🖼" : "📋",
+                name: image ? "image " + (index + 1) : "clipboard " + (index + 1),
                 group: "Clipboard",
-                keywords: "clipboard paste history " + text.toLowerCase().slice(0, 600),
-                preview: root.clipboardPreview(text),
-                text: text
+                keywords: image
+                    ? "clipboard image paste " + root.imagePreviewLabel(type).toLowerCase()
+                    : "clipboard paste history " + text.toLowerCase().slice(0, 600),
+                preview: image
+                    ? root.imagePreviewLabel(type)
+                    : root.clipboardPreview(text),
+                text: text,
+                image: image
             };
         });
     }
@@ -860,6 +909,32 @@ ShellRoot {
     function probeClipboard() {
         if (!clipboardProbe.running)
             clipboardProbe.running = true;
+        if (!clipboardImageProbe.running)
+            clipboardImageProbe.running = true;
+    }
+
+    function captureClipboardImage(output) {
+        const lines = String(output || "").trim().split("\n");
+        if (lines.length < 2)
+            return;
+
+        const type = lines[0].trim();
+        const path = lines[1].trim();
+        if (!type || !path)
+            return;
+
+        const marker = "clipboard-image:" + type + ":" + path;
+        if (marker === root.internalClipboardValue)
+            return;
+        if (root.internalClipboardValue !== "")
+            root.internalClipboardValue = "";
+        if (root.clipboard.length > 0 && root.clipboard[0] === marker)
+            return;
+
+        const list = root.clipboard.filter(function (item) { return item !== marker; });
+        list.unshift(marker);
+        root.clipboard = list.slice(0, 30);
+        saveClipboard();
     }
 
     function captureClipboard(text) {
@@ -916,7 +991,12 @@ ShellRoot {
         if (item.group !== "Clipboard")
             root.addRecent(value);
         root.internalClipboardValue = value;
-        copyProcess.command = ["wl-copy", "--", value];
+        if (root.isImageMarker(value)) {
+            copyProcess.command = ["sh", "-c", "wl-copy -t \"$0\" < \"$1\"",
+                root.imageMarkerType(value), root.imageMarkerPath(value)];
+        } else {
+            copyProcess.command = ["wl-copy", "--", value];
+        }
         copyProcess.running = false;
         copyProcess.running = true;
         root.close();
@@ -1058,10 +1138,43 @@ ShellRoot {
     Process {
         id: clipboardProbe
         running: false
-        command: ["sh", "-c", "wl-paste -n -t text/plain 2>/dev/null || wl-paste -n 2>/dev/null || true"]
+        // Only real text targets. Falling back to the default target used to
+        // capture raw image bytes and store them as garbled text.
+        command: ["sh", "-c", [
+            "for t in text/plain 'text/plain;charset=utf-8' text/uri-list UTF8_STRING STRING; do",
+            "  wl-paste -l 2>/dev/null | grep -Fq \"$t\" || continue;",
+            "  exec wl-paste -n -t \"$t\" 2>/dev/null;",
+            "done"
+        ].join(" ")]
 
         stdout: StdioCollector {
             onStreamFinished: root.captureClipboard(text)
+        }
+    }
+
+    Process {
+        id: clipboardImageProbe
+        running: false
+        command: ["sh", "-c", [
+            "dir=\"$1\"; mkdir -p \"$dir\" || exit 0;",
+            "type=$(wl-paste -l 2>/dev/null | grep -m1 -E '^image/' | tr -d '\\r');",
+            "[ -n \"$type\" ] || exit 0;",
+            "ext=png; case \"$type\" in",
+            "  *jpeg*|*jpg*) ext=jpg ;;",
+            "  *gif*) ext=gif ;;",
+            "  *webp*) ext=webp ;;",
+            "esac;",
+            "tmp=\"$dir/.clip-$$.${ext}\";",
+            "wl-paste -t \"$type\" > \"$tmp\" 2>/dev/null || { rm -f \"$tmp\"; exit 0; };",
+            "[ -s \"$tmp\" ] || { rm -f \"$tmp\"; exit 0; };",
+            "hash=$(sha256sum \"$tmp\" | cut -c1-16);",
+            "out=\"$dir/clip-${hash}.${ext}\";",
+            "mv -f \"$tmp\" \"$out\";",
+            "printf '%s\\n%s\\n' \"$type\" \"$out\""
+        ].join(" "), "clipboard-image-probe", root.clipboardImageDir]
+
+        stdout: StdioCollector {
+            onStreamFinished: root.captureClipboardImage(text)
         }
     }
 
@@ -1502,6 +1615,8 @@ ShellRoot {
                                 emojiCell.index === root.selected
                             readonly property bool clipboardEntry:
                                 emojiCell.modelData.group === "Clipboard"
+                            readonly property bool imageEntry:
+                                emojiCell.clipboardEntry && !!emojiCell.modelData.image
 
                             width: grid.cellWidth
                             height: grid.cellHeight
@@ -1531,9 +1646,11 @@ ShellRoot {
                                 Text {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 36
+                                    visible: !emojiCell.imageEntry
                                     text: emojiCell.clipboardEntry
                                         ? emojiCell.modelData.preview
                                         : emojiCell.modelData.char
+                                    color: Theme.text
                                     font.family: emojiCell.clipboardEntry
                                         ? Theme.mono : "Noto Color Emoji"
                                     font.pixelSize: emojiCell.clipboardEntry ? 11 : 25
@@ -1543,6 +1660,20 @@ ShellRoot {
                                     elide: Text.ElideRight
                                     leftPadding: emojiCell.clipboardEntry ? 5 : 0
                                     rightPadding: emojiCell.clipboardEntry ? 5 : 0
+                                }
+
+                                Image {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 36
+                                    visible: emojiCell.imageEntry
+                                    source: emojiCell.imageEntry
+                                        ? root.imageSource(emojiCell.modelData.text)
+                                        : ""
+                                    fillMode: Image.PreserveAspectFit
+                                    horizontalAlignment: Image.AlignHCenter
+                                    verticalAlignment: Image.AlignVCenter
+                                    asynchronous: true
+                                    smooth: true
                                 }
 
                                 Text {
