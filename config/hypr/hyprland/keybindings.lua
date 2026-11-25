@@ -13,6 +13,19 @@ local screenshot = programs.screenshot
 
 local mainMod = "SUPER" -- Super/Windows Key
 
+-- Set both Hyprland's state and the client's state explicitly. Some games
+-- request their own fullscreen state, which can make a plain toggle need two
+-- presses before the window actually fills the screen.
+local function toggleFullscreen()
+    local window = hl.get_active_window()
+    if not window then return end
+    if (window.fullscreen or 0) == 2 then
+        hl.dispatch(hl.dsp.window.fullscreen_state({ internal = 0, client = 0, action = "set", layout_aware = false }))
+    else
+        hl.dispatch(hl.dsp.window.fullscreen_state({ internal = 2, client = 2, action = "set", layout_aware = false }))
+    end
+end
+
 -- -----------------------------------------------------------------------------
 -- Core Application & Window Bindings
 -- -----------------------------------------------------------------------------
@@ -24,6 +37,7 @@ local closeWindowBind = hl.bind(mainMod .. " + Q", hl.dsp.window.close(), { desc
 
 hl.bind(mainMod .. " + E",     hl.dsp.exec_cmd(fileManager), { description = "Open file manager" })
 hl.bind(mainMod .. " + V",     hl.dsp.window.float({ action = "toggle" }), { description = "Toggle Floating state" }) -- Toggle Floating state
+hl.bind(mainMod .. " + F",     toggleFullscreen, { description = "Toggle fullscreen" })
 hl.bind(mainMod .. " + SPACE", hl.dsp.exec_cmd(menu), { description = "Open app launcher" })                     -- Open app launcher
 hl.bind(mainMod .. " + P",     hl.dsp.window.pseudo(), { description = "Pseudo-tiling window" })                    -- Pseudo-tiling window
 hl.bind(mainMod .. " + J",     hl.dsp.layout("togglesplit"), { description = "Toggle window split direction" })              -- Toggle window split direction
@@ -41,9 +55,9 @@ hl.bind(mainMod .. " + C", hl.dsp.exec_cmd("qs ipc -c topbar call topbar calenda
 -- -----------------------------------------------------------------------------
 -- Screenshots (Hyprshot)
 -- -----------------------------------------------------------------------------
-hl.bind(mainMod .. " + SHIFT + S",            hl.dsp.exec_cmd(screenshot .. " -m region --clipboard-only"), { description = "Area selection to clipboard" })
-hl.bind(mainMod .. " + SHIFT + CTRL + S", hl.dsp.exec_cmd(screenshot .. " -m output"), { description = "Full active display" })
-hl.bind(mainMod .. " + CTRL + S",    hl.dsp.exec_cmd(screenshot .. " -m region"), { description = "Area selection save to disk" })
+hl.bind("HOME",            hl.dsp.exec_cmd(screenshot .. " -m region --clipboard-only"), { description = "Area selection to clipboard" })
+hl.bind("CTRL + HOME", hl.dsp.exec_cmd(screenshot .. " -m output"), { description = "Full active display" })
+hl.bind("SHIFT + HOME",    hl.dsp.exec_cmd(screenshot .. " -m region"), { description = "Area selection save to disk" })
 
 -- -----------------------------------------------------------------------------
 -- Navigation & Focus Controls
@@ -62,8 +76,8 @@ for i = 1, 10 do
 end
 
 -- Special Workspace (Scratchpad)
-hl.bind(mainMod .. " + F",         hl.dsp.workspace.toggle_special("magic"), { description = "Toggle scratchpad view" })            -- Toggle scratchpad view
-hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.move({ workspace = "special:magic" }), { description = "Move active window to scratchpad" }) -- Move active window to scratchpad
+hl.bind(mainMod .. " + S",         hl.dsp.workspace.toggle_special("magic"), { description = "Toggle scratchpad view" })            -- Toggle scratchpad view
+hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:magic" }), { description = "Move active window to scratchpad" }) -- Move active window to scratchpad
 
 -- Scroll through existing workspaces with Super + Mouse Scroll Wheel
 hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }), { description = "Workspace e+1" })
