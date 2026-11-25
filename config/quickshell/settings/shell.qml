@@ -25,6 +25,10 @@ ShellRoot {
     property Item dragOverlayHost: null
     property int page: 0
     property int renderedPage: 0
+    property bool previousWasBarPage: false
+    property bool pageSwapSnap: false
+    property int outgoingNavIndex: -1
+    property bool navSwapActive: false
     property string appearanceSection: "panel"
     readonly property var appearanceSections: [
         { label: "Panel", value: "panel" },
@@ -121,13 +125,33 @@ ShellRoot {
         }
     }
 
-    // Page swaps fade the old page out before the Loader changes component.
+    // Page swaps cross-fade the old page into the new one while the sidebar
+    // highlight slides between rows.
     Connections {
         target: root
 
         function onPageChanged() {
-            pageSwapTimer.restart();
+            // Cross-fade the outgoing page into the incoming one so the
+            // content area never empties out mid-swap.
+            previousWasBarPage = renderedPage === 0;
+
+            // Keep the row being left filled until the highlight has fully
+            // moved off it, otherwise its background vanishes first.
+            outgoingNavIndex = renderedPage;
+            navSwapActive = true;
+            navSwapTimer.restart();
+
+            pageSwapSnap = true;
+            previousPageLoader.sourceComponent = pageLoader.sourceComponent;
+            previousPageLoader.opacity = 1;
+            renderedPage = page;
             pageLoader.opacity = 0;
+            pageSwapSnap = false;
+
+            pageLoader.opacity = 1;
+            previousPageLoader.opacity = 0;
+            scroller.contentItem.contentY = 0;
+            pageFadeTimer.restart();
             root.syncNavHighlight();
         }
     }
@@ -2268,8 +2292,16 @@ ShellRoot {
         // the first page with the first appearance section selected.
         navHighlightAnimate = false;
         navHighlightVisible = false;
+        navSwapActive = false;
+        outgoingNavIndex = -1;
+        navSwapTimer.stop();
         page = 0;
         renderedPage = 0;
+        pageSwapSnap = true;
+        previousPageLoader.opacity = 0;
+        previousPageLoader.sourceComponent = null;
+        pageSwapSnap = false;
+        pageFadeTimer.stop();
         pageLoader.opacity = 1;
         appearanceSection = "panel";
         confirmReset = false;
@@ -2308,12 +2340,20 @@ ShellRoot {
     }
 
     Timer {
-        id: pageSwapTimer
+        id: pageFadeTimer
         interval: Theme.motionFast
         onTriggered: {
-            renderedPage = page;
-            pageLoader.opacity = 1;
-            scroller.contentItem.contentY = 0;
+            previousPageLoader.opacity = 0;
+            previousPageLoader.sourceComponent = null;
+        }
+    }
+
+    Timer {
+        id: navSwapTimer
+        interval: Theme.motionBase
+        onTriggered: {
+            root.navSwapActive = false;
+            root.outgoingNavIndex = -1;
         }
     }
 
@@ -2733,7 +2773,7 @@ ShellRoot {
                                 y: root.navHighlightRect.y
                                 width: root.navHighlightRect.width
                                 height: root.navHighlightRect.height
-                                radius: 9
+                                radius: Theme.controlRadius
                                 color: Theme.active
                                 visible: root.navHighlightVisible
 
@@ -2783,6 +2823,7 @@ ShellRoot {
                                         icon: modelData.icon
                                         label: modelData.title
                                         active: root.page === index
+                                        outgoing: root.navSwapActive && root.outgoingNavIndex === index
                                         onClicked: root.setPage(index)
                                     }
                                 }
@@ -2829,8 +2870,31 @@ ShellRoot {
                             id: contentWrapper
                             width: scroller.availableWidth
                             height: implicitHeight
-                            implicitHeight: pageLoader.implicitHeight + 32
+                            implicitHeight: Math.max(pageLoader.implicitHeight,
+                                    previousPageLoader.implicitHeight) + 32
                                 + (root.page === 0 ? 50 : 0)
+
+                            // Outgoing page stays mounted underneath while the
+                            // incoming page fades in, so there is no empty frame.
+                            Loader {
+                                id: previousPageLoader
+                                x: 16 + (1 - opacity) * 10
+                                y: 16 + (root.previousWasBarPage ? 50 : 0)
+                                width: parent.width - 32
+                                opacity: 0
+                                scale: 0.99 + 0.01 * opacity
+                                transformOrigin: Item.TopLeft
+                                enabled: false
+                                z: 0
+
+                                Behavior on opacity {
+                                    enabled: !root.pageSwapSnap
+                                    NumberAnimation {
+                                        duration: Theme.motionFast
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
+                            }
 
                             Loader {
                                 id: pageLoader
@@ -2841,8 +2905,10 @@ ShellRoot {
                                 scale: 0.99 + 0.01 * opacity
                                 transformOrigin: Item.TopLeft
                                 sourceComponent: root.componentForPage(root.renderedPage)
+                                z: 1
 
                                 Behavior on opacity {
+                                    enabled: !root.pageSwapSnap
                                     NumberAnimation {
                                         duration: Theme.motionFast
                                         easing.type: Easing.OutCubic

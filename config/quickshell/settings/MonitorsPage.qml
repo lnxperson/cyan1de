@@ -158,7 +158,7 @@ ColumnLayout {
                         y: (mon.y - canvas.originY) * canvas.geo.scale + 20
                         width: Math.max(24, app.monitorWidth(mon) * canvas.geo.scale)
                         height: Math.max(18, app.monitorHeight(mon) * canvas.geo.scale)
-                        radius: 5
+                        radius: Theme.controlRadius
                         opacity: mon.disabled ? 0.4 : 1
 
                         property bool colliding: dragArea.drag.active && canvas.overlapsAt(index,

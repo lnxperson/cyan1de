@@ -52,7 +52,7 @@ ColumnLayout {
             rightPadding: 8
             background: Rectangle {
                 color: Theme.bg
-                radius: 6
+                radius: Theme.controlRadius
                 border.width: 1
                 border.color: search.activeFocus ? Theme.accent : Theme.border
             }
@@ -105,7 +105,7 @@ ColumnLayout {
                     Rectangle {
                         Layout.fillWidth: true
                         implicitHeight: 30
-                        radius: 7
+                        radius: Theme.controlRadius
                         color: bindRow.expanded ? Theme.active : (summaryMouse.containsMouse ? Theme.hover : Theme.bg)
                         border.width: 1
                         border.color: bindRow.expanded ? Theme.accent : Theme.border
@@ -231,7 +231,7 @@ ColumnLayout {
                                     rightPadding: 8
                                     background: Rectangle {
                                         color: Theme.bg
-                                        radius: 6
+                                        radius: Theme.controlRadius
                                         border.width: 1
                                         border.color: commandField.activeFocus ? Theme.accent : Theme.border
                                     }
@@ -268,7 +268,7 @@ ColumnLayout {
                                     rightPadding: 8
                                     background: Rectangle {
                                         color: Theme.bg
-                                        radius: 6
+                                        radius: Theme.controlRadius
                                         border.width: 1
                                         border.color: labelField.activeFocus ? Theme.accent : Theme.border
                                     }
@@ -343,7 +343,7 @@ ColumnLayout {
                     rightPadding: 8
                     background: Rectangle {
                         color: Theme.bg
-                        radius: 6
+                        radius: Theme.controlRadius
                         border.width: 1
                         border.color: newCommand.activeFocus ? Theme.accent : Theme.border
                     }
@@ -376,7 +376,7 @@ ColumnLayout {
                     rightPadding: 8
                     background: Rectangle {
                         color: Theme.bg
-                        radius: 6
+                        radius: Theme.controlRadius
                         border.width: 1
                         border.color: newLabel.activeFocus ? Theme.accent : Theme.border
                     }

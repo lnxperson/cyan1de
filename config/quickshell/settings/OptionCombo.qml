@@ -27,7 +27,7 @@ ComboBox {
     implicitWidth: 220
 
     background: Rectangle {
-        radius: 6
+        radius: Theme.controlRadius
         color: Theme.surfaceAlt
         border.width: 1
         border.color: root.activeFocus || root.hovered ? Theme.accent : Theme.border
@@ -95,7 +95,7 @@ ComboBox {
 
         background: Rectangle {
             color: Theme.surface
-            radius: 8
+            radius: Theme.controlRadius
             border.width: 1
             border.color: Theme.border
         }

@@ -250,7 +250,7 @@ Item {
 
                         Layout.fillWidth: true
                         Layout.preferredHeight: 26
-                        radius: 6
+                        radius: Theme.controlRadius
                         color: selected ? Theme.active : Theme.surfaceAlt
                         border.width: activeFocus || keyboardFocused ? 2 : 1
                         border.color: activeFocus || keyboardFocused

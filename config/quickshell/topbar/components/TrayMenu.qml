@@ -228,7 +228,7 @@ PopupWindow {
 
                 Rectangle {
                     anchors.fill: parent
-                    radius: 6
+                    radius: Theme.controlRadius
                     color: mouse.containsMouse ? Theme.hover : "transparent"
                     visible: !row.isSeparator
 

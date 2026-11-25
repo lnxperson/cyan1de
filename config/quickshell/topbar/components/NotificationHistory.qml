@@ -118,7 +118,7 @@ ColumnLayout {
         Rectangle {
             Layout.preferredWidth: 20
             Layout.preferredHeight: 18
-            radius: 5
+            radius: Theme.controlRadius
             color: clearArea.containsMouse ? Theme.hover : Theme.surfaceAlt
             border.width: 1
             border.color: Theme.border
@@ -163,7 +163,7 @@ ColumnLayout {
             width: ListView.view.width - 4
             x: 2
             implicitHeight: content.implicitHeight + 16
-            radius: 8
+            radius: Theme.panelRadius
             color: Theme.surfaceAlt
             border.width: 1
             border.color: Theme.border

@@ -256,7 +256,7 @@ ShellRoot {
                     Rectangle {
                         Layout.preferredWidth: 38
                         Layout.preferredHeight: 38
-                        radius: 11
+                        radius: Theme.controlRadius
                         color: Theme.active
                         border.width: 1
                         border.color: Theme.border
@@ -295,7 +295,7 @@ ShellRoot {
                     Rectangle {
                         Layout.preferredWidth: 28
                         Layout.preferredHeight: 28
-                        radius: 8
+                        radius: Theme.controlRadius
                         color: closeMouse.containsMouse ? Theme.hover : "transparent"
                         border.width: 1
                         border.color: closeMouse.containsMouse ? Theme.border : "transparent"
@@ -370,7 +370,7 @@ ShellRoot {
                                         Rectangle {
                                             Layout.preferredWidth: 196
                                             Layout.preferredHeight: 24
-                                            radius: 6
+                                            radius: Theme.controlRadius
                                             color: Theme.active
                                             border.width: 1
                                             border.color: Theme.border
@@ -415,7 +415,7 @@ ShellRoot {
 
                         Layout.preferredWidth: 220
                         Layout.preferredHeight: 28
-                        radius: 7
+                        radius: Theme.controlRadius
                         color: "transparent"
 
                         RowLayout {
@@ -469,7 +469,7 @@ ShellRoot {
                     Rectangle {
                         Layout.preferredWidth: 86
                         Layout.preferredHeight: 30
-                        radius: 8
+                        radius: Theme.controlRadius
                         color: Theme.accent
 
                         Text {

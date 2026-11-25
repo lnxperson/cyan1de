@@ -240,7 +240,7 @@ Item {
 
                     width: listView.width
                     height: 50
-                    radius: 8
+                    radius: Theme.controlRadius
                     color: rowMouse.containsMouse || deviceRow.activeFocus
                         || deviceRow.keyboardFocused ? Theme.hover : "transparent"
                     border.width: deviceRow.activeFocus || deviceRow.keyboardFocused ? 1 : 0
@@ -326,7 +326,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         implicitWidth: 26
                         implicitHeight: 26
-                        radius: 6
+                        radius: Theme.controlRadius
                         property bool keyboardFocused: false
                         color: forgetMouse.containsMouse || activeFocus
                             || keyboardFocused ? "#2a181b" : "transparent"

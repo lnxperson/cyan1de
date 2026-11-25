@@ -91,7 +91,7 @@ Item {
         y: root.workspaceHighlightRect.y
         width: root.workspaceHighlightRect.width
         height: root.workspaceHighlightRect.height
-        radius: 6
+        radius: Math.min(Theme.controlRadius, height / 2)
         color: Theme.active
         border.width: 1
         border.color: Theme.accent
@@ -159,7 +159,7 @@ Item {
                     anchors.centerIn: parent
                     width: 24
                     height: 22
-                    radius: 6
+                    radius: Math.min(Theme.controlRadius, height / 2)
                     color: !button.focused && mouse.containsMouse
                         ? Theme.hover : "transparent"
                     border.width: 0

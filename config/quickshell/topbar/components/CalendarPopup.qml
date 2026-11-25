@@ -131,7 +131,7 @@ PopupWindow {
 
                         Rectangle {
                             anchors.fill: parent
-                            radius: 7
+                            radius: Theme.controlRadius
                             color: prevMouse.containsMouse || parent.activeFocus
                                 || parent.keyboardFocused ? Theme.hover : "transparent"
                             border.width: parent.activeFocus || parent.keyboardFocused ? 1 : 0
@@ -177,7 +177,7 @@ PopupWindow {
 
                         Rectangle {
                             anchors.fill: parent
-                            radius: 7
+                            radius: Theme.controlRadius
                             color: nextMouse.containsMouse || parent.activeFocus
                                 || parent.keyboardFocused ? Theme.hover : "transparent"
                             border.width: parent.activeFocus || parent.keyboardFocused ? 1 : 0
@@ -260,7 +260,7 @@ PopupWindow {
                                 anchors.centerIn: parent
                                 width: 32
                                 height: 28
-                                radius: 7
+                                radius: Theme.controlRadius
                                 color: dayCell.isToday
                                     ? Theme.active
                                     : (dayMouse.containsMouse ? Theme.hover : "transparent")

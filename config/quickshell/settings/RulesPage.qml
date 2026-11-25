@@ -39,7 +39,7 @@ ColumnLayout {
 
                     width: parent.width
                     implicitHeight: ruleCol.implicitHeight + 16
-                    radius: 8
+                    radius: Theme.controlRadius
                     color: Theme.bg
                     border.width: 1
                     border.color: Theme.border

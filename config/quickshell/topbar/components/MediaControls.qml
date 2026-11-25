@@ -87,7 +87,7 @@ ColumnLayout {
     Rectangle {
         Layout.fillWidth: true
         Layout.preferredHeight: 58
-        radius: 10
+        radius: Theme.panelRadius
         color: Theme.surfaceAlt
         border.width: 1
         border.color: Theme.border
@@ -101,7 +101,7 @@ ColumnLayout {
             Rectangle {
                 Layout.preferredWidth: 42
                 Layout.preferredHeight: 42
-                radius: 8
+                radius: Theme.controlRadius
                 color: Theme.surface
                 border.width: 1
                 border.color: Theme.border
@@ -155,7 +155,7 @@ ColumnLayout {
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 3
-                    radius: 1.5
+                    radius: Math.min(1.5, Theme.controlRadius)
                     color: Theme.border
                     visible: root.player !== null && root.length > 0
 
@@ -184,7 +184,7 @@ ColumnLayout {
                     Rectangle {
                         Layout.preferredWidth: 30
                         Layout.preferredHeight: 30
-                        radius: 15
+                        radius: Theme.controlRadius
                         color: mouse.containsMouse ? Theme.active : Theme.surface
                         border.width: 1
                         border.color: Theme.border

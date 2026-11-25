@@ -56,7 +56,7 @@ ColumnLayout {
                         rightPadding: 8
                         background: Rectangle {
                             color: Theme.bg
-                            radius: 6
+                            radius: Theme.controlRadius
                             border.width: 1
                             border.color: envKeyField.activeFocus ? Theme.accent : Theme.border
                         }
@@ -77,7 +77,7 @@ ColumnLayout {
                         rightPadding: 8
                         background: Rectangle {
                             color: Theme.bg
-                            radius: 6
+                            radius: Theme.controlRadius
                             border.width: 1
                             border.color: envValueField.activeFocus ? Theme.accent : Theme.border
                         }
@@ -112,7 +112,7 @@ ColumnLayout {
                 rightPadding: 8
                 background: Rectangle {
                     color: Theme.bg
-                    radius: 6
+                    radius: Theme.controlRadius
                     border.width: 1
                     border.color: envKeyInput.activeFocus ? Theme.accent : Theme.border
                 }
@@ -132,7 +132,7 @@ ColumnLayout {
                 rightPadding: 8
                 background: Rectangle {
                     color: Theme.bg
-                    radius: 6
+                    radius: Theme.controlRadius
                     border.width: 1
                     border.color: envValueInput.activeFocus ? Theme.accent : Theme.border
                 }

@@ -57,7 +57,7 @@ ColumnLayout {
                         rightPadding: 8
                         background: Rectangle {
                             color: Theme.bg
-                            radius: 6
+                            radius: Theme.controlRadius
                             border.width: 1
                             border.color: autoCmdField.activeFocus ? Theme.accent : Theme.border
                         }

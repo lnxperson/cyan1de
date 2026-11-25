@@ -17,7 +17,7 @@ Rectangle {
 
     implicitWidth: label.implicitWidth + 26
     implicitHeight: 30
-    radius: 8
+    radius: Theme.controlRadius
     color: primary
         ? (mouse.containsMouse ? Qt.lighter(Theme.accent, 1.12) : Theme.accent)
         : (danger

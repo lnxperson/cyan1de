@@ -494,7 +494,7 @@ ShellRoot {
 
                                 Layout.preferredHeight: 22
                                 Layout.preferredWidth: actionText.implicitWidth + 16
-                                radius: 6
+                                radius: Theme.controlRadius
                                 color: Theme.active
                                 border.width: 1
                                 border.color: Theme.border

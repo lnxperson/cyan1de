@@ -278,7 +278,7 @@ ColumnLayout {
                     rightPadding: 9
                     background: Rectangle {
                         color: Theme.bg
-                        radius: 7
+                        radius: Theme.controlRadius
                         border.width: 1
                         border.color: pathField.activeFocus ? Theme.accent : Theme.border
                     }

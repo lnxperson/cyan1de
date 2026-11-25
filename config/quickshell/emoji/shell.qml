@@ -1408,7 +1408,7 @@ ShellRoot {
                             y: root.categoryHighlightRect.y
                             width: root.categoryHighlightRect.width
                             height: root.categoryHighlightRect.height
-                            radius: 8
+                            radius: Theme.controlRadius
                             color: Theme.active
                             border.width: 1
                             border.color: Theme.accent
@@ -1461,7 +1461,7 @@ ShellRoot {
                                     width: chipLabel.implicitWidth + 20
                                     height: 26
                                     anchors.verticalCenter: parent.verticalCenter
-                                    radius: 8
+                                    radius: Theme.controlRadius
                                     // Selected fill is the sliding highlight behind it.
                                     color: categoryChip.modelData === root.category
                                         ? "transparent"
@@ -1520,7 +1520,7 @@ ShellRoot {
                         y: root.gridHighlightRect.y
                         width: root.gridHighlightRect.width
                         height: root.gridHighlightRect.height
-                        radius: 10
+                        radius: Theme.controlRadius
                         color: Theme.active
                         border.width: 1
                         border.color: Theme.accent
@@ -1620,7 +1620,7 @@ ShellRoot {
 
                             width: grid.cellWidth
                             height: grid.cellHeight
-                            radius: 10
+                            radius: Theme.controlRadius
                             // Selected fill is the sliding highlight behind the cells.
                             color: !emojiCell.highlighted && cellMouse.containsMouse
                                 ? Theme.hover : "transparent"

@@ -15,7 +15,7 @@ Rectangle {
     signal clicked()
 
     implicitHeight: 64
-    radius: 10
+    radius: Theme.controlRadius
     color: mouse.containsMouse
         ? (danger ? "#2a181b" : Theme.hover)
         : Theme.surfaceAlt

@@ -8,6 +8,7 @@ Rectangle {
     property string label: ""
     property bool active: false
     property bool hovered: false
+    property bool outgoing: false
     property real press: 0
 
     signal clicked()
@@ -15,10 +16,13 @@ Rectangle {
     activeFocusOnTab: true
 
     implicitHeight: 36
-    radius: 9
-    // The active fill is a single sliding highlight in the sidebar, so this
-    // background only handles hover on inactive rows.
-    color: active ? "transparent" : (hovered ? Theme.hover : "transparent")
+    radius: Theme.controlRadius
+    // Keep both ends of the slide filled: the clicked row until the highlight
+    // arrives, and the row being left until it moves away.
+    color: outgoing ? Theme.active
+        : active
+            ? (hovered ? Theme.active : "transparent")
+            : (hovered ? Theme.hover : "transparent")
     border.width: root.activeFocus ? 1 : 0
     border.color: Theme.accent
     scale: 1 - 0.02 * root.press

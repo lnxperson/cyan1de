@@ -90,7 +90,7 @@ RowLayout {
     Rectangle {
         Layout.preferredWidth: 24
         Layout.preferredHeight: 24
-        radius: 6
+        radius: Theme.controlRadius
         color: root.value
         border.width: 1
         border.color: "#40ffffff"
@@ -124,7 +124,7 @@ RowLayout {
 
         background: Rectangle {
             color: Theme.surface
-            radius: 10
+            radius: Theme.panelRadius
             border.width: 1
             border.color: Theme.border
         }
@@ -140,13 +140,13 @@ RowLayout {
 
                 Rectangle {
                     anchors.fill: parent
-                    radius: 6
+                    radius: Theme.controlRadius
                     color: Qt.hsva(root.hsvHue / 360, 1, 1, 1)
                 }
 
                 Rectangle {
                     anchors.fill: parent
-                    radius: 6
+                    radius: Theme.controlRadius
                     gradient: Gradient {
                         orientation: Gradient.Horizontal
                         GradientStop { position: 0.0; color: "#ffffff" }
@@ -156,7 +156,7 @@ RowLayout {
 
                 Rectangle {
                     anchors.fill: parent
-                    radius: 6
+                    radius: Theme.controlRadius
                     gradient: Gradient {
                         orientation: Gradient.Vertical
                         GradientStop { position: 0.0; color: "#00000000" }
@@ -257,7 +257,7 @@ RowLayout {
 
                     background: Rectangle {
                         color: Theme.surfaceAlt
-                        radius: 6
+                        radius: Theme.controlRadius
                         border.width: 1
                         border.color: hexField.activeFocus ? Theme.accent : Theme.border
                     }

@@ -40,7 +40,7 @@ RowLayout {
         rightPadding: 8
         background: Rectangle {
             color: Theme.bg
-            radius: 6
+            radius: Theme.controlRadius
             border.width: 1
             border.color: field.activeFocus ? Theme.accent : Theme.border
         }

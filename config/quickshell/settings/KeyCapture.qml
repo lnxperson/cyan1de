@@ -24,7 +24,7 @@ Rectangle {
     color: root.capturing
         ? Theme.active
         : (captureMouse.containsMouse ? Theme.hover : Theme.bg)
-    radius: 6
+    radius: Theme.controlRadius
     border.width: 1
     border.color: root.capturing
         ? Theme.accentAlt

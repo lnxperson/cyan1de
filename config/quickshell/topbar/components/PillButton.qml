@@ -16,7 +16,7 @@ Rectangle {
 
     implicitWidth: row.implicitWidth + 22
     implicitHeight: 30
-    radius: 8
+    radius: Theme.controlRadius
     color: mouse.containsMouse
         ? (danger ? "#2a181b" : Theme.hover)
         : (danger ? "#1e1416" : Theme.surfaceAlt)

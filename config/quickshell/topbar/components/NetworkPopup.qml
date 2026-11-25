@@ -167,7 +167,7 @@ Item {
 
                     width: listView.width
                     height: 50
-                    radius: 8
+                    radius: Theme.controlRadius
                     color: rowMouse.containsMouse || networkRow.activeFocus
                         || networkRow.keyboardFocused ? Theme.hover : "transparent"
                     border.width: networkRow.activeFocus || networkRow.keyboardFocused ? 1 : 0
@@ -390,7 +390,7 @@ Item {
                     rightPadding: 12
 
                     background: Rectangle {
-                        radius: 8
+                        radius: Theme.controlRadius
                         color: Theme.surfaceAlt
                         border.width: 1
                         border.color: passwordField.activeFocus ? Theme.accent : Theme.border

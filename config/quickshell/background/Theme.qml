@@ -209,6 +209,10 @@ QtObject {
     // Shared corner radius for all Quickshell panels.
     readonly property int panelRadius: pillRadius
 
+    // Buttons and small controls scale with the panel radius while keeping
+    // their proportions (12px panel radius -> 8px controls, like the default).
+    readonly property int controlRadius: Math.round(panelRadius * 2 / 3)
+
     // Wallpaper
     readonly property string wallpaper: data.wallpaper || ""
     readonly property string wallpaperMode: data.wallpaperMode || "crop"

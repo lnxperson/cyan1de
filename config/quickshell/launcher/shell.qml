@@ -817,7 +817,7 @@ ShellRoot {
 
                             width: list.width
                             height: 46
-                            radius: 9
+                            radius: Theme.controlRadius
                             color: highlighted
                                 ? Theme.active
                                 : (rowMouse.containsMouse ? Theme.hover : "transparent")

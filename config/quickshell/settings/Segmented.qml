@@ -14,6 +14,9 @@ Item {
     property rect segmentHighlightRect: Qt.rect(0, 0, 0, 0)
     property bool segmentHighlightVisible: false
     property bool segmentHighlightAnimate: false
+    property string lastValue: ""
+    property string previousValue: ""
+    property bool highlightSliding: false
 
     function segmentHighlightGeometry() {
         for (let i = 0; i < segmentRepeater.count; i++) {
@@ -47,9 +50,24 @@ Item {
         }
     }
 
-    onValueChanged: root.syncSegmentHighlight()
+    onValueChanged: {
+        root.previousValue = root.lastValue;
+        root.lastValue = root.value;
+        root.highlightSliding = true;
+        root.syncSegmentHighlight();
+        segmentSlideTimer.restart();
+    }
     onOptionsChanged: root.syncSegmentHighlight()
-    Component.onCompleted: Qt.callLater(root.syncSegmentHighlight)
+    Component.onCompleted: {
+        root.lastValue = root.value;
+        Qt.callLater(root.syncSegmentHighlight)
+    }
+
+    Timer {
+        id: segmentSlideTimer
+        interval: Theme.motionBase
+        onTriggered: root.highlightSliding = false
+    }
 
     implicitWidth: track.implicitWidth
     implicitHeight: track.implicitHeight
@@ -66,7 +84,7 @@ Item {
             y: root.segmentHighlightRect.y
             width: root.segmentHighlightRect.width
             height: root.segmentHighlightRect.height
-            radius: 7
+            radius: Theme.controlRadius
             color: Theme.active
             border.width: 1
             border.color: Theme.accent
@@ -117,11 +135,14 @@ Item {
 
                     height: 28
                     width: label.implicitWidth + 24
-                    radius: 7
-                    // The selected fill is the sliding highlight behind this row.
-                    color: root.value === modelData.value
-                        ? "transparent"
-                        : (mouse.containsMouse ? Theme.hover : "transparent")
+                    radius: Theme.controlRadius
+                    // Keep both ends of the slide filled so the surface
+                    // behind the segments never flashes empty.
+                    color: root.highlightSliding && root.previousValue === modelData.value
+                        ? Theme.active
+                        : root.value === modelData.value
+                            ? (mouse.containsMouse ? Theme.active : "transparent")
+                            : (mouse.containsMouse ? Theme.hover : "transparent")
                     border.width: root.value === modelData.value ? 0 : 1
                     border.color: Theme.border
                     scale: 1 - 0.025 * (mouse.containsPress ? 1 : 0)
