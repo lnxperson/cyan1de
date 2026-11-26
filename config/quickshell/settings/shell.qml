@@ -58,7 +58,6 @@ ShellRoot {
     property string searchQuery: ""
     property string pendingSearchLabel: ""
     readonly property bool searchActive: root.searchQuery.trim().length > 0
-    readonly property var themeSchedule: ({ mode: "dark", startHour: 20, endHour: 8 })
     property bool confirmReset: false
     readonly property string statusIdle: "Saved locally — press Apply for Hyprland changes"
     readonly property var pages: [
@@ -2956,17 +2955,6 @@ ShellRoot {
         pendingSearchLabel = "";
     }
 
-    function checkThemeSchedule() {
-        const schedule = root.themeSchedule || { mode: "dark", startHour: 20, endHour: 8 };
-        const start = Number(schedule.startHour);
-        const end = Number(schedule.endHour);
-        const now = new Date().getHours();
-        const inRange = start > end ? (now >= start || now < end) : (now >= start && now < end);
-        const mode = inRange ? String(schedule.mode) : "light";
-        if (root.themeMode !== mode)
-            root.setThemeMode(mode);
-    }
-
     function toggleTheme(): void {
         root.setThemeMode(root.themeMode === "light" ? "dark" : "light");
     }
@@ -3385,16 +3373,6 @@ ShellRoot {
                     }
                     root.close();
                 }
-            }
-
-            // Wall-clock theme schedule. The background clock keeps the
-            // palette honest between sessions that opened Settings.
-            Timer {
-                id: themeScheduleTimer
-                interval: 30000
-                repeat: true
-                running: true
-                onTriggered: root.checkThemeSchedule()
             }
 
             // Soft shadow

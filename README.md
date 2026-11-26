@@ -77,7 +77,7 @@ The installer:
 - Color picker: `Super + Alt + C` picks a color and copies its hex value (`hyprpicker -a`).
 - Keyboard layout switching: `Super + Alt + K` cycles layouts through `us` and `fr`.
 - Idle inhibitor: `Super + Alt + I` toggles the idle inhibitor.
-- Theme toggle: `Super + Alt + T` toggles light/dark; the wallpaper-driven schedule applies automatically.
+- Theme toggle: `Super + Alt + T` toggles light/dark.
 5. Copies `config/hypr` and `config/quickshell` into `~/.config`.
 6. Makes all shipped Quickshell helper scripts executable.
 
