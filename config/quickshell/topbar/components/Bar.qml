@@ -470,6 +470,7 @@ PanelWindow {
                 return Theme.showBattery && bar.battery !== null
                     && bar.battery.isPresent;
             case "power": return Theme.showPower;
+            case "updates": return Theme.showUpdates;
         }
         return false;
     }
@@ -529,6 +530,7 @@ PanelWindow {
         if (key === "brightness") return brightnessComponent;
         if (key === "battery") return batteryComponent;
         if (key === "power") return powerComponent;
+        if (key === "updates") return updatesComponent;
         return null;
     }
 
@@ -1331,6 +1333,22 @@ PanelWindow {
 
                 onClicked: bar.togglePopup(powerPopup)
             }
+        }
+    }
+
+    Component {
+        id: updatesComponent
+
+        BarButton {
+            id: updatesBtn
+            vertical: bar.vertical
+            icon: "↑"
+            label: UpdateMonitor.count < 0 ? "…" : String(UpdateMonitor.count)
+
+            Component.onCompleted: bar.registerElement("updates", updatesBtn)
+            Component.onDestruction: bar.unregisterElement("updates", updatesBtn)
+
+            onClicked: bar.toggleCalendar()
         }
     }
 

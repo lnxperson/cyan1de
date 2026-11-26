@@ -46,7 +46,7 @@ The installer handles packages such as:
 - `qt6ct`, `adw-gtk-theme`
 - `ttf-jetbrains-mono-nerd`, `noto-fonts-emoji`
 - `python`, `xdg-utils`, `ripgrep`, `wl-clipboard`
-- `wf-recorder`, `swappy`, `hyprpicker`
+- `wf-recorder`, `swappy`, `hyprpicker`, `pacman-contrib`
 
 You can decline package installation and install them yourself.
 
@@ -78,6 +78,7 @@ The installer:
 - Keyboard layout switching: `Super + Alt + K` cycles layouts through `us` and `fr`.
 - Idle inhibitor: `Super + Alt + I` toggles the idle inhibitor.
 - Theme toggle: `Super + Alt + T` toggles light/dark.
+- Update indicator: **Settings → Appearance → Panel → Update indicator** adds an optional Arch package count to the panel and calendar. It uses `checkupdates` when available, falls back to `pacman -Qu`, and refreshes every 10 minutes or when the calendar opens. Off by default.
 5. Copies `config/hypr` and `config/quickshell` into `~/.config`.
 6. Makes all shipped Quickshell helper scripts executable.
 

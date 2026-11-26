@@ -113,7 +113,7 @@ PACKAGES=(
     wl-clipboard
     wf-recorder
     hyprpicker
-    caffeine-ng
+    pacman-contrib
 )
 
 privileged() {

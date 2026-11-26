@@ -438,6 +438,14 @@ ColumnLayout {
             checked: root.app.barShowPower
             onToggled: value => { root.app.barShowPower = value; root.app.queueSave() }
         }
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "Update indicator"
+            hint: "Arch updates in panel and calendar"
+            checked: root.app.barShowUpdates
+            onToggled: value => { root.app.barShowUpdates = value; root.app.queueSave() }
+        }
     }
 
 

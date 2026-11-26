@@ -159,6 +159,8 @@ ShellRoot {
         add("Brightness", 0, "panel", "display status control");
         add("Battery", 0, "panel", "laptop status control");
         add("Power", 0, "panel", "session menu");
+        add("Update indicator", 0, "panel", "arch updates count pacman checkupdates",
+            "Show available Arch package updates in the panel and calendar.");
 
         // Appearance — Wallpaper
         add("Wallpaper", 0, "wallpaper", "image background", "Choose the desktop wallpaper.");
@@ -510,17 +512,18 @@ ShellRoot {
     property bool barShowBrightness: true
     property bool barShowBattery: true
     property bool barShowPower: true
+    property bool barShowUpdates: false
 
     readonly property var barElementKeys: [
         "appMenu", "workspaces", "clock", "tray", "bluetooth",
-        "network", "volume", "brightness", "battery", "power"
+        "network", "volume", "brightness", "battery", "updates", "power"
     ]
     readonly property var barSectionKeys: ["left", "center", "right"]
     property var barElementLayout: ({
         left: ["appMenu", "workspaces"],
         center: ["clock"],
         right: ["tray", "bluetooth", "network", "volume",
-                "brightness", "battery", "power"]
+                "brightness", "battery", "updates", "power"]
     })
 
     property real barPillLeft: 0
@@ -761,13 +764,14 @@ ShellRoot {
                     volume: true,
                     brightness: true,
                     battery: true,
-                    power: true
+                    power: true,
+                    updates: false
                 },
                 elementLayout: {
                     left: ["appMenu", "workspaces"],
                     center: ["clock"],
                     right: ["tray", "bluetooth", "network", "volume",
-                            "brightness", "battery", "power"]
+                            "brightness", "battery", "updates", "power"]
                 },
                 pills: {
                     left: 0,
@@ -1024,6 +1028,7 @@ ShellRoot {
         barShowBrightness = asBool(e.brightness, d.bar.elements.brightness);
         barShowBattery = asBool(e.battery, d.bar.elements.battery);
         barShowPower = asBool(e.power, d.bar.elements.power);
+        barShowUpdates = asBool(e.updates, d.bar.elements.updates);
         barElementLayout = normalizeBarElementLayout(b.elementLayout);
         barPillLeft = barPillSnapSlot(asFraction(p.left, d.bar.pills.left));
         barPillCenter = barPillSnapSlot(asFraction(p.center, d.bar.pills.center));
@@ -1125,7 +1130,8 @@ ShellRoot {
                     volume: barShowVolume,
                     brightness: barShowBrightness,
                     battery: barShowBattery,
-                    power: barShowPower
+                    power: barShowPower,
+                    updates: barShowUpdates
                 },
                 elementLayout: barElementLayout,
                 pills: {

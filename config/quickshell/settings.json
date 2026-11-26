@@ -42,7 +42,8 @@
       "volume": true,
       "brightness": true,
       "battery": true,
-      "power": true
+      "power": true,
+      "updates": false
     },
     "elementLayout": {
       "left": [
@@ -59,6 +60,7 @@
         "volume",
         "brightness",
         "battery",
+        "updates",
         "power"
       ]
     },
