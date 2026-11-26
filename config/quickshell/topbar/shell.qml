@@ -62,9 +62,19 @@ ShellRoot {
         interval: 5000
         repeat: true
         running: true
+        onTriggered: PowerProfileControl.refresh()
+    }
+
+    // State files can be deleted without a watcher event, so poll both capture
+    // indicators from the shell root. The pill should follow the shortcut
+    // immediately, not wait for the next ensure cycle.
+    Timer {
+        interval: 500
+        repeat: true
+        running: true
         onTriggered: {
-            PowerProfileControl.refresh()
-            IdleState.refresh()
+            ReplayState.refresh();
+            IdleState.refresh();
         }
     }
 
@@ -75,10 +85,7 @@ ShellRoot {
         interval: 10000
         repeat: true
         running: true
-        onTriggered: {
-            Quickshell.execDetached([root.replayScript, "ensure"]);
-            ReplayState.refresh();
-        }
+        onTriggered: Quickshell.execDetached([root.replayScript, "ensure"]);
     }
 
     // One-shot-per-cycle low battery warnings, independent of any screen.

@@ -51,10 +51,10 @@ print("1" if enabled else "0")
 PY
 )" || exit 0
 
-"$script_dir/replay.sh" ensure
-
 if [[ "$next" == "1" ]]; then
     capture_notify "Replay clips enabled" "The rolling clip buffer is running."
 else
     capture_notify "Replay clips disabled" "The rolling clip buffer was stopped."
 fi
+
+"$script_dir/replay.sh" ensure

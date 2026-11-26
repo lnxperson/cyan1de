@@ -77,6 +77,9 @@ preview_seconds() {
 
 stop_replay() {
     local pid pgid i target
+    # Drop the panel state before waiting on ffmpeg/wf-recorder shutdown so the
+    # gray pill disappears as soon as clipping is turned off.
+    rm -f "$state_file"
     pid="$(running_pid 2>/dev/null || true)"
     if [[ -n "$pid" ]]; then
         target="$pid"
