@@ -46,7 +46,7 @@ The installer handles packages such as:
 - `qt6ct`, `adw-gtk-theme`
 - `ttf-jetbrains-mono-nerd`, `noto-fonts-emoji`
 - `python`, `xdg-utils`, `ripgrep`, `wl-clipboard`
-- `wf-recorder`, `swappy`, `hyprpicker`, `pacman-contrib`
+- `swappy`, `hyprpicker`, `pacman-contrib`
 
 You can decline package installation and install them yourself.
 
@@ -72,7 +72,6 @@ The installer:
 
 ### New features
 
-- Screen recording: `Super + Alt + R` toggles `wf-recorder` into `~/Videos`.
 - Screenshot annotation: `Super + Shift + Print` captures a region, opens `swappy`, and copies the annotated result to the clipboard.
 - Color picker: `Super + Alt + C` picks a color and copies its hex value (`hyprpicker -a`).
 - Keyboard layout switching: `Super + Alt + K` cycles layouts through `us` and `fr`.
@@ -295,7 +294,6 @@ Alacritty, the terminal-first launcher actions, and the compact OSD make this a 
 | `Print` | Region screenshot to clipboard |
 | `Ctrl + Print` | Full monitor screenshot |
 | `Shift + Print` | Region screenshot to file |
-| `Super + Alt + R` | Toggle screen recording |
 | `Super + Shift + Print` | Region screenshot with annotation |
 | `Super + Alt + C` | Pick color and copy hex |
 | `Super + Alt + K` | Cycle keyboard layout |

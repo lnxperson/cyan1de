@@ -111,7 +111,6 @@ PACKAGES=(
     xdg-utils
     ripgrep
     wl-clipboard
-    wf-recorder
     hyprpicker
     pacman-contrib
 )
