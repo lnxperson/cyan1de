@@ -220,6 +220,16 @@ QtObject {
     readonly property string resolvedWallpaper: wallpaper.startsWith("~/")
         ? (Quickshell.env("HOME") || "") + wallpaper.substring(1)
         : wallpaper
+    readonly property var wallpaperSlides: Array.isArray(data.wallpaperSlides)
+        ? data.wallpaperSlides
+        : []
+    function resolveWallpaperPath(path) {
+        const value = String(path || "");
+        const expanded = value.startsWith("~/")
+            ? (Quickshell.env("HOME") || "") + value.substring(1)
+            : value;
+        return expanded;
+    }
 
     function reload() {
         try {

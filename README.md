@@ -37,7 +37,8 @@ The installer handles packages such as:
 
 - `hyprland`, `quickshell`, `alacritty`
 - `nautilus`, `firefox`, `gnome-text-editor`, `loupe`, `papers`
-- `xdg-desktop-portal-hyprland`
+- `xdg-desktop-portal-hyprland`, `xdg-desktop-portal-gtk`
+- `hyprpolkitagent`, `pavucontrol`
 - `brightnessctl`, `ddcutil`, `hyprshot`, `hyprsunset`, `hypridle`
 - `playerctl`, `power-profiles-daemon`, `fprintd`
 - `bluez`, `bluez-utils`, `networkmanager`
@@ -45,6 +46,7 @@ The installer handles packages such as:
 - `qt6ct`, `adw-gtk-theme`
 - `ttf-jetbrains-mono-nerd`, `noto-fonts-emoji`
 - `python`, `xdg-utils`, `ripgrep`, `wl-clipboard`
+- `wf-recorder`, `swappy`, `hyprpicker`
 
 You can decline package installation and install them yourself.
 
@@ -66,7 +68,16 @@ The installer:
 1. Backs up existing `~/.config/hypr` and `~/.config/quickshell` directories with a timestamp.
 2. Optionally installs the required packages with `pacman`.
 3. Sets default apps only when their desktop files are present.
-4. Best-effort enables `fprintd.service`, `bluetooth.service`, and `power-profiles-daemon.service`.
+4. Best-effort enables `fprintd.service`, `bluetooth.service`, `power-profiles-daemon.service`, and `NetworkManager.service`, plus the PipeWire user units.
+
+### New features
+
+- Screen recording: `Super + Alt + R` toggles `wf-recorder` into `~/Videos`.
+- Screenshot annotation: `Super + Shift + Print` captures a region, opens `swappy`, and copies the annotated result to the clipboard.
+- Color picker: `Super + Alt + C` picks a color and copies its hex value (`hyprpicker -a`).
+- Keyboard layout switching: `Super + Alt + K` cycles layouts through `us` and `fr`.
+- Idle inhibitor: `Super + Alt + I` toggles the idle inhibitor.
+- Theme toggle: `Super + Alt + T` toggles light/dark; the wallpaper-driven schedule applies automatically.
 5. Copies `config/hypr` and `config/quickshell` into `~/.config`.
 6. Makes all shipped Quickshell helper scripts executable.
 
@@ -280,9 +291,16 @@ Alacritty, the terminal-first launcher actions, and the compact OSD make this a 
 | `Super + Arrow keys` | Focus neighboring window |
 | `Super + mouse_down` / `mouse_up` | Cycle workspaces |
 | `Super + left click` / `right click` | Drag or resize floating window |
-| `Super + Shift + S` | Region screenshot to clipboard |
-| `Super + Ctrl + Shift + S` | Full monitor screenshot |
-| `Super + Ctrl + S` | Region screenshot to file |
+| `Print` | Region screenshot to clipboard |
+| `Ctrl + Print` | Full monitor screenshot |
+| `Shift + Print` | Region screenshot to file |
+| `Super + Alt + R` | Toggle screen recording |
+| `Super + Shift + Print` | Region screenshot with annotation |
+| `Super + Alt + C` | Pick color and copy hex |
+| `Super + Alt + K` | Cycle keyboard layout |
+| `Super + Alt + I` | Toggle idle inhibitor |
+| `Super + Alt + T` | Toggle light/dark theme |
+| `Super + M` | Toggle power/session menu |
 | `XF86Audio*` | Volume, mute, and media controls |
 | `XF86MonBrightness*` | Display brightness |
 | `XF86KbdBrightness*` | Keyboard brightness |

@@ -87,6 +87,9 @@ PACKAGES=(
     loupe
     papers
     xdg-desktop-portal-hyprland
+    xdg-desktop-portal-gtk
+    hyprpolkitagent
+    pavucontrol
     brightnessctl
     ddcutil
     hyprshot
@@ -108,6 +111,9 @@ PACKAGES=(
     xdg-utils
     ripgrep
     wl-clipboard
+    wf-recorder
+    hyprpicker
+    caffeine-ng
 )
 
 privileged() {
@@ -170,14 +176,25 @@ set_mime_defaults() {
 enable_services() {
     command -v systemctl >/dev/null 2>&1 || return 0
     section "Services"
-    note "Enabling fingerprint, Bluetooth and power-profiles (best effort)..."
-    for service in fprintd.service bluetooth.service power-profiles-daemon.service; do
+    note "Enabling session, fingerprint, Bluetooth and power-profiles (best effort)..."
+    for service in fprintd.service bluetooth.service power-profiles-daemon.service NetworkManager.service; do
         if privileged systemctl enable --now "$service" >/dev/null 2>&1; then
             ok "enabled $service"
         else
             note "skip $service (not available or already enabled)"
         fi
     done
+
+    # PipeWire user units and WirePlumber manage audio in the user session.
+    if command -v systemctl >/dev/null 2>&1 && systemctl --user list-units --type socket --quiet >/dev/null 2>&1; then
+        for unit in pipewire.socket pipewire-pulse.socket wireplumber.service; do
+            if systemctl --user enable --now "$unit" >/dev/null 2>&1; then
+                ok "enabled user $unit"
+            else
+                note "skip user $unit (not available)"
+            fi
+        done
+    fi
 }
 
 backup_dir() {

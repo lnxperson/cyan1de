@@ -151,6 +151,12 @@ ShellRoot {
                 bar.toggleCalendar();
         }
 
+        function power(): void {
+            const bar = root.targetBar();
+            if (bar)
+                bar.togglePopup(bar.actionPopupHost.powerPopup);
+        }
+
         function close(): void {
             const bar = root.targetBar();
             if (bar)

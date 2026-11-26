@@ -56,7 +56,7 @@ ShellRoot {
             items: [
                 { keys: "SUPER + S", text: "Toggle the scratchpad; SHIFT + S sends a window there." },
                 { keys: "PRINT", text: "Region to clipboard." },
-                { keys: "SUPER + PRINT", text: "Screenshot the active display." },
+                { keys: "CTRL + PRINT", text: "Screenshot the active display." },
                 { keys: "SHIFT + PRINT", text: "Region to a file." }
             ]
         },
@@ -172,12 +172,6 @@ ShellRoot {
         function toggle(): void { root.toggle() }
     }
 
-    Shortcut {
-        sequence: "Escape"
-        enabled: root.shown
-        onActivated: root.close()
-    }
-
     PanelWindow {
         id: window
 
@@ -209,6 +203,14 @@ ShellRoot {
         MouseArea {
             anchors.fill: parent
             onClicked: root.close()
+        }
+
+        // Shortcuts must live inside the window's item tree, not directly
+        // under ShellRoot (a plain QObject), so the window registers them.
+        Shortcut {
+            sequence: "Escape"
+            enabled: root.shown
+            onActivated: root.close()
         }
 
         Rectangle {

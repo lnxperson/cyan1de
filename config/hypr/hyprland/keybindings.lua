@@ -47,17 +47,26 @@ hl.bind(mainMod .. " + comma", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/qu
 hl.bind(mainMod .. " + period", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/emoji/toggle.sh"), { description = "Emoji picker" })             -- Emoji picker
 hl.bind(mainMod .. " + CTRL + P", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/performance/toggle.sh"), { locked = true, description = "Toggle performance mode" }) -- Performance mode
 
+-- Screen recording, screenshot annotation and auxiliary actions
+hl.bind("SUPER + ALT + R", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/recorder/toggle.sh"), { description = "Toggle screen recording" })
+hl.bind("SUPER + SHIFT + PRINT", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/screenshot/annotate.sh"), { description = "Region screenshot with annotation" })
+hl.bind("SUPER + ALT + C", hl.dsp.exec_cmd("hyprpicker -a"), { description = "Pick a color and copy its hex value" })
+hl.bind("SUPER + ALT + K", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/input/layout.sh"), { description = "Cycle keyboard layout" })
+hl.bind("SUPER + ALT + I", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/power/inhibit.sh"), { description = "Toggle idle inhibitor" })
+hl.bind("SUPER + ALT + T", hl.dsp.exec_cmd("qs ipc -c settings call settings toggleTheme"), { description = "Toggle light/dark theme" })
+
 -- Keyboard-only topbar popups
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("qs ipc -c topbar call topbar cycleAction"), { description = "Cycle action popups" })
 hl.bind(mainMod .. " + C", hl.dsp.exec_cmd("qs ipc -c topbar call topbar calendar"), { description = "Toggle calendar popup" })
+hl.bind("SUPER + M", hl.dsp.exec_cmd("qs ipc -c topbar call topbar power"), { description = "Toggle power/session menu" })
 
 
 -- -----------------------------------------------------------------------------
 -- Screenshots (Hyprshot)
 -- -----------------------------------------------------------------------------
-hl.bind("HOME",            hl.dsp.exec_cmd(screenshot .. " -m region --clipboard-only"), { description = "Area selection to clipboard" })
-hl.bind("CTRL + HOME", hl.dsp.exec_cmd(screenshot .. " -m output"), { description = "Full active display" })
-hl.bind("SHIFT + HOME",    hl.dsp.exec_cmd(screenshot .. " -m region"), { description = "Area selection save to disk" })
+hl.bind("PRINT",            hl.dsp.exec_cmd(screenshot .. " -m region --clipboard-only"), { description = "Area selection to clipboard" })
+hl.bind("CTRL + PRINT", hl.dsp.exec_cmd(screenshot .. " -m output"), { description = "Full active display" })
+hl.bind("SHIFT + PRINT",    hl.dsp.exec_cmd(screenshot .. " -m region"), { description = "Area selection save to disk" })
 
 -- -----------------------------------------------------------------------------
 -- Navigation & Focus Controls

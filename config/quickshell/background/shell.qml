@@ -37,6 +37,28 @@ ShellRoot {
                     ? Image.PreserveAspectFit
                     : (Theme.wallpaperMode === "stretch" ? Image.Stretch : Image.PreserveAspectCrop)
             }
+
+            // Wallpapers from settings.json can carry a slideshow. Rotate
+            // through them on a timer while the background session runs.
+            property var wallpaperSlides: Theme.wallpaperSlides
+            property int wallpaperSlideIndex: 0
+            Timer {
+                id: wallpaperSlideTimer
+                interval: 300000
+                repeat: true
+                running: true
+                onTriggered: {
+                    const slides = Theme.wallpaperSlides || [];
+                    if (slides.length < 2)
+                        return;
+                    const next = slides[(wallpaperSlideIndex + 1) % slides.length];
+                    const path = Theme.resolveWallpaperPath(typeof next === "object"
+                        ? (next.path || "")
+                        : String(next));
+                    Theme.data.wallpaper = path;
+                    wallpaperSlideIndex = (wallpaperSlideIndex + 1) % slides.length;
+                }
+            }
         }
     }
 }
