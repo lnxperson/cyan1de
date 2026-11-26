@@ -52,11 +52,22 @@ launch_recorder() {
 }
 
 start_recorder() {
-    local file="$1" output="$2" pid log started filter
+    local file="$1" output="$2" pid log started filter mix_source=""
+    local audio_mods="$state_dir/recorder.audio.mods"
     local args=() audio_args=() encoder_args=()
 
     mapfile -t encoder_args < <(capture_wf_video_args "$rec_quality")
-    [[ "$rec_audio" == "1" ]] && audio_args=(--audio)
+    if [[ "$rec_audio" == "1" ]]; then
+        if mix_source="$(capture_audio_mix_setup "$audio_mods" "cyan1de_rec_$$")" \
+            && [[ -n "$mix_source" ]]; then
+            audio_args=("--audio=$mix_source")
+            capture_audio_mix_levels "$audio_mods" "$desktop_level" "$mic_level" \
+                "$desktop_muted" "$mic_muted" 20
+        else
+            capture_notify "Recording audio unavailable" "Retrying video only." "low"
+            capture_audio_mix_teardown "$audio_mods"
+        fi
+    fi
     [[ -n "$output" ]] && args+=(-o "$output")
     [[ "$rec_fps" -gt 0 ]] && args+=(-r "$rec_fps")
     filter="$(capture_scale_filter "$rec_resolution")"
@@ -70,10 +81,11 @@ start_recorder() {
     pid="$(< "$pid_file")"
     sleep 0.8
 
-    if ! kill -0 "$pid" 2>/dev/null && [[ "$rec_audio" == "1" ]]; then
+    if ! kill -0 "$pid" 2>/dev/null && (( ${#audio_args[@]} > 0 )); then
         log="$(tail -n 6 "$log_file" 2>/dev/null | tr '\n' ' ')"
         if [[ "$log" =~ [Aa]udio|[Pp]ulse|[Ss]ource|[Pp]a_ ]]; then
             capture_notify "Recording audio unavailable" "Retrying video only." "low"
+            capture_audio_mix_teardown "$audio_mods"
             audio_args=()
             : > "$log_file"
             launch_recorder
@@ -84,12 +96,11 @@ start_recorder() {
 
     if ! kill -0 "$pid" 2>/dev/null; then
         log="$(tail -n 6 "$log_file" 2>/dev/null | tr '\n' ' ' | cut -c1-220)"
+        capture_audio_mix_teardown "$audio_mods"
         rm -f "$pid_file" "$path_file" "$state_file"
         capture_notify "Recording failed" "$log" "critical"
         return 1
     fi
-
-    [[ "$rec_audio" == "1" ]] && capture_apply_mic_level "$mic_level" "$pid"
 
     started="$(date +%s)"
     write_state "$pid" "$started" "$file"
@@ -119,13 +130,17 @@ stop_recorder() {
         kill -KILL "$pid" 2>/dev/null || true
     fi
 
+    capture_audio_mix_teardown "$state_dir/recorder.audio.mods"
     rm -f "$pid_file" "$path_file" "$state_file"
     capture_notify "Recording stopped" "Saved to ${saved:-unknown location}"
 }
 
 # Defaults keep the script usable before Settings has written a capture block.
 app_folders=0
+desktop_level=100
+desktop_muted=0
 mic_level=100
+mic_muted=0
 rec_dir="$HOME/Videos"
 rec_display="focused"
 rec_fps=60

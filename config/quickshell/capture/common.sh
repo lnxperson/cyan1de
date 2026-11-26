@@ -78,7 +78,10 @@ clip = group("clips", {})
 shot = group("screenshots", {})
 
 print("APP_FOLDERS=" + ("1" if boolean(capture, "appFolders", False) else "0"))
+print("DESKTOP_LEVEL=" + str(integer(capture, "desktopLevel", 100, 0, 200)))
+print("DESKTOP_MUTED=" + ("1" if boolean(capture, "desktopMuted", False) else "0"))
 print("MIC_LEVEL=" + str(integer(capture, "micLevel", 100, 0, 200)))
+print("MIC_MUTED=" + ("1" if boolean(capture, "micMuted", False) else "0"))
 
 print("REC_DIR=" + directory(rec, "directory", "~/Videos"))
 print("REC_DISPLAY=" + text(rec, "display", "focused"))
@@ -105,7 +108,10 @@ PY
     while IFS='=' read -r key value; do
         case "$key" in
             APP_FOLDERS) app_folders="$value" ;;
+            DESKTOP_LEVEL) desktop_level="$value" ;;
+            DESKTOP_MUTED) desktop_muted="$value" ;;
             MIC_LEVEL) mic_level="$value" ;;
+            MIC_MUTED) mic_muted="$value" ;;
             REC_DIR) rec_dir="$value" ;;
             REC_DISPLAY) rec_display="$value" ;;
             REC_FPS) rec_fps="$value" ;;
@@ -191,65 +197,76 @@ capture_wf_video_args() {
     esac
 }
 
-# ffmpeg arguments for re-encoding final replay clips, one token per line.
-capture_ffmpeg_video_args() {
-    local quality="$1" encoder
-    encoder="$(capture_video_encoder)"
-    case "$encoder" in
-        h264_nvenc)
-            printf -- '-c:v\nh264_nvenc\n-preset\n%s\n-rc\nvbr\n-cq\n%s\n-pix_fmt\nyuv420p\n' \
-                "$(capture_nvenc_preset "$quality")" \
-                "$(capture_quality_crf "$quality")"
-            ;;
-        h264_vaapi)
-            printf -- '-vaapi_device\n/dev/dri/renderD128\n-vf\nformat=nv12,hwupload\n-c:v\nh264_vaapi\n-qp\n%s\n' \
-                "$(capture_quality_crf "$quality")"
-            ;;
-        *)
-            printf -- '-c:v\nlibx264\n-preset\n%s\n-crf\n%s\n-pix_fmt\nyuv420p\n' \
-                "$(capture_quality_preset "$quality")" \
-                "$(capture_quality_crf "$quality")"
-            ;;
-    esac
+# Return the monitor of the default sink, or any monitor as a fallback.
+capture_desktop_source() {
+    local sink monitor
+    command -v pactl >/dev/null 2>&1 || return 1
+    sink="$(pactl get-default-sink 2>/dev/null)"
+    monitor="${sink}.monitor"
+    if [[ -n "$sink" ]] \
+        && pactl list short sources 2>/dev/null \
+            | awk -v want="$monitor" '$2 == want { found = 1 } END { exit !found }'; then
+        printf '%s\n' "$monitor"
+        return 0
+    fi
+    pactl list short sources 2>/dev/null \
+        | awk '$2 ~ /\.monitor$/ { print $2; exit }'
 }
 
-# Apply a capture-only microphone level to wf-recorder's audio stream. This
-# changes the recording stream volume, not the system microphone volume.
-capture_apply_mic_level() {
-    local level="${1:-100}" pid="${2:-}" index="" i
-    command -v pactl >/dev/null 2>&1 || return 0
-    [[ "$level" =~ ^[0-9]+$ ]] || return 0
-    (( level >= 0 && level <= 200 )) || return 0
+# Build a private PulseAudio mix with desktop audio and microphone as separate
+# inputs. Prints the monitor source to pass to wf-recorder and records module
+# IDs plus source names in $1 for level changes and teardown.
+capture_audio_mix_setup() {
+    local mods_file="$1" name="$2" desktop mic null_mod desktop_mod mic_mod
+    command -v pactl >/dev/null 2>&1 || return 1
 
-    for ((i = 0; i < 20; i++)); do
-        index="$(python3 - "$pid" <<'PY'
+    desktop="$(capture_desktop_source)"
+    [[ -n "$desktop" ]] || return 1
+    mic="$(pactl get-default-source 2>/dev/null)"
+    if [[ -z "$mic" || "$mic" == "$desktop" ]]; then
+        mic="$(pactl list short sources 2>/dev/null \
+            | awk '$2 !~ /\.monitor$/ { print $2; exit }')"
+    fi
+    [[ -n "$mic" ]] || return 1
+
+    null_mod="$(pactl load-module module-null-sink "sink_name=$name" \
+        "sink_properties=device.description=$name")" || return 1
+    desktop_mod="$(pactl load-module module-loopback "source=$desktop" \
+        "sink=$name")" || {
+        pactl unload-module "$null_mod" >/dev/null 2>&1 || true
+        return 1
+    }
+    mic_mod="$(pactl load-module module-loopback "source=$mic" \
+        "sink=$name")" || {
+        pactl unload-module "$desktop_mod" >/dev/null 2>&1 || true
+        pactl unload-module "$null_mod" >/dev/null 2>&1 || true
+        return 1
+    }
+
+    printf '%s\n%s\n%s\n%s\n%s\n' \
+        "$desktop_mod" "$mic_mod" "$null_mod" "$desktop" "$mic" > "$mods_file"
+    printf '%s.monitor\n' "$name"
+}
+
+capture_source_index() {
+    pactl list short sources 2>/dev/null \
+        | awk -v want="$1" '$2 == want { print $1; exit }'
+}
+
+# Set the level and mute state of one loopback source-output in the private mix.
+capture_set_loopback_level() {
+    local source="$1" level="$2" mute="$3" attempts="${4:-1}"
+    local source_idx output i
+    source_idx="$(capture_source_index "$source")"
+    [[ -n "$source_idx" ]] || return 0
+
+    for ((i = 0; i < attempts; i++)); do
+        output="$(python3 - "$source_idx" <<'PY'
 import re
 import subprocess
 import sys
 
-want = sys.argv[1] if len(sys.argv) > 1 else ""
-accepted = set()
-if want:
-    candidates = [want]
-    try:
-        children = subprocess.check_output(
-            ["pgrep", "-P", want], text=True,
-            stderr=subprocess.DEVNULL, timeout=3)
-        candidates.extend(p for p in children.splitlines() if p.strip())
-    except Exception:
-        pass
-    for candidate in candidates:
-        try:
-            with open("/proc/%s/cmdline" % candidate, "rb") as fh:
-                cmdline = fh.read().replace(b"\0", b" ").decode(
-                    "utf-8", errors="ignore")
-        except Exception:
-            continue
-        if "wf-recorder" in cmdline:
-            accepted.add(candidate)
-    if not accepted:
-        sys.exit(0)
-
+source = sys.argv[1]
 try:
     text = subprocess.check_output(
         ["pactl", "list", "source-outputs"],
@@ -261,22 +278,42 @@ for block in re.split(r"(?m)^Source Output #", text)[1:]:
     header = re.match(r"\s*(\d+)", block)
     if not header:
         continue
-    binary = re.search(r'application\.process\.binary\s*=\s*"([^"]+)"', block)
-    if not binary or binary.group(1) != "wf-recorder":
+    if not re.search(r"^\s*Source:\s*%s\s*$" % re.escape(source), block, re.M):
         continue
-    process_id = re.search(r'application\.process\.id\s*=\s*"(\d+)"', block)
-    if want and (not process_id or process_id.group(1) not in accepted):
+    if "loopback-" not in block:
         continue
     print(header.group(1))
     break
 PY
 )"
-        [[ -n "$index" ]] && break
+        [[ -n "$output" ]] && break
         sleep 0.1
     done
+    [[ -n "$output" ]] || return 0
+    pactl set-source-output-volume "$output" "${level}%" >/dev/null 2>&1 || true
+    pactl set-source-output-mute "$output" "$mute" >/dev/null 2>&1 || true
+}
 
-    [[ -n "$index" ]] || return 0
-    pactl set-source-output-volume "$index" "${level}%" >/dev/null 2>&1 || true
+capture_audio_mix_levels() {
+    local mods_file="$1" desktop_level="$2" mic_level="$3"
+    local desktop_mute="$4" mic_mute="$5" attempts="${6:-1}"
+    local -a lines=()
+    [[ -f "$mods_file" ]] || return 0
+    mapfile -t lines < "$mods_file"
+    [[ -n "${lines[3]:-}" && -n "${lines[4]:-}" ]] || return 0
+    capture_set_loopback_level "${lines[3]}" "$desktop_level" "$desktop_mute" "$attempts"
+    capture_set_loopback_level "${lines[4]}" "$mic_level" "$mic_mute" "$attempts"
+}
+
+capture_audio_mix_teardown() {
+    local mods_file="$1" mod
+    [[ -f "$mods_file" ]] || return 0
+    while IFS= read -r mod; do
+        if [[ "$mod" =~ ^[0-9]+$ ]]; then
+            pactl unload-module "$mod" >/dev/null 2>&1 || true
+        fi
+    done < "$mods_file"
+    rm -f "$mods_file"
 }
 
 # Resolve "focused" or a named output. Falls back to any available wf-recorder

@@ -123,6 +123,9 @@ QtObject {
         "Copy screenshots": "Also copy screenshots saved to disk to the clipboard.",
         "Screenshot command": "Screenshot utility used by the PRINT keybindings. Shared with the Programs page.",
         "Organize by app folders": "Save recordings and clips in a subfolder named after the active app. For a named display, the most recently focused app on that display is used.",
-        "Microphone level": "Capture-only microphone level for recording and replay audio streams. It does not change the system microphone volume; above 100% boosts the input."
+        "Desktop audio level": "Capture-only level for desktop sound in recordings and replay clips. It does not change the system speaker volume; above 100% boosts the input.",
+        "Mute desktop audio": "Mute desktop sound in recordings and replay clips without changing the system speaker mute state.",
+        "Microphone level": "Capture-only level for the real-life microphone in recordings and replay clips. It does not change the system microphone volume; above 100% boosts the input.",
+        "Mute microphone": "Mute the real-life microphone in recordings and replay clips without changing the system microphone mute state."
     })
 }

@@ -76,9 +76,9 @@ The installer:
 - Keyboard layout switching: `Super + Alt + K` cycles layouts through `us` and `fr`.
 - Idle inhibitor: `Super + Alt + I` toggles the idle inhibitor.
 - Theme toggle: `Super + Alt + T` toggles light/dark.
-- Screen recording: `Super + Alt + R` starts and stops an MP4 recording. Audio is included when a default source is available; without audio support it falls back to video only.
+- Screen recording: `Super + Alt + R` starts and stops an MP4 recording. Desktop sound and the real microphone are mixed from separate, independently adjustable capture channels; without audio support it falls back to video only.
 - Replay clips: a rolling buffer runs in the background; `Super + Alt + V` saves the last minute to an MP4 clip. A small gray pill beside Bluetooth shows the configured buffer length while it is active.
-- Screen Capturing settings: control recording and clip folders, display, resolution, frame rate, quality, audio, microphone level, clip length, screenshot behavior, and optional app-name subfolders in one page.
+- Screen Capturing settings: control recording and clip folders, display, resolution, frame rate, quality, separate desktop/microphone levels and mutes, clip length, screenshot behavior, and optional app-name subfolders in one page.
 5. Copies `config/hypr` and `config/quickshell` into `~/.config`.
 6. Makes all shipped Quickshell helper scripts executable.
 
@@ -205,11 +205,11 @@ Hover any setting name for a short explanation of what it does. Ambiguous names 
 
 Settings live in `~/.config/quickshell/settings.json` for Quickshell and in Hyprland Lua files for compositor behavior.
 
-**Screen Capturing** settings are read directly by the capture helpers, so changes to folders, displays, resolution, frame rate, quality and clip length take effect on the next capture without pressing Apply. The screenshot command is shared with the Programs page and is written when you press Apply. Apply is also needed for Hyprland/Quickshell appearance and keybinding changes.
+**Screen Capturing** settings are read directly by the capture helpers, so changes to folders, displays, resolution, frame rate, quality, audio levels, mutes and clip length take effect on the next capture without pressing Apply. The screenshot command is shared with the Programs page and is written when you press Apply. Apply is also needed for Hyprland/Quickshell appearance and keybinding changes.
 
 With **Organize by app folders** enabled, a recording is placed under its configured folder using the app active when recording starts, and a clip is placed under its configured folder using the app active when the clip is saved. For a named capture display, the most recently focused app on that display is used.
 
-**Microphone level** changes only the capture stream volume for recordings and replay clips, not the system microphone volume. Values above 100% boost the input. New recordings use it immediately; the active replay buffer picks it up within ten seconds.
+**Desktop audio level** and **Microphone level** change only the capture stream levels for recordings and replay clips, not the system speaker or microphone volume. Each has its own mute button. Values above 100% boost the input. New recordings use them immediately; the active replay buffer picks up changes within ten seconds.
 
 Files managed by the settings app are rewritten when you press **Apply**:
 
@@ -313,7 +313,7 @@ Alacritty, the terminal-first launcher actions, and the compact OSD make this a 
 | `XF86MonBrightness*` | Display brightness |
 | `XF86KbdBrightness*` | Keyboard brightness |
 
-Screenshots use `hyprshot`; recordings use `wf-recorder`. Video encoding prefers NVIDIA NVENC, then VAAPI, with `libx264` only as a fallback. Replay clips are assembled with `ffmpeg` from a rolling buffer kept in `XDG_RUNTIME_DIR`.
+Screenshots use `hyprshot`; recordings use `wf-recorder`. Video encoding prefers NVIDIA NVENC, then VAAPI, with `libx264` only as a fallback. Replay clips are assembled with `ffmpeg` by stream-copying the already hardware-encoded rolling buffer in `XDG_RUNTIME_DIR`, so saving a clip does not run a second encode.
 
 ---
 

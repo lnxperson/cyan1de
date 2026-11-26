@@ -42,18 +42,66 @@ ColumnLayout {
     SectionCard {
         Layout.fillWidth: true
         title: "AUDIO"
-        subtitle: "Shared capture level for recording and replay audio."
+        subtitle: "Desktop sound and the real microphone are controlled independently for captures."
 
-        SliderField {
+        RowLayout {
             Layout.fillWidth: true
-            label: "Microphone level"
-            tooltip: "Capture-only level; it does not change the system microphone volume. Above 100% boosts the input."
-            from: 0
-            to: 200
-            stepSize: 5
-            suffix: "%"
-            value: root.app.captureMicLevel
-            onMoved: value => { root.app.captureMicLevel = Math.round(value); root.app.queueSave() }
+            spacing: 10
+
+            SliderField {
+                Layout.fillWidth: true
+                label: "Desktop audio level"
+                tooltip: "Capture-only level; it does not change the system speaker volume. Above 100% boosts the input."
+                from: 0
+                to: 200
+                stepSize: 5
+                suffix: "%"
+                value: root.app.captureDesktopLevel
+                onMoved: value => { root.app.captureDesktopLevel = Math.round(value); root.app.queueSave() }
+            }
+
+            SettingsButton {
+                Layout.preferredWidth: 30
+                Layout.preferredHeight: 30
+                icon: root.app.captureDesktopMuted ? "󰍭" : "󰍬"
+                danger: root.app.captureDesktopMuted
+                tooltip: root.app.captureDesktopMuted
+                    ? "Unmute desktop audio" : "Mute desktop audio"
+                onClicked: {
+                    root.app.captureDesktopMuted = !root.app.captureDesktopMuted;
+                    root.app.queueSave()
+                }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            SliderField {
+                Layout.fillWidth: true
+                label: "Microphone level"
+                tooltip: "Capture-only level; it does not change the system microphone volume. Above 100% boosts the input."
+                from: 0
+                to: 200
+                stepSize: 5
+                suffix: "%"
+                value: root.app.captureMicLevel
+                onMoved: value => { root.app.captureMicLevel = Math.round(value); root.app.queueSave() }
+            }
+
+            SettingsButton {
+                Layout.preferredWidth: 30
+                Layout.preferredHeight: 30
+                icon: root.app.captureMicMuted ? "󰍭" : "󰍬"
+                danger: root.app.captureMicMuted
+                tooltip: root.app.captureMicMuted
+                    ? "Unmute microphone" : "Mute microphone"
+                onClicked: {
+                    root.app.captureMicMuted = !root.app.captureMicMuted;
+                    root.app.queueSave()
+                }
+            }
         }
     }
 

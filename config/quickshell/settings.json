@@ -112,7 +112,10 @@
   },
   "capture": {
     "appFolders": false,
+    "desktopLevel": 100,
+    "desktopMuted": false,
     "micLevel": 100,
+    "micMuted": false,
     "recordings": {
       "directory": "~/Videos",
       "display": "focused",

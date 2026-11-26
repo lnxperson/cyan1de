@@ -19,10 +19,14 @@ list_file="$state_dir/replay.list"
 log_file="$state_dir/replay.log"
 lock_file="$state_dir/replay.lock"
 clip_lock="$state_dir/replay.clip.lock"
+audio_mods="$state_dir/replay.audio.mods"
 
 # Defaults mirror Settings → Screen Capturing before the first save.
 app_folders=0
+desktop_level=100
+desktop_muted=0
 mic_level=100
+mic_muted=0
 clip_enabled=1
 clip_dir="$HOME/Videos"
 clip_seconds=60
@@ -110,10 +114,11 @@ ensure_replay() {
     current=""
     [[ -s "$sig_file" ]] && IFS= read -r current < "$sig_file"
     if running_pid >/dev/null 2>&1 && [[ "$current" == "$signature" ]]; then
-        # Refresh the panel state and keep the live audio stream in sync with
-        # the microphone slider even without restarting the buffer.
+        # Refresh the panel state and keep the live desktop/mic levels in sync
+        # without throwing away the rolling buffer.
         write_state "$(< "$pid_file")"
-        capture_apply_mic_level "$mic_level" "$(< "$pid_file")"
+        capture_audio_mix_levels "$audio_mods" "$desktop_level" "$mic_level" \
+            "$desktop_muted" "$mic_muted"
         exit 0
     fi
 
@@ -133,11 +138,10 @@ ensure_replay() {
     pid="$!"
     printf '%s\n' "$pid" > "$pid_file"
     write_state "$pid"
-    capture_apply_mic_level "$mic_level" "$pid"
 }
 
 run_replay() {
-    local fifo segment_seconds segment_count output filter
+    local fifo segment_seconds segment_count output filter mix_source=""
     local ffpid="" wfpid="" cleaned=0
     local audio_args=() args=() encoder_args=()
 
@@ -150,7 +154,17 @@ run_replay() {
     segment_count=$(( (clip_seconds + segment_seconds - 1) / segment_seconds + 2 ))
 
     mapfile -t encoder_args < <(capture_wf_video_args "$clip_quality")
-    [[ "$clip_audio" == "1" ]] && audio_args=(--audio)
+    if [[ "$clip_audio" == "1" ]]; then
+        if mix_source="$(capture_audio_mix_setup "$audio_mods" "cyan1de_replay_$$")" \
+            && [[ -n "$mix_source" ]]; then
+            audio_args=("--audio=$mix_source")
+            capture_audio_mix_levels "$audio_mods" "$desktop_level" "$mic_level" \
+                "$desktop_muted" "$mic_muted" 20
+        else
+            capture_notify "Replay audio unavailable" "The buffer will use video only." "low"
+            capture_audio_mix_teardown "$audio_mods"
+        fi
+    fi
     output="$(capture_resolve_display "$clip_display")"
     [[ -n "$output" ]] && args+=(-o "$output")
     args+=(-r "$clip_fps")
@@ -167,6 +181,7 @@ run_replay() {
         [[ -n "$wfpid" ]] && kill "$wfpid" 2>/dev/null || true
         [[ -n "$ffpid" ]] && wait "$ffpid" 2>/dev/null || true
         [[ -n "$wfpid" ]] && wait "$wfpid" 2>/dev/null || true
+        capture_audio_mix_teardown "$audio_mods"
         rm -f "$fifo" "$pid_file" "$sig_file" "$state_file"
     }
     trap cleanup EXIT INT TERM
@@ -191,8 +206,8 @@ run_replay() {
 }
 
 save_clip() {
-    local segments=() valid=() segment duration total start file escaped suffix=0
-    local audio_output=() video_args=() target_dir
+    local segments=() valid=() durations=() segment modified duration
+    local total=0 candidate wanted file escaped target_dir audio_output=() now
     exec 9>"$clip_lock" || exit 0
     if command -v flock >/dev/null 2>&1; then
         flock -n 9 || exit 0
@@ -219,18 +234,21 @@ save_clip() {
         unset 'segments[${#segments[@]}-1]'
     fi
 
-    # A segment can be mid-rotation or partially written. Only feed readable
-    # segments to the concat demuxer, and use their probed durations for trim.
-    total=0
+    # Skip any segment still being rotated: closed segments have not been
+    # written to for at least a second, so their headers are safe to copy.
+    now="$(date +%s)"
     for segment in "${segments[@]}"; do
+        modified="$(stat -c %Y "$segment" 2>/dev/null || true)"
+        [[ -n "$modified" ]] || continue
+        (( now - modified >= 1 )) || continue
         duration="$(ffprobe -v error -show_entries format=duration \
             -of csv=p=0 "$segment" 2>/dev/null)"
         [[ "$duration" =~ ^[0-9]+([.][0-9]+)?$ ]] || continue
-        if awk -v d="$duration" 'BEGIN { exit !(d > 0) }'; then
-            valid+=("$segment")
-            total="$(awk -v t="$total" -v d="$duration" \
-                'BEGIN { printf "%.3f", t + d }')"
-        fi
+        awk -v d="$duration" 'BEGIN { exit !(d > 0) }' || continue
+        valid+=("$segment")
+        durations+=("$duration")
+        total="$(awk -v t="$total" -v d="$duration" \
+            'BEGIN { printf "%.3f", t + d }')"
     done
 
     if (( ${#valid[@]} == 0 )); then
@@ -238,13 +256,26 @@ save_clip() {
         return 1
     fi
 
+    # Drop whole old segments while enough footage remains. The final `-t`
+    # trims the last partial segment, so every output frame stays copyable and
+    # no second encode is needed.
+    wanted="$clip_seconds"
+    while (( ${#valid[@]} > 1 )); do
+        candidate="$(awk -v t="$total" -v d="${durations[0]}" \
+            'BEGIN { printf "%.3f", t - d }')"
+        awk -v v="$candidate" -v w="$wanted" 'BEGIN { exit !(v >= w) }' || break
+        unset 'valid[0]'
+        unset 'durations[0]'
+        valid=("${valid[@]}")
+        durations=("${durations[@]}")
+        total="$candidate"
+    done
+
     : > "$list_file"
     for segment in "${valid[@]}"; do
         escaped="${segment//\'/\'\\\'\'}"
         printf "file '%s'\n" "$escaped" >> "$list_file"
     done
-    start="$(awk -v total="$total" -v wanted="$clip_seconds" \
-        'BEGIN { value = total - wanted; if (value < 0) value = 0; printf "%.3f", value }')"
 
     target_dir="$(capture_target_dir "$clip_dir" "$clip_display")"
     mkdir -p "$target_dir" || {
@@ -252,17 +283,14 @@ save_clip() {
         return 1
     }
     file="$(capture_unique_file "$target_dir" cyan1de-clip mp4)"
-    mapfile -t video_args < <(capture_ffmpeg_video_args "$clip_quality")
-    if [[ "$clip_audio" == "1" ]]; then
-        audio_output=(-c:a aac -b:a 160k)
-    else
+    if [[ "$clip_audio" != "1" ]]; then
         audio_output=(-an)
     fi
 
-    if ffmpeg -hide_banner -loglevel warning -ss "$start" \
-        -f concat -safe 0 -i "$list_file" -map 0 \
-        "${video_args[@]}" "${audio_output[@]}" -movflags +faststart \
-        -y "$file" >> "$log_file" 2>&1; then
+    if ffmpeg -hide_banner -loglevel warning -f concat -safe 0 -i "$list_file" \
+        -map 0 -c copy "${audio_output[@]}" -t "$wanted" \
+        -avoid_negative_ts make_zero -movflags +faststart -y "$file" \
+        >> "$log_file" 2>&1; then
         capture_notify "Clip saved" "Last ${clip_seconds}s → $file"
     else
         rm -f "$file"
