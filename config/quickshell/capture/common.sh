@@ -348,9 +348,10 @@ capture_resolve_display() {
 
 # Resolve a folder-safe app name from Hyprland. For a named display, use the
 # most recently focused client on that monitor; otherwise use the global active
-# window. CamelCase classes are split into words, lowercase classes fall back
-# to the window title, and steam_app_<id> classes are resolved from local Steam
-# manifests so Geometry Dash is not named "steam app 322170".
+# window. CamelCase classes are split into words, reverse-DNS GNOME app ids are
+# shortened to readable names, lowercase classes fall back to the window title,
+# and steam_app_<id> classes are resolved from local Steam manifests so
+# Geometry Dash is not named "steam app 322170".
 capture_app_name() {
     local wanted="${1:-}" name
     command -v python3 >/dev/null 2>&1 || return 1
@@ -414,6 +415,35 @@ def steam_name(appid):
             return clean(match.group(1))
     return ""
 
+def known_app_name(app_id):
+    aliases = {
+        "org.gnome.nautilus": "Nautilus",
+        "org.gnome.texteditor": "Text Editor",
+        "org.gnome.gedit": "Text Editor",
+        "org.gnome.loupe": "Loupe",
+        "org.gnome.papers": "Papers",
+        "org.gnome.controlcenter": "Settings",
+        "org.gnome.settings": "Settings",
+        "org.gnome.terminal": "Terminal",
+        "org.gnome.calculator": "Calculator",
+        "org.gnome.calendar": "Calendar",
+        "org.gnome.characters": "Characters",
+        "org.gnome.software": "Software",
+        "org.gnome.clocks": "Clocks",
+        "org.gnome.screenshot": "Screenshot",
+    }
+    return clean(aliases.get(str(app_id or "").lower(), ""))
+
+def reverse_dns_name(app_id):
+    app_id = re.sub(r"\.desktop$", "", str(app_id or ""), flags=re.I)
+    if "." not in app_id:
+        return ""
+    tail = app_id.rsplit(".", 1)[-1]
+    name = clean(camel(tail))
+    if name.lower() in ("app", "bin", "client", "desktop", "main"):
+        return ""
+    return name
+
 def title_name(client):
     for source in (clean(client.get("title") or ""),
                    clean(client.get("initialTitle") or "")):
@@ -440,6 +470,13 @@ def name_for(client):
         if title and appid not in title:
             return title
         return "Steam App " + appid
+    app_id = re.sub(r"\.desktop$", "", raw_cls, flags=re.I)
+    known = known_app_name(app_id)
+    if known:
+        return known
+    reverse = reverse_dns_name(app_id)
+    if reverse:
+        return reverse
     if cls and (any(char.isupper() for char in cls) or " " in cls):
         return cls
     if title and title.lower() != cls.lower():

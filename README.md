@@ -206,7 +206,7 @@ Settings live in `~/.config/quickshell/settings.json` for Quickshell and in Hypr
 
 **Screen Capturing** settings are read directly by the capture helpers, so changes to folders, displays, resolution, frame rate, quality, audio levels, mutes and clip length take effect on the next capture without pressing Apply. The screenshot command is shared with the Programs page and is written when you press Apply. Apply is also needed for Hyprland/Quickshell appearance and keybinding changes.
 
-With **Organize by app folders** enabled, a recording is placed under its configured folder using the app active when recording starts, and a clip is placed under its configured folder using the app active when the clip is saved. For a named capture display, the most recently focused app on that display is used. If no app can be resolved, captures go to a `Base Profile` subfolder under the configured folder.
+With **Organize by app folders** enabled, a recording is placed under its configured folder using the app active when recording starts, and a clip is placed under its configured folder using the app active when the clip is saved. For a named capture display, the most recently focused app on that display is used. Reverse-DNS app ids are shortened to readable names (`org.gnome.Nautilus` becomes `Nautilus`). If no app can be resolved, captures go to a `Base Profile` subfolder under the configured folder.
 
 **Desktop audio level** and **Microphone level** change only the capture stream levels for recordings and replay clips, not the system speaker or microphone volume. Each has its own mute button. Values above 100% boost the input. New recordings use them immediately; the active replay buffer picks up changes within ten seconds.
 
