@@ -47,8 +47,7 @@ hl.bind(mainMod .. " + comma", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/qu
 hl.bind(mainMod .. " + period", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/emoji/toggle.sh"), { description = "Emoji picker" })             -- Emoji picker
 hl.bind(mainMod .. " + CTRL + P", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/performance/toggle.sh"), { locked = true, description = "Toggle performance mode" }) -- Performance mode
 
--- Screenshot annotation, screen recording, and auxiliary actions
-hl.bind("SUPER + SHIFT + PRINT", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/screenshot/annotate.sh"), { description = "Region screenshot with annotation" })
+-- Screen recording and auxiliary actions
 hl.bind("SUPER + ALT + R", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/recorder/toggle.sh"), { description = "Toggle screen recording (focused monitor)" })
 hl.bind("SUPER + ALT + C", hl.dsp.exec_cmd("hyprpicker -a"), { description = "Pick a color and copy its hex value" })
 hl.bind("SUPER + ALT + K", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/input/layout.sh"), { description = "Cycle keyboard layout" })

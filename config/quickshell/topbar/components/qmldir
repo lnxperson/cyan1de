@@ -2,6 +2,7 @@ singleton Theme 1.0 Theme.qml
 singleton Brightness 1.0 Brightness.qml
 singleton NightLight 1.0 NightLight.qml
 singleton PowerProfileControl 1.0 PowerProfileControl.qml
+singleton RecordingState 1.0 RecordingState.qml
 ActionButton 1.0 ActionButton.qml
 ActionPopupHost 1.0 ActionPopupHost.qml
 Bar 1.0 Bar.qml
@@ -18,6 +19,7 @@ PillButton 1.0 PillButton.qml
 PopupDimOverlay 1.0 PopupDimOverlay.qml
 PopupSurface 1.0 PopupSurface.qml
 PowerPopup 1.0 PowerPopup.qml
+RecordingIndicator 1.0 RecordingIndicator.qml
 SliderRow 1.0 SliderRow.qml
 SoftwareDim 1.0 SoftwareDim.qml
 ToggleSwitch 1.0 ToggleSwitch.qml

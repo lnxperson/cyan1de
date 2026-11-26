@@ -49,6 +49,20 @@ QtObject {
             if (!seen[key])
                 out[sectionOf[key]].push(key);
         }
+
+        // The live recording chip always sits directly after Bluetooth. It is
+        // transient, so it is injected here instead of being a saved setting.
+        let recordingSection = "right";
+        for (let s = 0; s < sections.length; s++) {
+            if (out[sections[s]].indexOf("bluetooth") >= 0) {
+                recordingSection = sections[s];
+                break;
+            }
+        }
+        const recordingList = out[recordingSection];
+        const bluetoothIndex = recordingList.indexOf("bluetooth");
+        recordingList.splice(bluetoothIndex >= 0 ? bluetoothIndex + 1 : 0,
+            0, "recording");
         return out;
     }
     property var hyprData: data.hypr || ({})

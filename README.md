@@ -46,7 +46,7 @@ The installer handles packages such as:
 - `qt6ct`, `adw-gtk-theme`
 - `ttf-jetbrains-mono-nerd`, `noto-fonts-emoji`
 - `python`, `xdg-utils`, `ripgrep`, `wl-clipboard`
-- `swappy`, `hyprpicker`, `wf-recorder`
+- `hyprpicker`, `wf-recorder`
 
 You can decline package installation and install them yourself.
 
@@ -72,7 +72,6 @@ The installer:
 
 ### New features
 
-- Screenshot annotation: `Super + Shift + Print` captures a region, opens `swappy`, and copies the annotated result to the clipboard.
 - Color picker: `Super + Alt + C` picks a color and copies its hex value (`hyprpicker -a`).
 - Keyboard layout switching: `Super + Alt + K` cycles layouts through `us` and `fr`.
 - Idle inhibitor: `Super + Alt + I` toggles the idle inhibitor.
@@ -294,7 +293,6 @@ Alacritty, the terminal-first launcher actions, and the compact OSD make this a 
 | `Print` | Region screenshot to clipboard |
 | `Ctrl + Print` | Full monitor screenshot |
 | `Shift + Print` | Region screenshot to file |
-| `Super + Shift + Print` | Region screenshot with annotation |
 | `Super + Alt + R` | Toggle screen recording (focused monitor) |
 | `Super + Alt + C` | Pick color and copy hex |
 | `Super + Alt + K` | Cycle keyboard layout |
@@ -332,7 +330,6 @@ cyan1de/
         ├── performance/
         ├── power/
         ├── recorder/
-        ├── screenshot/
         ├── settings/
         ├── topbar/
         ├── welcome/

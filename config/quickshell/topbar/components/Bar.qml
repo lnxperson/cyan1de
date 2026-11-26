@@ -461,6 +461,7 @@ PanelWindow {
             case "clock": return Theme.showClock;
             case "tray": return Theme.showTray && SystemTray.items.values.length > 0;
             case "bluetooth": return Theme.showBluetooth;
+            case "recording": return RecordingState.active;
             case "network": return Theme.showNetwork;
             case "volume": return Theme.showVolume;
             case "brightness":
@@ -524,6 +525,7 @@ PanelWindow {
         if (key === "clock") return bar.vertical ? clockVerticalComponent : clockComponent;
         if (key === "tray") return trayComponent;
         if (key === "bluetooth") return bluetoothComponent;
+        if (key === "recording") return recordingComponent;
         if (key === "network") return networkComponent;
         if (key === "volume") return volumeComponent;
         if (key === "brightness") return brightnessComponent;
@@ -1220,6 +1222,12 @@ PanelWindow {
 
             onClicked: bar.togglePopup(bluetoothPopup)
         }
+    }
+
+    Component {
+        id: recordingComponent
+
+        RecordingIndicator { vertical: bar.vertical }
     }
 
     Component {

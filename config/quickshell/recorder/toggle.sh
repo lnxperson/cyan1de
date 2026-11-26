@@ -3,13 +3,14 @@ set -uo pipefail
 
 # Toggle a wf-recorder session on the focused monitor. State lives in
 # XDG_RUNTIME_DIR so a stale PID from a previous boot can never stop an
-# unrelated process.
+# unrelated process. The state file is also what the topbar indicator reads.
 
-state_dir="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}/cyan1de-recorder-$UID}"
+state_dir="${XDG_RUNTIME_DIR:-${HOME:-/tmp}/.cache}/cyan1de"
 mkdir -p "$state_dir" || exit 0
 lock_file="$state_dir/recorder.lock"
 pid_file="$state_dir/recorder.pid"
 path_file="$state_dir/recorder.path"
+state_file="$state_dir/recorder.state"
 log_file="$state_dir/recorder.log"
 
 exec 9>"$lock_file" || exit 0
@@ -17,13 +18,12 @@ if command -v flock >/dev/null 2>&1; then
     flock -n 9 || exit 0
 fi
 
+# Notifications go through the desktop daemon so they use cyan1de's themed
+# notification cards, never Hyprland's built-in notification style.
 notify() {
-    local icon="$1" message="$2"
-    if command -v hyprctl >/dev/null 2>&1; then
-        hyprctl notify "$icon" 4000 0 "$message" >/dev/null 2>&1
-    elif command -v notify-send >/dev/null 2>&1; then
-        notify-send "Screen recorder" "$message" >/dev/null 2>&1
-    fi
+    local summary="$1" body="$2" urgency="${3:-normal}"
+    command -v notify-send >/dev/null 2>&1 || return 0
+    notify-send -u "$urgency" -a cyan1de "$summary" "$body" >/dev/null 2>&1 || true
 }
 
 live_pid() {
@@ -72,8 +72,13 @@ launch_recorder() {
     printf '%s\n' "$!" > "$pid_file"
 }
 
+write_state() {
+    local pid="$1" started="$2" file="$3"
+    printf 'v1\n%s\n%s\n%s\n' "$pid" "$started" "$file" > "$state_file"
+}
+
 start_recorder() {
-    local file="$1" output="$2" pid log
+    local file="$1" output="$2" pid log started
     local args=() audio_args=(--audio)
 
     [[ -n "$output" ]] && args+=(-o "$output")
@@ -87,7 +92,7 @@ start_recorder() {
     if ! kill -0 "$pid" 2>/dev/null; then
         log="$(tail -n 6 "$log_file" 2>/dev/null | tr '\n' ' ')"
         if [[ "$log" =~ [Aa]udio|[Pp]ulse|[Ss]ource|[Pp]a_ ]]; then
-            notify 1 "Audio unavailable; retrying video only"
+            notify "Recording audio unavailable" "Retrying video only." "low"
             audio_args=()
             : > "$log_file"
             launch_recorder
@@ -98,15 +103,17 @@ start_recorder() {
 
     if ! kill -0 "$pid" 2>/dev/null; then
         log="$(tail -n 6 "$log_file" 2>/dev/null | tr '\n' ' ' | cut -c1-220)"
-        rm -f "$pid_file" "$path_file"
-        notify 3 "Could not start recording${log:+: $log}"
+        rm -f "$pid_file" "$path_file" "$state_file"
+        notify "Recording failed" "$log" "critical"
         return 1
     fi
 
+    started="$(date +%s)"
+    write_state "$pid" "$started" "$file"
     if [[ -n "$output" ]]; then
-        notify 5 "Recording started on $output: $file"
+        notify "Recording Started" "Saving to $file on $output"
     else
-        notify 5 "Recording started: $file"
+        notify "Recording Started" "Saving to $file"
     fi
 }
 
@@ -129,8 +136,8 @@ stop_recorder() {
         kill -KILL "$pid" 2>/dev/null || true
     fi
 
-    rm -f "$pid_file" "$path_file"
-    notify 5 "Recording stopped${saved:+: $saved}"
+    rm -f "$pid_file" "$path_file" "$state_file"
+    notify "Recording stopped" "Saved to ${saved:-unknown location}"
 }
 
 if pid="$(live_pid)"; then
@@ -139,16 +146,16 @@ if pid="$(live_pid)"; then
 fi
 
 # A dead PID is not a recording: clear it instead of signalling a reused PID.
-rm -f "$pid_file" "$path_file"
+rm -f "$pid_file" "$path_file" "$state_file"
 
 if ! command -v wf-recorder >/dev/null 2>&1; then
-    notify 3 "wf-recorder is not installed"
+    notify "Recording failed" "wf-recorder is not installed." "critical"
     exit 1
 fi
 
 video_dir="${XDG_VIDEOS_DIR:-$HOME/Videos}"
 if ! mkdir -p "$video_dir"; then
-    notify 3 "Cannot create recording directory: $video_dir"
+    notify "Recording failed" "Cannot create recording directory: $video_dir" "critical"
     exit 1
 fi
 
