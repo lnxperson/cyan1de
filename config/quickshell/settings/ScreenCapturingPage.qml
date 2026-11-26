@@ -20,7 +20,7 @@ ColumnLayout {
     }
 
     SettingLabel {
-        text: "Recording, replay clips and screenshots. Changes take effect on the next capture; no Apply is needed for these controls."
+        text: "Recording, replay clips and screenshots. Capture values take effect on the next capture without Apply. The screenshot command is shared with Programs and is written when you Apply all settings."
         wrapMode: Text.WordWrap
         Layout.fillWidth: true
     }

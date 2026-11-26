@@ -205,7 +205,7 @@ Hover any setting name for a short explanation of what it does. Ambiguous names 
 
 Settings live in `~/.config/quickshell/settings.json` for Quickshell and in Hyprland Lua files for compositor behavior.
 
-**Screen Capturing** settings are read directly by the capture helpers, so changes to folders, displays, resolution, frame rate, quality and clip length take effect on the next capture without pressing Apply. Apply is only needed for Hyprland/Quickshell appearance and keybinding changes.
+**Screen Capturing** settings are read directly by the capture helpers, so changes to folders, displays, resolution, frame rate, quality and clip length take effect on the next capture without pressing Apply. The screenshot command is shared with the Programs page and is written when you press Apply. Apply is also needed for Hyprland/Quickshell appearance and keybinding changes.
 
 Files managed by the settings app are rewritten when you press **Apply**:
 
