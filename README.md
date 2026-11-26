@@ -303,7 +303,7 @@ Alacritty, the terminal-first launcher actions, and the compact OSD make this a 
 | `Ctrl + Print` | Full monitor screenshot |
 | `Shift + Print` | Region screenshot to file |
 | `Super + Alt + R` | Toggle screen recording |
-| `Super + Alt + V` | Save the last minute as a clip |
+| `Super + Alt + V` | Save a clip |
 | `Super + Alt + C` | Pick color and copy hex |
 | `Super + Alt + K` | Cycle keyboard layout |
 | `Super + Alt + I` | Toggle idle inhibitor |

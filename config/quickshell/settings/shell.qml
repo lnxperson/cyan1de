@@ -2105,6 +2105,37 @@ ShellRoot {
         return s;
     }
 
+    // Group shortcuts into readable boxes on the Keybindings page. The order
+    // matters: screenshots and hardware keys are checked before the broader
+    // capture/window rules so their specific commands win.
+    function keybindCategory(bind) {
+        const item = bind || {};
+        const label = String(item.label || "").toLowerCase();
+        const command = String(item.command || "").toLowerCase();
+        const key = root.friendlyKey(item.bind || "").toLowerCase();
+
+        if (/captureshot|screenshot\/capture\.sh|hyprshot/.test(command)
+            || /screenshot|screen ?shot/.test(label))
+            return "SCREENSHOTS";
+
+        if (/xf86/.test(key) || /wpctl|brightnessctl|playerctl/.test(command))
+            return "MEDIA & HARDWARE";
+
+        if (/recorder\/toggle|replay\.sh|hyprpicker|input\/layout\.sh|power\/inhibit\.sh|toggletheme|qs ipc -c topbar|performance\/toggle/.test(command)
+            || /record|clip|color|keyboard layout|idle|theme|popup|calendar|power\/session|performance/.test(label))
+            return "CAPTURE & UTILITIES";
+
+        if (/hl\.dsp\.focus|hl\.dsp\.window\.move|hl\.dsp\.workspace|hl\.dsp\.window\.drag|hl\.dsp\.window\.resize/.test(command)
+            || /focus|workspace|scratchpad|drag floating|resize floating/.test(label))
+            return "NAVIGATION & WORKSPACES";
+
+        if (/hl\.dsp\.exec_cmd\(terminal\)|hl\.dsp\.exec_cmd\(filemanager\)|hl\.dsp\.exec_cmd\(browser\)|hl\.dsp\.exec_cmd\(menu\)|hl\.dsp\.window\.close|hl\.dsp\.window\.float|hl\.dsp\.window\.pseudo|togglefullscreen|lockscreen\/lock|settings\/toggle|emoji\/toggle|hl\.dsp\.layout/.test(command)
+            || /terminal|file manager|browser|launcher|close window|floating|fullscreen|pseudo|split direction|lock screen|desktop settings|emoji picker/.test(label))
+            return "APPLICATIONS & WINDOWS";
+
+        return "CUSTOM";
+    }
+
     // UTF-8 safe base64 (Qt.btoa assumes Latin-1, which breaks on unicode paths).
     function b64Utf8(str) {
         const s = String(str == null ? "" : str);
