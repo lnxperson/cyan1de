@@ -122,7 +122,7 @@ QtObject {
         "Screenshot format": "File format for screenshots saved to disk. JPG files are converted after capture.",
         "Copy screenshots": "Also copy screenshots saved to disk to the clipboard.",
         "Screenshot command": "Screenshot utility used by the PRINT keybindings. Shared with the Programs page.",
-        "Organize by app folders": "Save recordings and clips in a subfolder named after the active app. For a named display, the most recently focused app on that display is used.",
+        "Organize by app folders": "Save recordings and clips in a subfolder named after the active app. For a named display, the most recently focused app on that display is used. Captures with no resolvable app go to Base Profile.",
         "Desktop audio level": "Capture-only level for desktop sound in recordings and replay clips. It does not change the system speaker volume; above 100% boosts the input.",
         "Mute desktop audio": "Mute desktop sound in recordings and replay clips without changing the system speaker mute state.",
         "Microphone level": "Capture-only level for the real-life microphone in recordings and replay clips. It does not change the system microphone volume; above 100% boosts the input.",

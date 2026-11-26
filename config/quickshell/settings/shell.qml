@@ -300,7 +300,7 @@ ShellRoot {
         add("Mute desktop audio", 12, "", "mute desktop speaker system audio capture recording clip", "Mute the desktop audio channel in recordings and clips.");
         add("Microphone level", 12, "", "mic microphone input gain volume audio capture recording clip", "Capture-only microphone level for recordings and clips.");
         add("Mute microphone", 12, "", "mute mic microphone input capture recording clip", "Mute the real-life microphone in recordings and clips.");
-        add("Organize by app folders", 12, "", "folder application game window recording clip", "Save recordings and clips in a subfolder named after the active app.");
+        add("Organize by app folders", 12, "", "folder application game window recording clip base profile", "Save recordings and clips in a subfolder named after the active app; use Base Profile when no app is found.");
         add("Recording folder", 12, "", "recording video directory save", "Folder used for full recordings.");
         add("Recording display", 12, "", "monitor output focused screen", "Monitor used for full recordings.");
         add("Recording refresh rate", 12, "", "fps framerate capture", "Constant frame rate for recordings; 0 uses variable timing.");

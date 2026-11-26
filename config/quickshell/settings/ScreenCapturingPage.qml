@@ -33,7 +33,7 @@ ColumnLayout {
         ToggleRow {
             Layout.fillWidth: true
             label: "Organize by app folders"
-            hint: "Recordings go under their folder at start; clips go under their folder when saved"
+            hint: "Uses Base Profile when no app is found"
             checked: root.app.captureAppFolders
             onToggled: value => { root.app.captureAppFolders = value; root.app.queueSave() }
         }

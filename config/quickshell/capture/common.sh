@@ -478,13 +478,15 @@ PY
 }
 
 # Returns the configured capture folder, or an app subfolder below it when the
-# Settings toggle is on and an active app could be resolved.
+# Settings toggle is on. An unresolved app falls back to "Base Profile" so
+# captures stay organized instead of landing loose in the configured folder.
 capture_target_dir() {
     local base="${1:-}" display="${2:-}" app
     base="${base%/}"
     [[ -n "$base" ]] || base="/"
-    if [[ "${app_folders:-0}" == "1" ]] \
-        && app="$(capture_app_name "$display")" && [[ -n "$app" ]]; then
+    if [[ "${app_folders:-0}" == "1" ]]; then
+        app="$(capture_app_name "$display")" || app=""
+        [[ -n "$app" ]] || app="Base Profile"
         if [[ "$base" == "/" ]]; then
             printf '/%s\n' "$app"
         else
