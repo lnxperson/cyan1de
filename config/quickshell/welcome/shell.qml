@@ -59,7 +59,8 @@ ShellRoot {
                 { keys: "CTRL + PRINT", text: "Screenshot the active display." },
                 { keys: "SHIFT + PRINT", text: "Region screenshot to a file." },
                 { keys: "SUPER + ALT + R", text: "Start or stop a screen recording." },
-                { keys: "SUPER + ALT + V", text: "Save a clip." }
+                { keys: "SUPER + ALT + V", text: "Save a clip." },
+                { keys: "SUPER + ALT + B", text: "Turn replay clips on or off." }
             ]
         },
         {
