@@ -41,6 +41,24 @@ ColumnLayout {
 
     SectionCard {
         Layout.fillWidth: true
+        title: "AUDIO"
+        subtitle: "Shared capture level for recording and replay audio."
+
+        SliderField {
+            Layout.fillWidth: true
+            label: "Microphone level"
+            tooltip: "Capture-only level; it does not change the system microphone volume. Above 100% boosts the input."
+            from: 0
+            to: 200
+            stepSize: 5
+            suffix: "%"
+            value: root.app.captureMicLevel
+            onMoved: value => { root.app.captureMicLevel = Math.round(value); root.app.queueSave() }
+        }
+    }
+
+    SectionCard {
+        Layout.fillWidth: true
         title: "RECORDINGS"
         subtitle: "Full recordings started with SUPER + ALT + R."
 

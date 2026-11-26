@@ -10,6 +10,7 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$script_dir/../capture/common.sh"
 
 app_folders=0
+mic_level=100
 rec_dir="$HOME/Videos"
 rec_display="focused"
 rec_fps=60

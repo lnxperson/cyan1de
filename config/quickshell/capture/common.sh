@@ -78,6 +78,7 @@ clip = group("clips", {})
 shot = group("screenshots", {})
 
 print("APP_FOLDERS=" + ("1" if boolean(capture, "appFolders", False) else "0"))
+print("MIC_LEVEL=" + str(integer(capture, "micLevel", 100, 0, 200)))
 
 print("REC_DIR=" + directory(rec, "directory", "~/Videos"))
 print("REC_DISPLAY=" + text(rec, "display", "focused"))
@@ -104,6 +105,7 @@ PY
     while IFS='=' read -r key value; do
         case "$key" in
             APP_FOLDERS) app_folders="$value" ;;
+            MIC_LEVEL) mic_level="$value" ;;
             REC_DIR) rec_dir="$value" ;;
             REC_DISPLAY) rec_display="$value" ;;
             REC_FPS) rec_fps="$value" ;;
@@ -209,6 +211,72 @@ capture_ffmpeg_video_args() {
                 "$(capture_quality_crf "$quality")"
             ;;
     esac
+}
+
+# Apply a capture-only microphone level to wf-recorder's audio stream. This
+# changes the recording stream volume, not the system microphone volume.
+capture_apply_mic_level() {
+    local level="${1:-100}" pid="${2:-}" index="" i
+    command -v pactl >/dev/null 2>&1 || return 0
+    [[ "$level" =~ ^[0-9]+$ ]] || return 0
+    (( level >= 0 && level <= 200 )) || return 0
+
+    for ((i = 0; i < 20; i++)); do
+        index="$(python3 - "$pid" <<'PY'
+import re
+import subprocess
+import sys
+
+want = sys.argv[1] if len(sys.argv) > 1 else ""
+accepted = set()
+if want:
+    candidates = [want]
+    try:
+        children = subprocess.check_output(
+            ["pgrep", "-P", want], text=True,
+            stderr=subprocess.DEVNULL, timeout=3)
+        candidates.extend(p for p in children.splitlines() if p.strip())
+    except Exception:
+        pass
+    for candidate in candidates:
+        try:
+            with open("/proc/%s/cmdline" % candidate, "rb") as fh:
+                cmdline = fh.read().replace(b"\0", b" ").decode(
+                    "utf-8", errors="ignore")
+        except Exception:
+            continue
+        if "wf-recorder" in cmdline:
+            accepted.add(candidate)
+    if not accepted:
+        sys.exit(0)
+
+try:
+    text = subprocess.check_output(
+        ["pactl", "list", "source-outputs"],
+        text=True, stderr=subprocess.DEVNULL, timeout=3)
+except Exception:
+    sys.exit(0)
+
+for block in re.split(r"(?m)^Source Output #", text)[1:]:
+    header = re.match(r"\s*(\d+)", block)
+    if not header:
+        continue
+    binary = re.search(r'application\.process\.binary\s*=\s*"([^"]+)"', block)
+    if not binary or binary.group(1) != "wf-recorder":
+        continue
+    process_id = re.search(r'application\.process\.id\s*=\s*"(\d+)"', block)
+    if want and (not process_id or process_id.group(1) not in accepted):
+        continue
+    print(header.group(1))
+    break
+PY
+)"
+        [[ -n "$index" ]] && break
+        sleep 0.1
+    done
+
+    [[ -n "$index" ]] || return 0
+    pactl set-source-output-volume "$index" "${level}%" >/dev/null 2>&1 || true
 }
 
 # Resolve "focused" or a named output. Falls back to any available wf-recorder

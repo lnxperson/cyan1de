@@ -22,6 +22,7 @@ clip_lock="$state_dir/replay.clip.lock"
 
 # Defaults mirror Settings → Screen Capturing before the first save.
 app_folders=0
+mic_level=100
 clip_enabled=1
 clip_dir="$HOME/Videos"
 clip_seconds=60
@@ -109,8 +110,10 @@ ensure_replay() {
     current=""
     [[ -s "$sig_file" ]] && IFS= read -r current < "$sig_file"
     if running_pid >/dev/null 2>&1 && [[ "$current" == "$signature" ]]; then
-        # Refresh the panel state if a previous run left it stale.
+        # Refresh the panel state and keep the live audio stream in sync with
+        # the microphone slider even without restarting the buffer.
         write_state "$(< "$pid_file")"
+        capture_apply_mic_level "$mic_level" "$(< "$pid_file")"
         exit 0
     fi
 
@@ -130,6 +133,7 @@ ensure_replay() {
     pid="$!"
     printf '%s\n' "$pid" > "$pid_file"
     write_state "$pid"
+    capture_apply_mic_level "$mic_level" "$pid"
 }
 
 run_replay() {

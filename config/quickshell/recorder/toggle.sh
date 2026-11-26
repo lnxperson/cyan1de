@@ -89,6 +89,8 @@ start_recorder() {
         return 1
     fi
 
+    [[ "$rec_audio" == "1" ]] && capture_apply_mic_level "$mic_level" "$pid"
+
     started="$(date +%s)"
     write_state "$pid" "$started" "$file"
     if [[ -n "$output" ]]; then
@@ -123,6 +125,7 @@ stop_recorder() {
 
 # Defaults keep the script usable before Settings has written a capture block.
 app_folders=0
+mic_level=100
 rec_dir="$HOME/Videos"
 rec_display="focused"
 rec_fps=60

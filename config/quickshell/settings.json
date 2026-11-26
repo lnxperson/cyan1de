@@ -112,6 +112,7 @@
   },
   "capture": {
     "appFolders": false,
+    "micLevel": 100,
     "recordings": {
       "directory": "~/Videos",
       "display": "focused",

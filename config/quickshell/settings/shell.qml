@@ -296,6 +296,7 @@ ShellRoot {
         }
 
         // Screen Capturing
+        add("Microphone level", 12, "", "mic microphone input gain volume audio capture recording clip", "Capture-only microphone level for recordings and clips.");
         add("Organize by app folders", 12, "", "folder application game window recording clip", "Save recordings and clips in a subfolder named after the active app.");
         add("Recording folder", 12, "", "recording video directory save", "Folder used for full recordings.");
         add("Recording display", 12, "", "monitor output focused screen", "Monitor used for full recordings.");
@@ -697,6 +698,7 @@ ShellRoot {
 
     // Screen capturing. Paths stay portable (~/...) and scripts expand them.
     property bool captureAppFolders: false
+    property int captureMicLevel: 100
     property string captureRecDir: "~/Videos"
     property string captureRecDisplay: "focused"
     property int captureRecFps: 60
@@ -921,6 +923,7 @@ ShellRoot {
             },
             capture: {
                 appFolders: false,
+                micLevel: 100,
                 recordings: {
                     directory: "~/Videos",
                     display: "focused",
@@ -1088,6 +1091,8 @@ ShellRoot {
         const cs = cap.screenshots || ({});
 
         captureAppFolders = asBool(cap.appFolders, d.capture.appFolders);
+        captureMicLevel = Math.max(0, Math.min(200,
+            asInt(cap.micLevel, d.capture.micLevel)));
 
         wallpaperPath = asText(s && s.wallpaper, d.wallpaper);
         wallpaperMode = (s && s.wallpaperMode === "fit")
@@ -1342,6 +1347,7 @@ ShellRoot {
             },
             capture: {
                 appFolders: captureAppFolders,
+                micLevel: captureMicLevel,
                 recordings: {
                     directory: captureRecDir,
                     display: captureRecDisplay,
