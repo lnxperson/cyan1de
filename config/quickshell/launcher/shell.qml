@@ -655,7 +655,7 @@ ShellRoot {
         Rectangle {
             id: card
 
-            width: 640
+            width: 550
             height: 500
             anchors.centerIn: parent
             anchors.verticalCenterOffset: -30

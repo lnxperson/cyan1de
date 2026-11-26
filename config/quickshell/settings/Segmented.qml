@@ -7,6 +7,7 @@ Item {
     property var options: []       // [{ label: "Crop", value: "crop" }, ...]
     property string value: ""
     property int spacing: 6
+    property color baseColor: Theme.surfaceAlt
 
     signal selected(string value)
 
@@ -14,9 +15,6 @@ Item {
     property rect segmentHighlightRect: Qt.rect(0, 0, 0, 0)
     property bool segmentHighlightVisible: false
     property bool segmentHighlightAnimate: false
-    property string lastValue: ""
-    property string previousValue: ""
-    property bool highlightSliding: false
 
     function segmentHighlightGeometry() {
         for (let i = 0; i < segmentRepeater.count; i++) {
@@ -50,24 +48,9 @@ Item {
         }
     }
 
-    onValueChanged: {
-        root.previousValue = root.lastValue;
-        root.lastValue = root.value;
-        root.highlightSliding = true;
-        root.syncSegmentHighlight();
-        segmentSlideTimer.restart();
-    }
+    onValueChanged: root.syncSegmentHighlight()
     onOptionsChanged: root.syncSegmentHighlight()
-    Component.onCompleted: {
-        root.lastValue = root.value;
-        Qt.callLater(root.syncSegmentHighlight)
-    }
-
-    Timer {
-        id: segmentSlideTimer
-        interval: Theme.motionBase
-        onTriggered: root.highlightSliding = false
-    }
+    Component.onCompleted: Qt.callLater(root.syncSegmentHighlight)
 
     implicitWidth: track.implicitWidth
     implicitHeight: track.implicitHeight
@@ -79,7 +62,66 @@ Item {
         implicitWidth: segmentRow.implicitWidth
         implicitHeight: segmentRow.implicitHeight
 
+        // Opaque segment fills and input. They stay below the highlight.
+        Row {
+            id: segmentRow
+
+            anchors.fill: parent
+            spacing: root.spacing
+
+            Repeater {
+                id: segmentRepeater
+                model: root.options
+
+                delegate: Rectangle {
+                    required property var modelData
+
+                    height: 28
+                    width: measure.implicitWidth + 24
+                    radius: Theme.controlRadius
+                    color: root.value === modelData.value
+                        ? (mouse.containsMouse ? Theme.active : "transparent")
+                        : (mouse.containsMouse ? Theme.hover : root.baseColor)
+                    // A transparent fill with an animated border hits
+                    // QTBUG-137166 and punches a hole through the window.
+                    // Inactive segments use the opaque surface behind them.
+                    border.width: root.value === modelData.value ? 0 : 1
+                    border.color: Theme.border
+                    scale: 1 - 0.025 * (mouse.containsPress ? 1 : 0)
+
+                    Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: Theme.motionFast
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+
+                    // Same metrics as the visible label, used only for width.
+                    Text {
+                        id: measure
+                        visible: false
+                        text: modelData.label
+                        font.family: Theme.mono
+                        font.pixelSize: 11
+                        font.weight: root.value === modelData.value ? Font.DemiBold : Font.Normal
+                    }
+
+                    MouseArea {
+                        id: mouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.selected(modelData.value)
+                    }
+                }
+            }
+        }
+
+        // The highlight has to sit above the opaque segment fills or the slide
+        // is hidden behind them. Labels are painted above it below.
         Rectangle {
+            z: 1
             x: root.segmentHighlightRect.x
             y: root.segmentHighlightRect.y
             width: root.segmentHighlightRect.width
@@ -120,44 +162,32 @@ Item {
             }
         }
 
+        // Labels live above the highlight so it never covers the text while
+        // sliding between segments.
         Row {
-            id: segmentRow
-
+            z: 2
             anchors.fill: parent
             spacing: root.spacing
 
             Repeater {
-                id: segmentRepeater
                 model: root.options
 
-                delegate: Rectangle {
+                delegate: Item {
                     required property var modelData
 
                     height: 28
-                    width: label.implicitWidth + 24
-                    radius: Theme.controlRadius
-                    // Keep both ends of the slide filled so the surface
-                    // behind the segments never flashes empty.
-                    color: root.highlightSliding && root.previousValue === modelData.value
-                        ? Theme.active
-                        : root.value === modelData.value
-                            ? (mouse.containsMouse ? Theme.active : "transparent")
-                            : (mouse.containsMouse ? Theme.hover : "transparent")
-                    border.width: root.value === modelData.value ? 0 : 1
-                    border.color: Theme.border
-                    scale: 1 - 0.025 * (mouse.containsPress ? 1 : 0)
+                    width: labelMeasure.implicitWidth + 24
 
-                    Behavior on color { ColorAnimation { duration: Theme.motionFast } }
-                    Behavior on border.width { NumberAnimation { duration: Theme.motionFast } }
-                    Behavior on scale {
-                        NumberAnimation {
-                            duration: Theme.motionFast
-                            easing.type: Easing.OutCubic
-                        }
+                    Text {
+                        id: labelMeasure
+                        visible: false
+                        text: modelData.label
+                        font.family: Theme.mono
+                        font.pixelSize: 11
+                        font.weight: root.value === modelData.value ? Font.DemiBold : Font.Normal
                     }
 
                     Text {
-                        id: label
                         anchors.centerIn: parent
                         text: modelData.label
                         font.family: Theme.mono
@@ -166,14 +196,6 @@ Item {
                         color: root.value === modelData.value ? Theme.accentSoft : Theme.text
 
                         Behavior on color { ColorAnimation { duration: Theme.motionFast } }
-                    }
-
-                    MouseArea {
-                        id: mouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.selected(modelData.value)
                     }
                 }
             }

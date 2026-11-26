@@ -10,7 +10,8 @@ ColumnLayout {
 
     readonly property var sectionHints: ({
         panel: "Layout, elements and the live drag preview.",
-        theme: "Theme mode, panel colours and sizing.",
+        style: "Theme mode, panel colours and sizing.",
+        themes: "Save and reload complete appearance presets.",
         cursor: "Pointer theme and size, applied instantly.",
         wallpaper: "Choose the wallpaper and how it fills the screen."
     })
@@ -46,8 +47,9 @@ ColumnLayout {
 
     SectionCard {
         Layout.fillWidth: true
-        visible: root.section === "theme"
-        title: "THEME"
+        visible: root.section === "style"
+        title: "STYLE"
+        subtitle: "The accent colour also themes GTK, libadwaita and Qt applications."
 
         ToggleRow {
             Layout.fillWidth: true
@@ -55,6 +57,187 @@ ColumnLayout {
             hint: "Quickshell, GTK and Qt"
             checked: root.app.themeMode === "light"
             onToggled: value => root.app.setThemeMode(value ? "light" : "dark")
+        }
+    }
+
+    SectionCard {
+        Layout.fillWidth: true
+        visible: root.section === "themes"
+        title: "THEMES"
+        subtitle: "Save the current Quickshell appearance and Hyprland window styling, then load it back in one click."
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            TextFieldRow {
+                Layout.fillWidth: true
+                label: "Save as"
+                labelWidth: 90
+                placeholder: "Theme name"
+                value: root.app.newThemeName
+                onEdited: value => root.app.newThemeName = value
+            }
+
+            SettingsButton {
+                text: "Save"
+                primary: true
+                enabled: root.app.newThemeName.trim().length > 0
+                tooltip: "Save current appearance and window settings"
+                onClicked: root.app.saveTheme(root.app.newThemeName)
+            }
+        }
+
+        GridLayout {
+            Layout.fillWidth: true
+            columns: 4
+            rowSpacing: 10
+            columnSpacing: 10
+
+            Repeater {
+                model: root.app.themeNames
+
+                Rectangle {
+                    Layout.preferredWidth: 132
+                    Layout.preferredHeight: 132
+                    radius: Theme.panelRadius
+                    color: Theme.surface
+                    border.width: 1
+                    border.color: mouse.containsMouse ? Theme.accent : Theme.border
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 6
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: modelData
+                            font.family: Theme.mono
+                            font.pixelSize: 11
+                            font.weight: Font.DemiBold
+                            color: Theme.text
+                            elide: Text.ElideRight
+                            maximumLineCount: 2
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 4
+
+                            Rectangle {
+                                Layout.preferredWidth: 24
+                                Layout.preferredHeight: 24
+                                radius: Theme.controlRadius
+                                color: root.app.themePreviews[modelData]
+                                    ? root.app.themePreviews[modelData].accent : Theme.accent
+                                border.width: 1
+                                border.color: Theme.border
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: 24
+                                Layout.preferredHeight: 24
+                                radius: Theme.controlRadius
+                                color: root.app.themePreviews[modelData]
+                                    ? root.app.themePreviews[modelData].surface : Theme.surfaceAlt
+                                border.width: 1
+                                border.color: Theme.border
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: 24
+                                Layout.preferredHeight: 24
+                                radius: Theme.controlRadius
+                                color: root.app.themePreviews[modelData]
+                                    ? root.app.themePreviews[modelData].pill : Theme.bg
+                                border.width: 1
+                                border.color: Theme.border
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: 24
+                                Layout.preferredHeight: 24
+                                radius: Theme.controlRadius
+                                color: root.app.themePreviews[modelData]
+                                    ? root.app.themePreviews[modelData].border1 : Theme.accentAlt
+                                border.width: 1
+                                border.color: Theme.border
+                            }
+                        }
+
+                        Item { Layout.fillHeight: true }
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: "Click to load"
+                            font.family: Theme.mono
+                            font.pixelSize: 9
+                            color: Theme.dim
+                        }
+                    }
+
+                    Rectangle {
+                        z: 2
+                        anchors.top: parent.top
+                        anchors.right: parent.right
+                        anchors.margins: 6
+                        width: 18
+                        height: 18
+                        radius: Theme.controlRadius
+                        color: clearMouse.containsMouse ? Theme.hover : Theme.surfaceAlt
+                        border.width: 1
+                        border.color: Theme.border
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "✕"
+                            font.family: Theme.mono
+                            font.pixelSize: 9
+                            color: clearMouse.containsMouse ? Theme.red : Theme.dim
+                        }
+
+                        MouseArea {
+                            id: clearMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.app.deleteTheme(modelData)
+                        }
+                    }
+
+                    MouseArea {
+                        id: mouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            root.app.selectedTheme = modelData;
+                            root.app.loadTheme(modelData);
+                        }
+                    }
+                }
+            }
+
+            Text {
+                Layout.fillWidth: true
+                Layout.columnSpan: 4
+                visible: root.app.themeNames.length === 0
+                text: "No saved themes yet — enter a name above and press Save."
+                font.family: Theme.mono
+                font.pixelSize: 9
+                color: Theme.dim
+                wrapMode: Text.WordWrap
+            }
+        }
+
+        Text {
+            Layout.fillWidth: true
+            text: "Themes are stored in ~/.config/quickshell/themes.json. Loading also presses Apply so Hyprland window styling takes effect."
+            font.family: Theme.mono
+            font.pixelSize: 9
+            color: Theme.dim
+            wrapMode: Text.WordWrap
         }
     }
 
@@ -270,7 +453,7 @@ ColumnLayout {
     // ---- Colours ------------------------------------------------------
     Rectangle {
         Layout.fillWidth: true
-        visible: root.section === "theme"
+        visible: root.section === "style"
         implicitHeight: colorsColumn.implicitHeight + 28
         radius: Theme.panelRadius
         color: Theme.surfaceAlt
@@ -291,6 +474,15 @@ ColumnLayout {
                 font.pixelSize: 10
                 font.weight: Font.DemiBold
                 color: Theme.dim
+            }
+
+            SettingsButton {
+                Layout.fillWidth: true
+                icon: "󰈺"
+                text: "Use wallpaper colors"
+                tooltip: "Average the current wallpaper and tint every Quickshell color"
+                enabled: root.app.resolvedWallpaperPath.length > 0
+                onClicked: root.app.applyWallpaperColors()
             }
 
             ColorField {
@@ -338,7 +530,7 @@ ColumnLayout {
     // ---- Geometry -----------------------------------------------------
     Rectangle {
         Layout.fillWidth: true
-        visible: root.section === "theme"
+        visible: root.section === "style"
         implicitHeight: geometryColumn.implicitHeight + 28
         radius: Theme.panelRadius
         color: Theme.surfaceAlt

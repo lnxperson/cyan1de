@@ -82,6 +82,7 @@ ColumnLayout {
         }
 
         Segmented {
+            baseColor: Theme.surface
             options: [
                 { label: "Crop", value: "crop" },
                 { label: "Fit", value: "fit" },
@@ -103,7 +104,7 @@ ColumnLayout {
     Rectangle {
         Layout.fillWidth: true
         implicitHeight: libraryColumn.implicitHeight + 28
-        radius: 12
+        radius: Theme.panelRadius
         color: Theme.surfaceAlt
         border.width: 1
         border.color: Theme.border
@@ -238,7 +239,7 @@ ColumnLayout {
     Rectangle {
         Layout.fillWidth: true
         implicitHeight: pathColumn.implicitHeight + 28
-        radius: 12
+        radius: Theme.panelRadius
         color: Theme.surfaceAlt
         border.width: 1
         border.color: Theme.border

@@ -171,7 +171,7 @@ PopupWindow {
     Rectangle {
         id: surface
         anchors.fill: parent
-        radius: 10
+        radius: Theme.panelRadius
         color: Theme.popupFill(Theme.surface)
         border.width: 1
         border.color: Theme.border

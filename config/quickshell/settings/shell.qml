@@ -17,6 +17,7 @@ ShellRoot {
     readonly property string hyprDir: home + "/.config/hypr/hyprland"
 
     property bool shown: false
+    property bool ready: false
     property real reveal: 0
     property bool closing: false
     property bool applying: false
@@ -27,21 +28,36 @@ ShellRoot {
     property int renderedPage: 0
     property bool previousWasBarPage: false
     property bool pageSwapSnap: false
-    property int outgoingNavIndex: -1
-    property bool navSwapActive: false
+    property bool navSwapping: false
     property string appearanceSection: "panel"
     readonly property var appearanceSections: [
         { label: "Panel", value: "panel" },
-        { label: "Theme", value: "theme" },
+        { label: "Style", value: "style" },
+        { label: "Themes", value: "themes" },
         { label: "Cursor", value: "cursor" },
         { label: "Wallpaper", value: "wallpaper" }
     ]
     readonly property var appearanceSectionHints: ({
         panel: "Layout, elements, preview",
-        theme: "Theme, colours, sizing",
+        style: "Theme mode, colours, sizing",
+        themes: "Save and load appearance presets",
         cursor: "Pointer theme and size",
         wallpaper: "Wallpaper source and fit"
     })
+    readonly property var appearanceSectionNames: ({
+        panel: "Panel",
+        style: "Style",
+        themes: "Themes",
+        cursor: "Cursor",
+        wallpaper: "Wallpaper"
+    })
+
+    // Search spans every control, not just page titles. The results are a
+    // flat index built from the same labels and help text used by the pages,
+    // plus the editable lists (keybinds, rules, autostart and environment).
+    property string searchQuery: ""
+    property string pendingSearchLabel: ""
+    readonly property bool searchActive: root.searchQuery.trim().length > 0
     property bool confirmReset: false
     readonly property string statusIdle: "Saved locally — press Apply for Hyprland changes"
     readonly property var pages: [
@@ -71,6 +87,238 @@ ShellRoot {
             subtitle: "Window rules and per-app overrides" }
     ]
     readonly property var currentPage: pages[page] || pages[0]
+
+    function buildSearchResults() {
+        const q = root.searchQuery.trim().toLowerCase();
+        if (!q)
+            return [];
+
+        const out = [];
+        const seen = {};
+        const add = function(label, pageIndex, section, keywords, detail) {
+            const pageTitle = root.pages[pageIndex] ? root.pages[pageIndex].title : "";
+            const sectionTitle = section
+                ? (root.appearanceSectionNames[section] || section) : "";
+            const helpText = SettingHelp.textFor(label);
+            const detailText = detail && detail !== "" ? detail : helpText;
+            const haystack = [label, pageTitle, sectionTitle, keywords || "",
+                detailText].join(" ").toLowerCase();
+            if (haystack.indexOf(q) < 0)
+                return;
+            const key = pageIndex + "|" + section + "|" + label + "|" + (keywords || "");
+            if (seen[key])
+                return;
+            seen[key] = true;
+            out.push({
+                label: label,
+                pageIndex: pageIndex,
+                section: section,
+                pageTitle: pageTitle,
+                sectionTitle: sectionTitle,
+                detail: detailText,
+                keywords: keywords || ""
+            });
+        };
+
+        // Appearance — Style
+        add("Light mode", 0, "style", "dark theme gtk qt palette");
+        add("Use wallpaper colors", 0, "style", "average tint palette accent");
+        add("Accent", 0, "style", "colour gtk qt highlight");
+        add("Font color", 0, "style", "colour text");
+        add("Popup surface", 0, "style", "colour calendar notification");
+        add("Background", 0, "style", "colour panel pill");
+        add("Border", 0, "style", "colour outline");
+        add("Panel height", 0, "style", "thickness size");
+        add("Corner radius", 0, "style", "roundness pill panel");
+        add("Side margin", 0, "style", "spacing edge screen");
+        add("Text size", 0, "style", "font pixels");
+        add("Icon size", 0, "style", "glyph pixels");
+        add("Pill opacity", 0, "style", "transparency");
+
+        // Appearance — Themes
+        add("Save as", 0, "themes", "theme name preset", "Name for the saved appearance preset.");
+        add("Save theme", 0, "themes", "preset appearance windows", "Save the current appearance and window settings.");
+        add("Saved themes", 0, "themes", "load delete preset", "Saved appearance presets. Click one to load it.");
+
+        // Appearance — Cursor
+        add("Theme", 0, "cursor", "cursor pointer xcursor", "Installed cursor theme used for the mouse pointer.");
+        add("Rescan", 0, "cursor", "cursor themes refresh", "Look for installed cursor themes again.");
+        add("Pointer size", 0, "cursor", "cursor pixels", "Cursor size in pixels.");
+
+        // Appearance — Panel
+        add("Layout", 0, "panel", "pills unified wrap corners island");
+        add("Edge", 0, "panel", "top bottom left right");
+        add("Display", 0, "panel", "monitor all displays");
+        add("Application menu", 0, "panel", "launcher button");
+        add("Workspaces", 0, "panel", "workspace switcher");
+        add("Clock", 0, "panel", "calendar date time");
+        add("System tray", 0, "panel", "tray icons separator");
+        add("Bluetooth", 0, "panel", "status control");
+        add("Network", 0, "panel", "status control");
+        add("Volume", 0, "panel", "sound status control");
+        add("Brightness", 0, "panel", "display status control");
+        add("Battery", 0, "panel", "laptop status control");
+        add("Power", 0, "panel", "session menu");
+
+        // Appearance — Wallpaper
+        add("Wallpaper", 0, "wallpaper", "image background", "Choose the desktop wallpaper.");
+        add("Scaling", 0, "wallpaper", "crop stretch fit tile");
+        add("Pictures folder", 0, "wallpaper", "library directory images");
+        add("Wallpaper library", 0, "wallpaper", "images browse", "Images found in the Pictures folder.");
+        add("Custom path", 0, "wallpaper", "image file browse");
+        add("Set wallpaper", 0, "wallpaper", "apply image", "Use the selected image as the wallpaper.");
+
+        // Windows
+        add("Active border", 1, "", "focused colour gradient");
+        add("Gradient end", 1, "", "focused border colour");
+        add("Inactive border", 1, "", "unfocused colour");
+        add("Gradient border", 1, "", "two colour blend");
+        add("Gradient angle", 1, "", "border direction");
+        add("Border size", 1, "", "thickness width");
+        add("Corner rounding", 1, "", "radius wrap frame");
+        add("Inner gaps", 1, "", "spacing between windows");
+        add("Outer gaps", 1, "", "spacing edge wrap frame display");
+
+        // Effects
+        add("Window open", 2, "", "animation appear");
+        add("Window close", 2, "", "animation disappear");
+        add("Workspace switch", 2, "", "animation desktop");
+        add("Layer / popup", 2, "", "animation layer shell");
+        add("Open easing", 2, "", "animation curve");
+        add("Close easing", 2, "", "animation curve");
+        add("Animation speed", 2, "", "duration global");
+        add("Hyprland blur", 2, "", "transparent windows");
+        add("Alacritty blur", 2, "", "terminal background");
+        add("Alacritty blur strength", 2, "", "terminal amount");
+        add("Hyprland blur radius", 2, "", "amount compositor");
+
+        // Input
+        add("Layout", 3, "Keyboard", "keyboard xkb us");
+        add("Variant", 3, "Keyboard", "keyboard xkb dvorak nodeadkeys");
+        add("Model", 3, "Keyboard", "keyboard xkb hardware");
+        add("Options", 3, "Keyboard", "keyboard xkb comma");
+        add("Rules", 3, "Keyboard", "keyboard xkb");
+        add("Follow mouse", 3, "Pointer", "active monitor pointer");
+        add("Sensitivity", 3, "Pointer", "mouse speed", "Mouse movement sensitivity multiplier.");
+        add("Accel profile", 3, "Pointer", "libinput flat adaptive");
+        add("Disable acceleration", 3, "Pointer", "libinput raw input");
+        add("Natural scrolling", 3, "Touchpad", "reverse scroll direction");
+        add("Fingers", 3, "Gestures", "touchpad swipe count");
+        add("Direction", 3, "Gestures", "swipe horizontal vertical");
+        add("Action", 3, "Gestures", "swipe workspace");
+        add("Device name", 3, "Per-device override", "libinput hardware");
+        add("Sensitivity", 3, "Per-device override", "device speed",
+            "Optional sensitivity override for a named device.");
+
+        // Keybindings
+        add("Bind", 4, "", "shortcut keys", "Shortcut keys assigned to an action.");
+        add("Command", 4, "", "action keysbind", "Command run by a shortcut.");
+        add("Label", 4, "", "description shortcut", "Description shown for a shortcut.");
+        add("Add keybinding", 4, "", "new shortcut", "Add a new keyboard shortcut.");
+        const binds = root.keybinds || [];
+        for (let i = 0; i < binds.length; i++) {
+            const bind = binds[i];
+            add(bind.label || "Keybinding", 4, "",
+                String(bind.bind || "") + " " + String(bind.command || ""),
+                String(bind.command || ""));
+        }
+
+        // Monitors
+        add("Display arrangement", 5, "", "drag outputs layout positions");
+        add("Resolution", 5, "", "display pixels");
+        add("Refresh rate", 5, "", "display hz");
+        add("Scale", 5, "", "display hidpi factor");
+        add("Rotation", 5, "", "display portrait landscape");
+        add("Enabled", 5, "", "display turn on off");
+        add("Re-detect", 5, "", "refresh outputs monitors");
+
+        // Session
+        add("Auto dim and lock", 6, "", "hypridle idle");
+        add("Dim screen", 6, "", "idle brightness");
+        add("Dim after", 6, "", "idle timeout seconds");
+        add("Dim brightness", 6, "", "idle percentage");
+        add("Lock screen", 6, "", "idle timeout");
+        add("Lock after", 6, "", "idle timeout seconds");
+
+        // Notifications
+        add("Position", 7, "", "popup edge side");
+        add("Display time", 7, "", "popup duration timeout");
+        add("Max popups", 7, "", "banner limit count");
+        add("Pause on hover", 7, "", "banner mouse");
+        add("Persistent popups", 7, "", "banner dismiss timeout");
+        add("Low battery warning", 7, "", "power notification");
+        add("Warn at", 7, "", "battery percentage threshold");
+        add("Notification history", 7, "", "calendar dismissed list");
+        add("Media controls", 7, "", "calendar now playing");
+        add("Media position", 7, "", "calendar above below");
+        add("Popup width", 7, "", "calendar notification width");
+        add("Show app icon", 7, "", "notification source icon");
+        add("Show app name", 7, "", "notification source title");
+        add("Send test notification", 7, "", "preview banner", "Send a test notification banner.");
+        add("Clear popups", 7, "", "dismiss banners", "Dismiss all active notification banners.");
+
+        // Autostart
+        add("Autostart commands", 8, "", "startup login hyprland", "Commands run when Hyprland starts.");
+        add("Add command", 8, "", "startup login", "Add an autostart command.");
+        const autoList = root.autostart || [];
+        for (let i = 0; i < autoList.length; i++)
+            add("Command " + (i + 1), 8, "", String(autoList[i]), String(autoList[i]));
+
+        // Programs
+        add("Terminal", 9, "", "alacritty console");
+        add("File manager", 9, "", "nautilus files");
+        add("Launcher", 9, "", "application menu");
+        add("Browser", 9, "", "web firefox");
+        add("Text editor", 9, "", "editor files");
+        add("Image viewer", 9, "", "photos pictures");
+        add("PDF viewer", 9, "", "documents");
+        add("Screenshot", 9, "", "capture hyprshot");
+
+        // Environment
+        add("Variable", 10, "", "env export key value");
+        add("Add variable", 10, "", "env export new", "Add an exported environment variable.");
+        const envList = root.envVars || [];
+        for (let i = 0; i < envList.length; i++) {
+            const env = envList[i];
+            add(String(env.key || ("Variable " + (i + 1))), 10, "",
+                String(env.value || ""), String(env.value || ""));
+        }
+
+        // Rules
+        add("Window rule", 11, "", "match floating position", "Read-only overview of active window rules.");
+        const ruleList = root.rules || [];
+        for (let i = 0; i < ruleList.length; i++) {
+            const rule = ruleList[i];
+            add(String(rule.name || ("Rule " + (i + 1))), 11, "",
+                String(rule.match || ""), String(rule.match || ""));
+        }
+
+        return out;
+    }
+
+    readonly property var searchResults: root.buildSearchResults()
+    readonly property var groupedSearchResults: {
+        const groups = [];
+        const lookup = {};
+        const list = root.searchResults;
+        for (let i = 0; i < list.length; i++) {
+            const item = list[i];
+            const key = item.pageIndex + "|" + item.section;
+            if (!lookup[key]) {
+                lookup[key] = {
+                    pageIndex: item.pageIndex,
+                    pageTitle: item.pageTitle,
+                    section: item.section,
+                    sectionTitle: item.sectionTitle,
+                    items: []
+                };
+                groups.push(lookup[key]);
+            }
+            lookup[key].items.push(item);
+        }
+        return groups;
+    }
+
     property string status: statusIdle
     property color statusColor: Theme.dim
 
@@ -116,7 +364,10 @@ ShellRoot {
         }
     }
 
-    Component.onCompleted: Qt.callLater(root.syncNavHighlight)
+    Component.onCompleted: {
+        root.ready = true;
+        Qt.callLater(root.syncNavHighlight);
+    }
 
     Behavior on reveal {
         NumberAnimation {
@@ -135,10 +386,7 @@ ShellRoot {
             // content area never empties out mid-swap.
             previousWasBarPage = renderedPage === 0;
 
-            // Keep the row being left filled until the highlight has fully
-            // moved off it, otherwise its background vanishes first.
-            outgoingNavIndex = renderedPage;
-            navSwapActive = true;
+            navSwapping = true;
             navSwapTimer.restart();
 
             pageSwapSnap = true;
@@ -154,6 +402,11 @@ ShellRoot {
             pageFadeTimer.restart();
             root.syncNavHighlight();
         }
+
+        function onSearchQueryChanged() {
+            scroller.contentItem.contentY = 0;
+            revealTimer.stop();
+        }
     }
 
     // Wallpaper
@@ -166,6 +419,13 @@ ShellRoot {
         light: { surface: "#f5f6f8", pill: "#ffffff" }
     })
     property var wallpapers: []
+
+    // Saved appearance + window themes
+    readonly property string themesPath: home + "/.config/quickshell/themes.json"
+    property var themeNames: []
+    property var themePreviews: ({})
+    property string selectedTheme: ""
+    property string newThemeName: ""
 
     // Cursor
     property string cursorTheme: "default"
@@ -192,7 +452,13 @@ ShellRoot {
     }
 
     // Bar
+    readonly property string gtkAccentHelper: home
+        + "/.config/quickshell/settings/apply-gtk-accent.sh"
     property string barAccent: "#7cc7f5"
+    onBarAccentChanged: {
+        if (root.ready && root.shown)
+            gtkAccentDebounce.restart();
+    }
     property string barSurface: "#11141b"
     property string barPill: "#121722"
     property string barPillBorder: "#2b3547"
@@ -945,29 +1211,78 @@ ShellRoot {
     }
 
     function themeGtkName(mode) {
-        return mode === "light" ? "Adwaita" : "Adwaita-dark";
+        return mode === "light" ? "cyan1de-light" : "cyan1de-dark";
     }
 
     function themeScheme(mode) {
         return mode === "light" ? "prefer-light" : "prefer-dark";
     }
 
-    function themedAutostart(mode) {
-        const gtk = themeGtkName(mode);
-        const scheme = themeScheme(mode);
-        return autostart.map(command => {
-            if (command.indexOf("gsettings set org.gnome.desktop.interface gtk-theme") === 0)
-                return "gsettings set org.gnome.desktop.interface gtk-theme '" + gtk + "'";
-            if (command.indexOf("gsettings set org.gnome.desktop.interface color-scheme") === 0)
-                return "gsettings set org.gnome.desktop.interface color-scheme '" + scheme + "'";
-            return command;
+    // GTK4/libadwaita only accept one of nine named accents. Pick the closest
+    // match to the exact panel accent; GTK3 and Qt get the exact colour through
+    // the generated themes below.
+    function gtkAccentName(value) {
+        const accents = ({
+            blue: "#3584e4", teal: "#2190a4", green: "#3a944a",
+            yellow: "#c88800", orange: "#ed5b00", red: "#e62d42",
+            pink: "#d56199", purple: "#9141ac", slate: "#6f8396"
         });
+        const names = Object.keys(accents);
+        const raw = String(value || "").trim();
+        let hex = raw.replace("#", "");
+        if (hex.length === 3)
+            hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+        if (hex.length !== 6 || !/^[0-9a-fA-F]+$/.test(hex))
+            return "blue";
+
+        const rgb = [parseInt(hex.slice(0, 2), 16),
+            parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)];
+        const weights = [0.30, 0.59, 0.11];
+        let best = names[0];
+        let bestDistance = Infinity;
+        for (let i = 0; i < names.length; i++) {
+            const candidate = hexToRgb(accents[names[i]]);
+            let distance = 0;
+            for (let c = 0; c < 3; c++)
+                distance += weights[c] * (rgb[c] - candidate[c]) * (rgb[c] - candidate[c]);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = names[i];
+            }
+        }
+        return best;
+    }
+
+    function isThemedAutostartCommand(command) {
+        return command.indexOf(root.gtkAccentHelper) === 0
+            || command.indexOf("~/.config/quickshell/settings/apply-gtk-accent.sh") === 0
+            || command.indexOf("gsettings set org.gnome.desktop.interface gtk-theme") === 0
+            || command.indexOf("gsettings set org.gnome.desktop.interface color-scheme") === 0
+            || command.indexOf("gsettings set org.gnome.desktop.interface accent-color") === 0;
+    }
+
+    function themedAutostart(mode) {
+        const helper = root.gtkAccentHelper + " '" + barAccent + "' '" + mode + "'";
+        const out = [];
+        let inserted = false;
+        for (let i = 0; i < autostart.length; i++) {
+            const command = autostart[i];
+            if (isThemedAutostartCommand(command)) {
+                if (!inserted) {
+                    out.push(helper);
+                    inserted = true;
+                }
+                continue;
+            }
+            out.push(command);
+        }
+        if (!inserted)
+            out.push(helper);
+        return out;
     }
 
     function applyGtkTheme(mode) {
-        Quickshell.execDetached(["sh", "-c",
-            "gsettings set org.gnome.desktop.interface gtk-theme '" + themeGtkName(mode) + "' && "
-            + "gsettings set org.gnome.desktop.interface color-scheme '" + themeScheme(mode) + "'"]);
+        Quickshell.execDetached([root.gtkAccentHelper, barAccent, mode]);
     }
 
     function updateAutostartTheme(mode) {
@@ -1054,6 +1369,236 @@ ShellRoot {
         queueSave();
     }
 
+    function clampByte(value) {
+        return Math.max(0, Math.min(255, Math.round(Number(value) || 0)));
+    }
+
+    function hexToRgb(value) {
+        const h = String(value || "").replace("#", "");
+        if (h.length === 3)
+            return [parseInt(h[0] + h[0], 16), parseInt(h[1] + h[1], 16),
+                parseInt(h[2] + h[2], 16)];
+        if (h.length < 6) return [0, 0, 0];
+        return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16),
+            parseInt(h.slice(4, 6), 16)];
+    }
+
+    function rgbToHex(rgb) {
+        const part = function (value) {
+            const h = clampByte(value).toString(16);
+            return h.length === 1 ? "0" + h : h;
+        };
+        return "#" + part(rgb[0]) + part(rgb[1]) + part(rgb[2]);
+    }
+
+    function mixRgb(a, b, amount) {
+        const t = Math.max(0, Math.min(1, amount));
+        return [
+            a[0] + (b[0] - a[0]) * t,
+            a[1] + (b[1] - a[1]) * t,
+            a[2] + (b[2] - a[2]) * t
+        ];
+    }
+
+    function rgbLuma(rgb) {
+        return (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255;
+    }
+
+    function saturateRgb(rgb, amount) {
+        const luma = rgbLuma(rgb) * 255;
+        return [
+            clampByte(luma + (rgb[0] - luma) * amount),
+            clampByte(luma + (rgb[1] - luma) * amount),
+            clampByte(luma + (rgb[2] - luma) * amount)
+        ];
+    }
+
+    function brightenRgb(rgb, factor) {
+        return [
+            clampByte(rgb[0] * factor),
+            clampByte(rgb[1] * factor),
+            clampByte(rgb[2] * factor)
+        ];
+    }
+
+    function applyWallpaperAverage(r, g, b) {
+        const avg = saturateRgb([clampByte(r), clampByte(g), clampByte(b)], 1.12);
+        const light = themeMode === "light";
+
+        let accent = saturateRgb(mixRgb(avg, hexToRgb("#7cc7f5"), 0.28), 1.06);
+        if (light) {
+            if (rgbLuma(accent) > 0.80)
+                accent = mixRgb(accent, [20, 40, 60], 0.28);
+            else if (rgbLuma(accent) < 0.32)
+                accent = brightenRgb(accent, 1.16);
+        } else {
+            if (rgbLuma(accent) < 0.46)
+                accent = brightenRgb(accent, 1.20);
+            else if (rgbLuma(accent) > 0.88)
+                accent = mixRgb(accent, [17, 20, 27], 0.10);
+        }
+
+        const textAnchor = light ? [20, 28, 40] : [255, 255, 255];
+        const surfaceAnchor = light ? [245, 246, 248] : [17, 20, 27];
+        const pillAnchor = light ? [255, 255, 255] : [23, 27, 36];
+        const borderAnchor = light ? [184, 192, 204] : [43, 53, 71];
+
+        barAccent = rgbToHex(accent);
+        barText = rgbToHex(mixRgb(avg, textAnchor, light ? 0.66 : 0.64));
+        setBarColor("surface", rgbToHex(mixRgb(avg, surfaceAnchor, light ? 0.74 : 0.72)));
+        setBarColor("pill", rgbToHex(mixRgb(avg, pillAnchor, light ? 0.62 : 0.60)));
+        barPillBorder = rgbToHex(mixRgb(avg, borderAnchor, light ? 0.48 : 0.42));
+        queueSave();
+
+        status = "Applied wallpaper colors";
+        statusColor = Theme.green;
+        statusTimer.restart();
+    }
+
+    function applyWallpaperColors() {
+        if (!root.resolvedWallpaperPath || root.resolvedWallpaperPath.length === 0) {
+            status = "Choose a wallpaper first";
+            statusColor = Theme.yellow;
+            statusTimer.restart();
+            return;
+        }
+
+        wallpaperColorProcess.command = ["sh", "-c", root.wallpaperColorScript,
+            "cyan1de-wallpaper-color", root.b64Utf8(root.resolvedWallpaperPath)];
+        wallpaperColorProcess.running = false;
+        wallpaperColorProcess.running = true;
+        status = "Sampling wallpaper…";
+        statusColor = Theme.subtext;
+        statusTimer.restart();
+    }
+
+    function sanitizeThemeName(value) {
+        return String(value || "").trim().replace(/\s+/g, " ").substring(0, 60);
+    }
+
+    function readThemeStore() {
+        try {
+            reloadFile(themesFile);
+            const raw = themesFile.text();
+            if (!raw || !raw.trim())
+                return {};
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+                ? parsed : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function persistThemeStore(store) {
+        themesWriter.setText(JSON.stringify(store, null, 2) + "\n");
+        themesWriter.waitForJob();
+    }
+
+    function captureThemeSnapshot() {
+        const current = buildSettings();
+        return JSON.parse(JSON.stringify({
+            themeMode: current.themeMode,
+            themeColors: current.themeColors,
+            wallpaper: current.wallpaper,
+            wallpaperMode: current.wallpaperMode,
+            cursor: current.cursor,
+            bar: current.bar,
+            hypr: current.hypr
+        }));
+    }
+
+    function reloadThemes() {
+        const store = readThemeStore();
+        const previews = {};
+        themeNames = Object.keys(store).sort();
+
+        for (let i = 0; i < themeNames.length; i++) {
+            const name = themeNames[i];
+            const snapshot = store[name] || {};
+            const bar = snapshot.bar || {};
+            const colors = snapshot.themeColors || {};
+            const dark = colors.dark || {};
+            const hypr = snapshot.hypr || {};
+
+            previews[name] = {
+                accent: bar.accent || "#7cc7f5",
+                surface: bar.surface || dark.surface || "#11141b",
+                pill: bar.pill || dark.pill || "#121722",
+                text: bar.text || "#cdd6e6",
+                border1: hypr.border1 || "#0292e3"
+            };
+        }
+
+        themePreviews = previews;
+        if (themeNames.indexOf(selectedTheme) < 0)
+            selectedTheme = themeNames.length > 0 ? themeNames[0] : "";
+    }
+
+    function saveTheme(value) {
+        const name = sanitizeThemeName(value);
+        if (name.length === 0) {
+            status = "Enter a theme name";
+            statusColor = Theme.yellow;
+            statusTimer.restart();
+            return;
+        }
+
+        const store = readThemeStore();
+        const existed = Object.prototype.hasOwnProperty.call(store, name);
+        store[name] = captureThemeSnapshot();
+        persistThemeStore(store);
+        reloadThemes();
+        selectedTheme = name;
+        newThemeName = name;
+        status = (existed ? "Updated theme: " : "Saved theme: ") + name;
+        statusColor = Theme.green;
+        statusTimer.restart();
+    }
+
+    function loadTheme(value) {
+        const name = sanitizeThemeName(value);
+        const store = readThemeStore();
+        const snapshot = store[name];
+
+        if (!snapshot || typeof snapshot !== "object") {
+            status = "Saved theme not found";
+            statusColor = Theme.yellow;
+            statusTimer.restart();
+            return;
+        }
+
+        const merged = Object.assign({}, buildSettings(),
+            JSON.parse(JSON.stringify(snapshot)));
+        applySettings(merged);
+        updateAutostartTheme(themeMode);
+        applyGtkTheme(themeMode);
+        applyCursor();
+        saveSettings();
+        status = "Loading theme: " + name;
+        statusColor = Theme.subtext;
+        statusTimer.restart();
+        applyAll();
+    }
+
+    function deleteTheme(value) {
+        const name = sanitizeThemeName(value);
+        const store = readThemeStore();
+        if (!Object.prototype.hasOwnProperty.call(store, name)) {
+            status = "Saved theme not found";
+            statusColor = Theme.yellow;
+            statusTimer.restart();
+            return;
+        }
+
+        delete store[name];
+        persistThemeStore(store);
+        reloadThemes();
+        status = "Deleted theme: " + name;
+        statusColor = Theme.green;
+        statusTimer.restart();
+    }
+
     function setBarPillPosition(which, value) {
         const target = barPillSnapSlot(value);
         const previous = barPillFraction(which);
@@ -1088,6 +1633,7 @@ ShellRoot {
         // FileView caches text between reads; refresh from disk before parsing
         // so externally edited files (or a previous Apply) are never stale.
         reloadFile(settingsFile);
+        reloadThemes();
         reloadFile(autostartFile);
         reloadFile(envFile);
         reloadFile(inputFile);
@@ -1372,6 +1918,20 @@ ShellRoot {
         }
         return Qt.btoa(out);
     }
+
+    // Downscale the current wallpaper to one pixel and print its RGB bytes.
+    // The path is base64-encoded so spaces and quotes cannot break the shell.
+    readonly property string wallpaperColorScript: [
+        "path=$(printf %s \"$1\" | base64 -d)",
+        "[ -f \"$path\" ] || exit 1",
+        "if command -v ffmpeg >/dev/null 2>&1; then",
+        "  ffmpeg -v error -i \"$path\" -vf 'scale=1:1:flags=area' -frames:v 1 -f rawvideo -pix_fmt rgb24 pipe:1 | od -An -v -tu1",
+        "elif command -v python3 >/dev/null 2>&1; then",
+        "  python3 -c 'import sys; from PIL import Image; im = Image.open(sys.argv[1]).convert(\"RGB\").resize((1, 1)); p = im.getpixel((0, 0)); print(p[0], p[1], p[2])' \"$path\"",
+        "else",
+        "  exit 1",
+        "fi"
+    ].join("\n")
 
     function parseInput() {
         const t = inputText;
@@ -2287,13 +2847,15 @@ ShellRoot {
             return;
         hideTimer.stop();
         loadAll();
+        applyGtkTheme(themeMode);
+        root.clearSearch();
+        revealTimer.stop();
 
         // A warm daemon must still feel like a fresh panel: always return to
         // the first page with the first appearance section selected.
         navHighlightAnimate = false;
         navHighlightVisible = false;
-        navSwapActive = false;
-        outgoingNavIndex = -1;
+        navSwapping = false;
         navSwapTimer.stop();
         page = 0;
         renderedPage = 0;
@@ -2351,10 +2913,7 @@ ShellRoot {
     Timer {
         id: navSwapTimer
         interval: Theme.motionBase
-        onTriggered: {
-            root.navSwapActive = false;
-            root.outgoingNavIndex = -1;
-        }
+        onTriggered: root.navSwapping = false
     }
 
     Timer {
@@ -2367,6 +2926,22 @@ ShellRoot {
         }
     }
 
+    Timer {
+        id: revealTimer
+        interval: Theme.motionBase + 40
+        onTriggered: {
+            const target = root.findSettingItem(pageLoader.item, root.pendingSearchLabel);
+            if (target && scroller) {
+                const pos = target.mapToItem(scroller.contentItem, 0, 0);
+                const maxY = Math.max(0,
+                    scroller.contentItem.contentHeight - scroller.height);
+                scroller.contentItem.contentY = Math.max(0,
+                    Math.min(maxY, pos.y - 72));
+            }
+            root.pendingSearchLabel = "";
+        }
+    }
+
     function toggle() {
         if (shown && !closing)
             close();
@@ -2374,7 +2949,21 @@ ShellRoot {
             open();
     }
 
+    function clearSearch() {
+        searchQuery = "";
+        pendingSearchLabel = "";
+    }
+
+    function focusSearch() {
+        if (!searchField || !searchField.input)
+            return;
+        searchField.input.forceActiveFocus();
+        searchField.input.selectAll();
+    }
+
     function setPage(index) {
+        if (root.searchActive)
+            root.clearSearch();
         const next = Math.max(0, Math.min(pages.length - 1, index));
         if (next === page)
             return;
@@ -2383,11 +2972,48 @@ ShellRoot {
     }
 
     function setAppearanceSection(value) {
+        if (root.searchActive)
+            root.clearSearch();
         if (value === appearanceSection)
             return;
         appearanceSection = value;
         confirmReset = false;
         scroller.contentItem.contentY = 0;
+    }
+
+    function findSettingItem(item, label) {
+        if (!item || !item.children)
+            return null;
+        for (let i = 0; i < item.children.length; i++) {
+            const child = item.children[i];
+            let childLabel = "";
+            try {
+                if (typeof child.label === "string")
+                    childLabel = child.label;
+                else if (typeof child.text === "string")
+                    childLabel = child.text;
+            } catch (e) {
+                childLabel = "";
+            }
+            if (childLabel === label && child.visible)
+                return child;
+            const nested = root.findSettingItem(child, label);
+            if (nested)
+                return nested;
+        }
+        return null;
+    }
+
+    function revealSearchResult(entry) {
+        if (!entry)
+            return;
+        root.clearSearch();
+        root.setPage(entry.pageIndex);
+        if (entry.pageIndex === 0 && entry.section)
+            root.setAppearanceSection(entry.section);
+        pendingSearchLabel = entry.label;
+        scroller.contentItem.contentY = 0;
+        revealTimer.restart();
     }
 
     function componentForPage(index) {
@@ -2448,6 +3074,15 @@ ShellRoot {
     }
 
     Timer {
+        id: gtkAccentDebounce
+        interval: 180
+        onTriggered: {
+            root.applyGtkTheme(themeMode);
+            root.updateAutostartTheme(themeMode);
+        }
+    }
+
+    Timer {
         id: managedDebounce
         interval: 250
         onTriggered: root.applyManaged()
@@ -2473,6 +3108,22 @@ ShellRoot {
     FileView {
         id: settingsWriter
         path: root.settingsPath
+        blockWrites: false
+        atomicWrites: false
+        printErrors: true
+    }
+
+    FileView {
+        id: themesFile
+        path: root.themesPath
+        preload: true
+        blockLoading: true
+        printErrors: false
+    }
+
+    FileView {
+        id: themesWriter
+        path: root.themesPath
         blockWrites: false
         atomicWrites: false
         printErrors: true
@@ -2618,10 +3269,41 @@ ShellRoot {
         }
     }
 
+    Process {
+        id: wallpaperColorProcess
+        running: false
+        command: []
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const match = String(text).match(/(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})/);
+                if (!match) {
+                    root.status = "Could not sample wallpaper";
+                    root.statusColor = Theme.red;
+                    root.statusTimer.restart();
+                    return;
+                }
+                root.applyWallpaperAverage(Number(match[1]), Number(match[2]), Number(match[3]));
+            }
+        }
+    }
+
+    Shortcut {
+        sequence: "Ctrl+F"
+        enabled: root.shown && root.captureOwner === null
+        onActivated: root.focusSearch()
+    }
+
     Shortcut {
         sequence: "Escape"
         enabled: root.shown && root.captureOwner === null
-        onActivated: root.close()
+        onActivated: {
+            if (root.searchActive) {
+                root.clearSearch();
+                return;
+            }
+            root.close();
+        }
     }
 
     PanelWindow {
@@ -2713,11 +3395,12 @@ ShellRoot {
                     }
 
                     ColumnLayout {
-                        Layout.maximumWidth: 420
+                        Layout.maximumWidth: 330
                         spacing: 0
 
                         Text {
-                            text: "Settings / " + root.currentPage.title
+                            text: root.searchActive
+                                ? "Settings / Search" : "Settings / " + root.currentPage.title
                             font.family: Theme.mono
                             font.pixelSize: 16
                             font.weight: Font.DemiBold
@@ -2726,7 +3409,11 @@ ShellRoot {
                         }
 
                         Text {
-                            text: root.currentPage.subtitle
+                            text: root.searchActive
+                                ? root.searchResults.length
+                                    + (root.searchResults.length === 1
+                                        ? " matching control" : " matching controls")
+                                : root.currentPage.subtitle
                             font.family: Theme.mono
                             font.pixelSize: 10
                             color: Theme.dim
@@ -2735,6 +3422,86 @@ ShellRoot {
                     }
 
                     Item { Layout.fillWidth: true }
+
+                    Rectangle {
+                        id: searchField
+
+                        property alias input: searchInput
+
+                        Layout.preferredWidth: 270
+                        Layout.minimumWidth: 200
+                        Layout.maximumWidth: 300
+                        implicitHeight: 32
+                        radius: Theme.controlRadius
+                        color: Theme.bg
+                        border.width: 1
+                        border.color: searchInput.activeFocus ? Theme.accent : Theme.border
+
+                        Behavior on border.color {
+                            ColorAnimation { duration: Theme.motionFast }
+                        }
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 7
+                            spacing: 6
+
+                            Text {
+                                text: "\uf002"
+                                font.family: Theme.font
+                                font.pixelSize: 13
+                                color: Theme.dim
+                            }
+
+                            TextField {
+                                id: searchInput
+
+                                Layout.fillWidth: true
+                                text: root.searchQuery
+                                placeholderText: "Search settings  (Ctrl+F)"
+                                placeholderTextColor: Theme.dim
+                                color: Theme.text
+                                font.family: Theme.mono
+                                font.pixelSize: 11
+                                selectByMouse: true
+                                leftPadding: 0
+                                rightPadding: 0
+                                topPadding: 0
+                                bottomPadding: 0
+                                background: null
+                                onTextEdited: root.searchQuery = text
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: 16
+                                Layout.preferredHeight: 16
+                                radius: 8
+                                visible: searchInput.text.length > 0
+                                color: clearSearchMouse.containsMouse
+                                    ? Theme.hover : "transparent"
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "✕"
+                                    font.family: Theme.mono
+                                    font.pixelSize: 9
+                                    color: Theme.dim
+                                }
+
+                                MouseArea {
+                                    id: clearSearchMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        searchInput.text = "";
+                                        root.clearSearch();
+                                        searchInput.forceActiveFocus();
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     SettingsButton {
                         icon: "󰅙"
@@ -2823,7 +3590,7 @@ ShellRoot {
                                         icon: modelData.icon
                                         label: modelData.title
                                         active: root.page === index
-                                        outgoing: root.navSwapActive && root.outgoingNavIndex === index
+                                        swapping: root.navSwapping
                                         onClicked: root.setPage(index)
                                     }
                                 }
@@ -2863,6 +3630,7 @@ ShellRoot {
                         clip: true
                         contentWidth: availableWidth
                         contentHeight: contentWrapper.implicitHeight
+                        Component.onCompleted: contentItem.boundsBehavior = Flickable.StopAtBounds
                         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                         ScrollBar.vertical.policy: ScrollBar.AsNeeded
 
@@ -2870,9 +3638,8 @@ ShellRoot {
                             id: contentWrapper
                             width: scroller.availableWidth
                             height: implicitHeight
-                            implicitHeight: Math.max(pageLoader.implicitHeight,
-                                    previousPageLoader.implicitHeight) + 32
-                                + (root.page === 0 ? 50 : 0)
+                            implicitHeight: pageLoader.implicitHeight + 32
+                                + (root.page === 0 && !root.searchActive ? 50 : 0)
 
                             // Outgoing page stays mounted underneath while the
                             // incoming page fades in, so there is no empty frame.
@@ -2899,12 +3666,14 @@ ShellRoot {
                             Loader {
                                 id: pageLoader
                                 x: 16 + (1 - opacity) * 10
-                                y: 16 + (root.page === 0 ? 50 : 0)
+                                y: 16 + (root.page === 0 && !root.searchActive ? 50 : 0)
                                 width: parent.width - 32
                                 opacity: 1
                                 scale: 0.99 + 0.01 * opacity
                                 transformOrigin: Item.TopLeft
-                                sourceComponent: root.componentForPage(root.renderedPage)
+                                sourceComponent: root.searchActive
+                                    ? searchResultsPage
+                                    : root.componentForPage(root.renderedPage)
                                 z: 1
 
                                 Behavior on opacity {
@@ -2974,7 +3743,7 @@ ShellRoot {
                 width: scroller.width
                 height: 40
                 z: 5
-                visible: root.page === 0
+                visible: root.page === 0 && !root.searchActive
                 radius: Theme.panelRadius
                 color: Theme.surfaceAlt
                 border.width: 1
@@ -3024,6 +3793,128 @@ ShellRoot {
             z: 100
 
             Component.onCompleted: root.dragOverlayHost = dragOverlayLayer
+        }
+    }
+
+    Component {
+        id: searchResultsPage
+
+        ColumnLayout {
+            spacing: 14
+
+            Text {
+                Layout.fillWidth: true
+                text: "MATCHING CONTROLS"
+                font.family: Theme.mono
+                font.pixelSize: 10
+                font.weight: Font.DemiBold
+                color: Theme.dim
+            }
+
+            Text {
+                Layout.fillWidth: true
+                visible: root.searchResults.length === 0
+                text: "No settings match “" + root.searchQuery + "”."
+                font.family: Theme.mono
+                font.pixelSize: 11
+                color: Theme.subtext
+                wrapMode: Text.WordWrap
+            }
+
+            Repeater {
+                model: root.groupedSearchResults
+
+                SectionCard {
+                    Layout.fillWidth: true
+                    title: String(modelData.pageTitle).toUpperCase()
+                    subtitle: (modelData.sectionTitle
+                            ? modelData.sectionTitle + " · " : "")
+                        + modelData.items.length
+                        + (modelData.items.length === 1 ? " control" : " controls")
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Repeater {
+                            model: modelData.items
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                implicitHeight: resultRow.implicitHeight + 12
+                                radius: Theme.controlRadius
+                                color: resultMouse.containsMouse
+                                    ? Theme.hover : Theme.surface
+                                border.width: 1
+                                border.color: Theme.border
+
+                                RowLayout {
+                                    id: resultRow
+
+                                    anchors.fill: parent
+                                    anchors.margins: 6
+                                    spacing: 8
+
+                                    Text {
+                                        text: "\uf002"
+                                        font.family: Theme.font
+                                        font.pixelSize: 13
+                                        color: Theme.accent
+                                    }
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 1
+
+                                        Text {
+                                            Layout.fillWidth: true
+                                            text: modelData.label
+                                            font.family: Theme.mono
+                                            font.pixelSize: 11
+                                            font.weight: Font.DemiBold
+                                            color: Theme.text
+                                            elide: Text.ElideRight
+                                        }
+
+                                        Text {
+                                            Layout.fillWidth: true
+                                            visible: modelData.detail !== ""
+                                            text: modelData.detail
+                                            font.family: Theme.mono
+                                            font.pixelSize: 9
+                                            color: Theme.dim
+                                            elide: Text.ElideRight
+                                        }
+                                    }
+
+                                    Text {
+                                        text: modelData.sectionTitle || modelData.pageTitle
+                                        font.family: Theme.mono
+                                        font.pixelSize: 9
+                                        color: Theme.dim
+                                        elide: Text.ElideRight
+                                    }
+
+                                    Text {
+                                        text: "→"
+                                        font.family: Theme.font
+                                        font.pixelSize: 13
+                                        color: Theme.accent
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: resultMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.revealSearchResult(modelData)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 

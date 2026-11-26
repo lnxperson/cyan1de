@@ -8,7 +8,7 @@ Rectangle {
     property string label: ""
     property bool active: false
     property bool hovered: false
-    property bool outgoing: false
+    property bool swapping: false
     property real press: 0
 
     signal clicked()
@@ -17,18 +17,24 @@ Rectangle {
 
     implicitHeight: 36
     radius: Theme.controlRadius
-    // Keep both ends of the slide filled: the clicked row until the highlight
-    // arrives, and the row being left until it moves away.
-    color: outgoing ? Theme.active
-        : active
-            ? (hovered ? Theme.active : "transparent")
-            : (hovered ? Theme.hover : "transparent")
+    // The sliding highlight is the only fill during a swap. Hover must not
+    // cover it on the row being left, or that row looks like it briefly goes
+    // transparent as the highlight slides away.
+    //
+    // A transparent Rectangle with border properties hits QTBUG-137166 and
+    // punches a hole through the window. When the focus ring is on, use the
+    // opaque surface that is already behind the row so the fill stays solid.
+    color: root.activeFocus
+        ? (active ? Theme.active : (hovered ? Theme.hover : Theme.surface))
+        : (active || !hovered || swapping ? "transparent" : Theme.hover)
     border.width: root.activeFocus ? 1 : 0
     border.color: Theme.accent
     scale: 1 - 0.02 * root.press
 
-    Behavior on color { ColorAnimation { duration: Theme.motionFast } }
-    Behavior on border.width { NumberAnimation { duration: Theme.motionFast } }
+    Behavior on color {
+        enabled: !root.activeFocus
+        ColorAnimation { duration: Theme.motionFast }
+    }
     Behavior on scale {
         NumberAnimation {
             duration: Theme.motionFast

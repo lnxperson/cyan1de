@@ -86,9 +86,11 @@ ColumnLayout {
             font.family: Theme.mono
             font.pixelSize: 9
             color: Theme.subtext
-            wrapMode: Text.NoWrap
+            wrapMode: Text.WordWrap
             textFormat: Text.PlainText
-            elide: Text.ElideNone
+            maximumLineCount: 12
+            elide: Text.ElideRight
+            clip: true
         }
     }
 

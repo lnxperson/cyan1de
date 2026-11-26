@@ -18,7 +18,7 @@ PopupWindow {
 
     implicitWidth: Math.max(380, Theme.calendarWidth)
     // Fixed so the popup height stays stable while its contents load.
-    implicitHeight: 510
+    implicitHeight: 520
     color: "transparent"
     visible: false
 
