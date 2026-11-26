@@ -102,14 +102,23 @@ Item {
         }
     }
 
-    Text {
+    // Grey version of the recording chip's stop icon, kept in the same slot.
+    Rectangle {
         id: replayIcon
         visible: root.replayMode
+        width: 12
+        height: 12
         anchors.centerIn: parent
-        text: "󰑓"
-        font.family: Theme.mono
-        font.pixelSize: 14
+        radius: 4
         color: Theme.dim
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: 5
+            height: 5
+            radius: 1
+            color: Theme.surfaceAlt
+        }
     }
 
     MouseArea {
