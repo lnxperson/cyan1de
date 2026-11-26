@@ -121,6 +121,7 @@ QtObject {
         "Screenshot folder": "Folder where screenshots saved to disk are written.",
         "Screenshot format": "File format for screenshots saved to disk. JPG files are converted after capture.",
         "Copy screenshots": "Also copy screenshots saved to disk to the clipboard.",
-        "Screenshot command": "Screenshot utility used by the PRINT keybindings. Shared with the Programs page."
+        "Screenshot command": "Screenshot utility used by the PRINT keybindings. Shared with the Programs page.",
+        "Organize by app folders": "Save recordings and clips in a subfolder named after the active app. For a named display, the most recently focused app on that display is used."
     })
 }

@@ -3,11 +3,13 @@ set -uo pipefail
 
 # Screenshot helper used by the PRINT keybindings. Options come from Settings
 # → Screen Capturing; the utility itself stays the Programs page setting.
+# App folders apply to recordings and clips only.
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../capture/common.sh
 source "$script_dir/../capture/common.sh"
 
+app_folders=0
 rec_dir="$HOME/Videos"
 rec_display="focused"
 rec_fps=60

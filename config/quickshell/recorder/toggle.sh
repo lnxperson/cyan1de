@@ -122,6 +122,7 @@ stop_recorder() {
 }
 
 # Defaults keep the script usable before Settings has written a capture block.
+app_folders=0
 rec_dir="$HOME/Videos"
 rec_display="focused"
 rec_fps=60
@@ -154,13 +155,14 @@ if ! command -v wf-recorder >/dev/null 2>&1; then
     exit 1
 fi
 
-mkdir -p "$rec_dir" || {
-    capture_notify "Recording failed" "Cannot create recording directory: $rec_dir" "critical"
+output="$(capture_resolve_display "$rec_display")"
+target_dir="$(capture_target_dir "$rec_dir" "$output")"
+mkdir -p "$target_dir" || {
+    capture_notify "Recording failed" "Cannot create recording directory: $target_dir" "critical"
     exit 1
 }
 
-file="$(capture_unique_file "$rec_dir" cyan1de mp4)"
+file="$(capture_unique_file "$target_dir" cyan1de mp4)"
 printf '%s\n' "$file" > "$path_file"
 
-output="$(capture_resolve_display "$rec_display")"
 start_recorder "$file" "$output"

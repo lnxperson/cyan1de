@@ -20,6 +20,7 @@ lock_file="$state_dir/replay.lock"
 clip_lock="$state_dir/replay.clip.lock"
 
 # Defaults mirror Settings → Screen Capturing before the first save.
+app_folders=0
 clip_enabled=1
 clip_dir="$HOME/Videos"
 clip_seconds=60
@@ -176,7 +177,7 @@ run_replay() {
 
 save_clip() {
     local segments=() valid=() segment duration total start file preset escaped suffix=0
-    local audio_output=()
+    local audio_output=() target_dir
     exec 9>"$clip_lock" || exit 0
     if command -v flock >/dev/null 2>&1; then
         flock -n 9 || exit 0
@@ -230,11 +231,12 @@ save_clip() {
     start="$(awk -v total="$total" -v wanted="$clip_seconds" \
         'BEGIN { value = total - wanted; if (value < 0) value = 0; printf "%.3f", value }')"
 
-    mkdir -p "$clip_dir" || {
-        capture_notify "Clip not saved" "Cannot create clip directory: $clip_dir" "critical"
+    target_dir="$(capture_target_dir "$clip_dir" "$clip_display")"
+    mkdir -p "$target_dir" || {
+        capture_notify "Clip not saved" "Cannot create clip directory: $target_dir" "critical"
         return 1
     }
-    file="$(capture_unique_file "$clip_dir" cyan1de-clip mp4)"
+    file="$(capture_unique_file "$target_dir" cyan1de-clip mp4)"
     preset="$(capture_quality_preset "$clip_quality")"
     if [[ "$clip_audio" == "1" ]]; then
         audio_output=(-c:a aac -b:a 160k)

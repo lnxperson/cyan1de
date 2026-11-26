@@ -296,6 +296,7 @@ ShellRoot {
         }
 
         // Screen Capturing
+        add("Organize by app folders", 12, "", "folder application game window recording clip", "Save recordings and clips in a subfolder named after the active app.");
         add("Recording folder", 12, "", "recording video directory save", "Folder used for full recordings.");
         add("Recording display", 12, "", "monitor output focused screen", "Monitor used for full recordings.");
         add("Recording refresh rate", 12, "", "fps framerate capture", "Constant frame rate for recordings; 0 uses variable timing.");
@@ -695,6 +696,7 @@ ShellRoot {
     property string progScreenshot: "\"hyprshot\""
 
     // Screen capturing. Paths stay portable (~/...) and scripts expand them.
+    property bool captureAppFolders: false
     property string captureRecDir: "~/Videos"
     property string captureRecDisplay: "focused"
     property int captureRecFps: 60
@@ -918,6 +920,7 @@ ShellRoot {
                 lowBatteryThreshold: 20
             },
             capture: {
+                appFolders: false,
                 recordings: {
                     directory: "~/Videos",
                     display: "focused",
@@ -1083,6 +1086,8 @@ ShellRoot {
         const cr = cap.recordings || ({});
         const cc = cap.clips || ({});
         const cs = cap.screenshots || ({});
+
+        captureAppFolders = asBool(cap.appFolders, d.capture.appFolders);
 
         wallpaperPath = asText(s && s.wallpaper, d.wallpaper);
         wallpaperMode = (s && s.wallpaperMode === "fit")
@@ -1336,6 +1341,7 @@ ShellRoot {
                 lowBatteryThreshold: lowBatteryThreshold
             },
             capture: {
+                appFolders: captureAppFolders,
                 recordings: {
                     directory: captureRecDir,
                     display: captureRecDisplay,

@@ -77,6 +77,8 @@ rec = group("recordings", {})
 clip = group("clips", {})
 shot = group("screenshots", {})
 
+print("APP_FOLDERS=" + ("1" if boolean(capture, "appFolders", False) else "0"))
+
 print("REC_DIR=" + directory(rec, "directory", "~/Videos"))
 print("REC_DISPLAY=" + text(rec, "display", "focused"))
 print("REC_FPS=" + str(integer(rec, "framerate", 60, 0, 240)))
@@ -101,6 +103,7 @@ PY
 
     while IFS='=' read -r key value; do
         case "$key" in
+            APP_FOLDERS) app_folders="$value" ;;
             REC_DIR) rec_dir="$value" ;;
             REC_DISPLAY) rec_display="$value" ;;
             REC_FPS) rec_fps="$value" ;;
@@ -166,6 +169,110 @@ capture_resolve_display() {
         fi
     fi
     printf '%s\n' "$first"
+}
+
+# Resolve a folder-safe app name from Hyprland. For a named display, use the
+# most recently focused client on that monitor; otherwise use the global active
+# window. Classes like GeometryDash are split into "Geometry Dash", while a
+# lowercase class such as firefox falls back to the app suffix of its title.
+capture_app_name() {
+    local wanted="${1:-}" name
+    command -v python3 >/dev/null 2>&1 || return 1
+    command -v hyprctl >/dev/null 2>&1 || return 1
+
+    name="$(python3 - "$wanted" <<'PY'
+import json
+import re
+import subprocess
+import sys
+
+wanted = sys.argv[1] if len(sys.argv) > 1 else "focused"
+
+def run_json(args):
+    try:
+        result = subprocess.run(args, stdout=subprocess.PIPE,
+                                stderr=subprocess.DEVNULL, text=True, timeout=5)
+        if result.returncode != 0:
+            return None
+        return json.loads(result.stdout)
+    except Exception:
+        return None
+
+def camel(value):
+    value = re.sub(r"[_-]+", " ", value or "")
+    value = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", value)
+    return re.sub(r"\s+", " ", value).strip()
+
+def clean(value):
+    value = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "", value or "")
+    value = re.sub(r"\s+", " ", value).strip()
+    value = value[:80].strip(" .")
+    return "" if value.lower() in ("", ".", "..") else value
+
+def name_for(client):
+    if not isinstance(client, dict):
+        return ""
+    cls = clean(camel(client.get("class") or client.get("initialClass") or ""))
+    title = clean(client.get("title") or "")
+    initial = clean(client.get("initialTitle") or "")
+    if cls and (any(char.isupper() for char in cls) or " " in cls):
+        return cls
+    for source in (title, initial):
+        if not source:
+            continue
+        parts = [part.strip() for part in re.split(r"\s+[-—–]\s+", source) if part.strip()]
+        candidate = clean(parts[-1] if parts else source)
+        if candidate and candidate.lower() != cls.lower():
+            return candidate
+    return (cls[:1].upper() + cls[1:]) if cls else ""
+
+client = None
+if wanted and wanted != "focused":
+    monitors = run_json(["hyprctl", "monitors", "-j"]) or []
+    clients = run_json(["hyprctl", "clients", "-j"]) or []
+    index = next((i for i, mon in enumerate(monitors)
+                  if isinstance(mon, dict) and mon.get("name") == wanted), None)
+    if index is not None:
+        candidates = [c for c in clients if isinstance(c, dict)
+                      and c.get("monitor") == index and c.get("mapped")
+                      and not c.get("hidden")]
+        if candidates:
+            try:
+                client = min(candidates,
+                             key=lambda c: int(c.get("focusHistoryID", 999)))
+            except Exception:
+                client = candidates[0]
+
+if client is None:
+    client = run_json(["hyprctl", "activewindow", "-j"])
+if isinstance(client, dict) and client.get("address") in (None, "0x0"):
+    client = None
+
+name = name_for(client) if client else ""
+if name:
+    print(name)
+PY
+)" || return 1
+    [[ -n "$name" ]] || return 1
+    printf '%s\n' "$name"
+}
+
+# Returns the configured capture folder, or an app subfolder below it when the
+# Settings toggle is on and an active app could be resolved.
+capture_target_dir() {
+    local base="${1:-}" display="${2:-}" app
+    base="${base%/}"
+    [[ -n "$base" ]] || base="/"
+    if [[ "${app_folders:-0}" == "1" ]] \
+        && app="$(capture_app_name "$display")" && [[ -n "$app" ]]; then
+        if [[ "$base" == "/" ]]; then
+            printf '/%s\n' "$app"
+        else
+            printf '%s/%s\n' "$base" "$app"
+        fi
+        return 0
+    fi
+    printf '%s\n' "$base"
 }
 
 # wf-recorder cannot scale via a simple flag, so use its ffmpeg filter option.

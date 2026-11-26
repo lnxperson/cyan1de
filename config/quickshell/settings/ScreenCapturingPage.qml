@@ -27,6 +27,20 @@ ColumnLayout {
 
     SectionCard {
         Layout.fillWidth: true
+        title: "ORGANIZATION"
+        subtitle: "Optionally group captures by the app that was active when they were saved."
+
+        ToggleRow {
+            Layout.fillWidth: true
+            label: "Organize by app folders"
+            hint: "Recordings go under their folder at start; clips go under their folder when saved"
+            checked: root.app.captureAppFolders
+            onToggled: value => { root.app.captureAppFolders = value; root.app.queueSave() }
+        }
+    }
+
+    SectionCard {
+        Layout.fillWidth: true
         title: "RECORDINGS"
         subtitle: "Full recordings started with SUPER + ALT + R."
 

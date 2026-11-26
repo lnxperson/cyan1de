@@ -111,6 +111,7 @@
     "lowBatteryThreshold": 20
   },
   "capture": {
+    "appFolders": false,
     "recordings": {
       "directory": "~/Videos",
       "display": "focused",
