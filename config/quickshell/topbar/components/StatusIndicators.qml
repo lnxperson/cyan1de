@@ -18,8 +18,22 @@ Flow {
         replayMode: false
     }
 
+    // Keep the two time chips distinct when both capture states are active.
+    Item {
+        visible: RecordingState.active && ReplayState.active
+        width: root.vertical ? 26 : 1
+        height: root.vertical ? 1 : 26
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: root.vertical ? 16 : 1
+            height: root.vertical ? 1 : 16
+            color: Theme.border
+        }
+    }
+
     RecordingIndicator {
-        visible: !RecordingState.active && ReplayState.active
+        visible: ReplayState.active
         vertical: root.vertical
         replayMode: true
     }

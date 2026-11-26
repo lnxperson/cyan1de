@@ -35,9 +35,12 @@ QtObject {
 
     property FileView stateFile: FileView {
         path: root.statePath
+        watchChanges: true
         preload: true
         blockLoading: true
         printErrors: false
-        onLoadedChanged: root.reload()
+        onFileChanged: stateFile.reload()
+        onLoaded: root.reload()
+        onLoadFailed: root.active = false
     }
 }

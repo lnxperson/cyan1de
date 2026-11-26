@@ -112,7 +112,7 @@ QtObject {
         "Record audio": "Try to include desktop audio. Hyprshot-style video-only fallback is automatic.",
         "Replay clips": "Keep a rolling buffer running so recent footage can be saved on demand.",
         "Clip folder": "Folder where SUPER + ALT + V saves replay clips.",
-        "Clip length": "How many seconds of footage a saved clip reaches back.",
+        "Clip length": "How many seconds of footage a saved clip reaches back. The status pill updates while you drag; the rolling buffer restarts when the saved value changes.",
         "Clip display": "Monitor used by the rolling replay buffer.",
         "Clip resolution": "Output size for replay clips. Smaller sizes keep the buffer light.",
         "Clip refresh rate": "Frame rate used while recording the rolling replay buffer.",

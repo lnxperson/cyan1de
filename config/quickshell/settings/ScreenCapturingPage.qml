@@ -246,7 +246,7 @@ ColumnLayout {
             stepSize: 10
             suffix: "s"
             value: root.app.captureClipSeconds
-            onMoved: value => { root.app.captureClipSeconds = Math.round(value); root.app.queueSave() }
+            onMoved: value => root.app.previewClipSeconds(value)
         }
 
         RowLayout {

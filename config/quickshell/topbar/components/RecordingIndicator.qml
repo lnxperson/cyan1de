@@ -47,6 +47,7 @@ Item {
         spacing: 6
 
         Rectangle {
+            visible: !root.replayMode
             width: 12
             height: 12
             anchors.verticalCenter: parent.verticalCenter
@@ -78,6 +79,7 @@ Item {
         spacing: 2
 
         Rectangle {
+            visible: !root.replayMode
             anchors.horizontalCenter: parent.horizontalCenter
             width: 12
             height: 12

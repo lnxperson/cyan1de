@@ -64,6 +64,17 @@ write_state() {
     printf 'v1\n%s\n%s\n' "$pid" "${clip_seconds:-60}" > "$state_file"
 }
 
+# Settings calls this while the clip-length slider moves so the topbar pill
+# reflects the new value immediately, without restarting the rolling buffer.
+preview_seconds() {
+    local seconds="$1" pid
+    [[ "$seconds" =~ ^[0-9]+$ ]] || return 2
+    pid="$(running_pid 2>/dev/null || true)"
+    [[ -n "$pid" ]] || return 0
+    clip_seconds="$seconds"
+    write_state "$pid"
+}
+
 stop_replay() {
     local pid pgid i target
     pid="$(running_pid 2>/dev/null || true)"
@@ -303,6 +314,7 @@ case "${1:-ensure}" in
     ensure) ensure_replay ;;
     run) run_replay ;;
     clip) save_clip ;;
+    preview) preview_seconds "${2:-}" ;;
     restart)
         stop_replay
         ensure_replay
@@ -312,7 +324,7 @@ case "${1:-ensure}" in
         capture_notify "Replay buffer stopped" "Rolling clips are disabled."
         ;;
     *)
-        printf 'Usage: %s {ensure|run|clip|stop}\n' "$0" >&2
+        printf 'Usage: %s {ensure|run|clip|preview|restart|stop}\n' "$0" >&2
         exit 2
         ;;
 esac

@@ -770,6 +770,14 @@ ShellRoot {
             Quickshell.execDetached(["xdg-open", resolved]);
     }
 
+    function previewClipSeconds(seconds) {
+        const value = Math.max(10, Math.min(600, Math.round(seconds)));
+        root.captureClipSeconds = value;
+        root.queueSave();
+        Quickshell.execDetached([home + "/.config/quickshell/recorder/replay.sh",
+            "preview", String(value)]);
+    }
+
     function restartReplay() {
         Quickshell.execDetached([home + "/.config/quickshell/recorder/replay.sh", "restart"]);
         status = "Restarting replay buffer";

@@ -62,7 +62,10 @@ ShellRoot {
         interval: 5000
         repeat: true
         running: true
-        onTriggered: PowerProfileControl.refresh()
+        onTriggered: {
+            PowerProfileControl.refresh()
+            IdleState.refresh()
+        }
     }
 
     // The rolling replay buffer is a detached process so it survives bar
@@ -75,7 +78,6 @@ ShellRoot {
         onTriggered: {
             Quickshell.execDetached([root.replayScript, "ensure"]);
             ReplayState.refresh();
-            IdleState.refresh();
         }
     }
 
