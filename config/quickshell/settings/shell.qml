@@ -3288,24 +3288,6 @@ ShellRoot {
         }
     }
 
-    Shortcut {
-        sequence: "Ctrl+F"
-        enabled: root.shown && root.captureOwner === null
-        onActivated: root.focusSearch()
-    }
-
-    Shortcut {
-        sequence: "Escape"
-        enabled: root.shown && root.captureOwner === null
-        onActivated: {
-            if (root.searchActive) {
-                root.clearSearch();
-                return;
-            }
-            root.close();
-        }
-    }
-
     PanelWindow {
         id: window
 
@@ -3364,6 +3346,27 @@ ShellRoot {
 
             MouseArea {
                 anchors.fill: parent
+            }
+
+            // Shortcuts must live inside the window's item tree. Declaring them
+            // under ShellRoot (a plain QObject) never registers them with a
+            // window, so Ctrl+F and Escape would do nothing.
+            Shortcut {
+                sequence: "Ctrl+F"
+                enabled: root.shown && root.captureOwner === null
+                onActivated: root.focusSearch()
+            }
+
+            Shortcut {
+                sequence: "Escape"
+                enabled: root.shown && root.captureOwner === null
+                onActivated: {
+                    if (root.searchActive) {
+                        root.clearSearch();
+                        return;
+                    }
+                    root.close();
+                }
             }
 
             // Soft shadow
