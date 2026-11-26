@@ -2,16 +2,20 @@ import QtQuick
 import Quickshell
 
 // Compact status chip shown after Bluetooth. While recording it is red with a
-// timer and click-to-stop; otherwise a small gray glyph marks the rolling
-// replay buffer in the exact same slot.
+// timer and click-to-stop; otherwise the same pill is gray and shows the
+// configured replay-buffer length in the exact same slot.
 Item {
     id: root
 
     property bool vertical: false
     property bool replayMode: false
 
+    readonly property color chipColor: root.replayMode ? Theme.dim : Theme.red
+
     readonly property string timeText: {
-        const total = RecordingState.elapsedSeconds;
+        const total = root.replayMode
+            ? ReplayState.seconds
+            : RecordingState.elapsedSeconds;
         const hours = Math.floor(total / 3600);
         const minutes = Math.floor((total % 3600) / 60);
         const seconds = total % 60;
@@ -24,24 +28,21 @@ Item {
     readonly property string toggleScript: (Quickshell.env("HOME") || "")
         + "/.config/quickshell/recorder/toggle.sh"
 
-    implicitWidth: root.replayMode
-        ? (root.vertical ? 28 : 26)
-        : (root.vertical ? 36 : 62)
-    implicitHeight: root.replayMode
-        ? (root.vertical ? 30 : 26)
-        : (root.vertical ? 44 : 26)
+    implicitWidth: root.vertical ? 36 : 62
+    implicitHeight: root.vertical ? 44 : 26
 
     Rectangle {
-        visible: !root.replayMode
         anchors.fill: parent
         radius: 7
-        color: mouse.containsMouse ? "#f06a6a" : Theme.red
+        color: root.replayMode
+            ? root.chipColor
+            : (mouse.containsMouse ? "#f06a6a" : root.chipColor)
 
         Behavior on color { ColorAnimation { duration: Theme.motionFast } }
     }
 
     Row {
-        visible: !root.vertical && !root.replayMode
+        visible: !root.vertical
         anchors.centerIn: parent
         spacing: 6
 
@@ -57,7 +58,7 @@ Item {
                 width: 5
                 height: 5
                 radius: 1
-                color: Theme.red
+                color: root.chipColor
             }
         }
 
@@ -72,7 +73,7 @@ Item {
     }
 
     Column {
-        visible: root.vertical && !root.replayMode
+        visible: root.vertical
         anchors.centerIn: parent
         spacing: 2
 
@@ -88,7 +89,7 @@ Item {
                 width: 5
                 height: 5
                 radius: 1
-                color: Theme.red
+                color: root.chipColor
             }
         }
 
@@ -99,25 +100,6 @@ Item {
             font.pixelSize: 10
             font.weight: Font.DemiBold
             color: "#ffffff"
-        }
-    }
-
-    // Grey version of the recording chip's stop icon, kept in the same slot.
-    Rectangle {
-        id: replayIcon
-        visible: root.replayMode
-        width: 12
-        height: 12
-        anchors.centerIn: parent
-        radius: 4
-        color: Theme.dim
-
-        Rectangle {
-            anchors.centerIn: parent
-            width: 5
-            height: 5
-            radius: 1
-            color: Theme.surfaceAlt
         }
     }
 

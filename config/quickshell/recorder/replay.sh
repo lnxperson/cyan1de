@@ -52,10 +52,11 @@ running_pid() {
     printf '%s\n' "$pid"
 }
 
-# The topbar panel watches this file to show the small replay-buffer icon.
+# The topbar panel watches this file to show the gray replay-buffer pill and
+# its configured length.
 write_state() {
     local pid="$1"
-    printf 'v1\n%s\n' "$pid" > "$state_file"
+    printf 'v1\n%s\n%s\n' "$pid" "${clip_seconds:-60}" > "$state_file"
 }
 
 stop_replay() {
