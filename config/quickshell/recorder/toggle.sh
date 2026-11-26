@@ -52,16 +52,16 @@ launch_recorder() {
 }
 
 start_recorder() {
-    local file="$1" output="$2" pid log started filter preset
-    local args=() audio_args=()
+    local file="$1" output="$2" pid log started filter
+    local args=() audio_args=() encoder_args=()
 
-    preset="$(capture_quality_preset "$rec_quality")"
+    mapfile -t encoder_args < <(capture_wf_video_args "$rec_quality")
     [[ "$rec_audio" == "1" ]] && audio_args=(--audio)
     [[ -n "$output" ]] && args+=(-o "$output")
     [[ "$rec_fps" -gt 0 ]] && args+=(-r "$rec_fps")
     filter="$(capture_scale_filter "$rec_resolution")"
     [[ -n "$filter" ]] && args+=(-F "$filter")
-    args+=(-c libx264 -p "preset=$preset" -p "crf=$(capture_quality_crf "$rec_quality")")
+    args+=("${encoder_args[@]}")
     [[ "$rec_fps" -gt 0 ]] && args+=(-p "g=$rec_fps")
     args+=(-y -f "$file")
 

@@ -133,9 +133,9 @@ ensure_replay() {
 }
 
 run_replay() {
-    local fifo segment_seconds segment_count output filter preset
+    local fifo segment_seconds segment_count output filter
     local ffpid="" wfpid="" cleaned=0
-    local audio_args=() args=()
+    local audio_args=() args=() encoder_args=()
 
     fifo="$buffer_dir/stream.mkv"
     [[ -p "$fifo" ]] || { rm -f "$fifo"; mkfifo "$fifo" || exit 1; }
@@ -145,14 +145,14 @@ run_replay() {
     (( segment_seconds > 10 )) && segment_seconds=10
     segment_count=$(( (clip_seconds + segment_seconds - 1) / segment_seconds + 2 ))
 
-    preset="$(capture_quality_preset "$clip_quality")"
+    mapfile -t encoder_args < <(capture_wf_video_args "$clip_quality")
     [[ "$clip_audio" == "1" ]] && audio_args=(--audio)
     output="$(capture_resolve_display "$clip_display")"
     [[ -n "$output" ]] && args+=(-o "$output")
     args+=(-r "$clip_fps")
     filter="$(capture_scale_filter "$clip_resolution")"
     [[ -n "$filter" ]] && args+=(-F "$filter")
-    args+=(-c libx264 -p "preset=$preset" -p "crf=$(capture_quality_crf "$clip_quality")")
+    args+=("${encoder_args[@]}")
     args+=(-p "g=$((clip_fps * segment_seconds))" -y -f "$fifo")
 
     cleanup() {
@@ -187,8 +187,8 @@ run_replay() {
 }
 
 save_clip() {
-    local segments=() valid=() segment duration total start file preset escaped suffix=0
-    local audio_output=() target_dir
+    local segments=() valid=() segment duration total start file escaped suffix=0
+    local audio_output=() video_args=() target_dir
     exec 9>"$clip_lock" || exit 0
     if command -v flock >/dev/null 2>&1; then
         flock -n 9 || exit 0
@@ -248,7 +248,7 @@ save_clip() {
         return 1
     }
     file="$(capture_unique_file "$target_dir" cyan1de-clip mp4)"
-    preset="$(capture_quality_preset "$clip_quality")"
+    mapfile -t video_args < <(capture_ffmpeg_video_args "$clip_quality")
     if [[ "$clip_audio" == "1" ]]; then
         audio_output=(-c:a aac -b:a 160k)
     else
@@ -257,8 +257,7 @@ save_clip() {
 
     if ffmpeg -hide_banner -loglevel warning -ss "$start" \
         -f concat -safe 0 -i "$list_file" -map 0 \
-        -c:v libx264 -preset "$preset" -crf "$(capture_quality_crf "$clip_quality")" \
-        -pix_fmt yuv420p "${audio_output[@]}" -movflags +faststart \
+        "${video_args[@]}" "${audio_output[@]}" -movflags +faststart \
         -y "$file" >> "$log_file" 2>&1; then
         capture_notify "Clip saved" "Last ${clip_seconds}s → $file"
     else

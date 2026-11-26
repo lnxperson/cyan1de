@@ -141,6 +141,76 @@ capture_quality_preset() {
     esac
 }
 
+# Prefer a real hardware H.264 encoder. NVENC is used on NVIDIA systems, VAAPI
+# is the portable GPU fallback, and libx264 remains a last resort.
+capture_video_encoder() {
+    local encoders
+    command -v ffmpeg >/dev/null 2>&1 || { printf 'libx264\n'; return 0; }
+    encoders="$(ffmpeg -hide_banner -encoders 2>/dev/null)"
+    if printf '%s\n' "$encoders" | grep -q ' h264_nvenc ' \
+        && { ls /dev/nvidia* >/dev/null 2>&1 \
+            || command -v nvidia-smi >/dev/null 2>&1; }; then
+        printf 'h264_nvenc\n'
+    elif printf '%s\n' "$encoders" | grep -q ' h264_vaapi ' \
+        && [[ -e /dev/dri/renderD128 ]]; then
+        printf 'h264_vaapi\n'
+    else
+        printf 'libx264\n'
+    fi
+}
+
+capture_nvenc_preset() {
+    case "$1" in
+        high) printf 'p7\n' ;;
+        small) printf 'p2\n' ;;
+        *) printf 'p4\n' ;;
+    esac
+}
+
+# wf-recorder arguments, one token per line so callers can mapfile them.
+capture_wf_video_args() {
+    local quality="$1" encoder
+    encoder="$(capture_video_encoder)"
+    case "$encoder" in
+        h264_nvenc)
+            printf -- '-c\nh264_nvenc\n-p\npreset=%s\n-p\nrc=vbr\n-p\ncq=%s\n' \
+                "$(capture_nvenc_preset "$quality")" \
+                "$(capture_quality_crf "$quality")"
+            ;;
+        h264_vaapi)
+            printf -- '-c\nh264_vaapi\n-p\nqp=%s\n' \
+                "$(capture_quality_crf "$quality")"
+            ;;
+        *)
+            printf -- '-c\nlibx264\n-p\npreset=%s\n-p\ncrf=%s\n' \
+                "$(capture_quality_preset "$quality")" \
+                "$(capture_quality_crf "$quality")"
+            ;;
+    esac
+}
+
+# ffmpeg arguments for re-encoding final replay clips, one token per line.
+capture_ffmpeg_video_args() {
+    local quality="$1" encoder
+    encoder="$(capture_video_encoder)"
+    case "$encoder" in
+        h264_nvenc)
+            printf -- '-c:v\nh264_nvenc\n-preset\n%s\n-rc\nvbr\n-cq\n%s\n-pix_fmt\nyuv420p\n' \
+                "$(capture_nvenc_preset "$quality")" \
+                "$(capture_quality_crf "$quality")"
+            ;;
+        h264_vaapi)
+            printf -- '-vaapi_device\n/dev/dri/renderD128\n-vf\nformat=nv12,hwupload\n-c:v\nh264_vaapi\n-qp\n%s\n' \
+                "$(capture_quality_crf "$quality")"
+            ;;
+        *)
+            printf -- '-c:v\nlibx264\n-preset\n%s\n-crf\n%s\n-pix_fmt\nyuv420p\n' \
+                "$(capture_quality_preset "$quality")" \
+                "$(capture_quality_crf "$quality")"
+            ;;
+    esac
+}
+
 # Resolve "focused" or a named output. Falls back to any available wf-recorder
 # output, then to the focused monitor, so a disconnected saved display never
 # silently disables capture.
@@ -173,8 +243,9 @@ capture_resolve_display() {
 
 # Resolve a folder-safe app name from Hyprland. For a named display, use the
 # most recently focused client on that monitor; otherwise use the global active
-# window. Classes like GeometryDash are split into "Geometry Dash", while a
-# lowercase class such as firefox falls back to the app suffix of its title.
+# window. CamelCase classes are split into words, lowercase classes fall back
+# to the window title, and steam_app_<id> classes are resolved from local Steam
+# manifests so Geometry Dash is not named "steam app 322170".
 capture_app_name() {
     local wanted="${1:-}" name
     command -v python3 >/dev/null 2>&1 || return 1
@@ -182,6 +253,7 @@ capture_app_name() {
 
     name="$(python3 - "$wanted" <<'PY'
 import json
+import os
 import re
 import subprocess
 import sys
@@ -209,21 +281,64 @@ def clean(value):
     value = value[:80].strip(" .")
     return "" if value.lower() in ("", ".", "..") else value
 
-def name_for(client):
-    if not isinstance(client, dict):
-        return ""
-    cls = clean(camel(client.get("class") or client.get("initialClass") or ""))
-    title = clean(client.get("title") or "")
-    initial = clean(client.get("initialTitle") or "")
-    if cls and (any(char.isupper() for char in cls) or " " in cls):
-        return cls
-    for source in (title, initial):
+def steam_name(appid):
+    home = os.path.expanduser("~")
+    roots = [
+        os.path.join(home, ".steam", "steam", "steamapps"),
+        os.path.join(home, ".local", "share", "Steam", "steamapps"),
+        os.path.join(home, "Steam", "steamapps"),
+    ]
+    for base in list(roots):
+        library = os.path.join(base, "libraryfolders.vdf")
+        try:
+            with open(library, "r", encoding="utf-8", errors="ignore") as fh:
+                text = fh.read()
+        except Exception:
+            continue
+        for path in re.findall(r'"path"\s+"([^"]+)"', text):
+            roots.append(os.path.join(path, "steamapps"))
+    for root in roots:
+        manifest = os.path.join(root, "appmanifest_%s.acf" % appid)
+        try:
+            with open(manifest, "r", encoding="utf-8", errors="ignore") as fh:
+                text = fh.read()
+        except Exception:
+            continue
+        match = re.search(r'"name"\s+"([^"]+)"', text)
+        if match:
+            return clean(match.group(1))
+    return ""
+
+def title_name(client):
+    for source in (clean(client.get("title") or ""),
+                   clean(client.get("initialTitle") or "")):
         if not source:
             continue
         parts = [part.strip() for part in re.split(r"\s+[-—–]\s+", source) if part.strip()]
         candidate = clean(parts[-1] if parts else source)
-        if candidate and candidate.lower() != cls.lower():
+        if candidate:
             return candidate
+    return ""
+
+def name_for(client):
+    if not isinstance(client, dict):
+        return ""
+    raw_cls = str(client.get("class") or client.get("initialClass") or "")
+    cls = clean(camel(raw_cls))
+    title = title_name(client)
+    steam = re.search(r"steam[ _-]*app[ _-]*(\d+)", raw_cls, re.I)
+    if steam:
+        appid = steam.group(1)
+        name = steam_name(appid)
+        if name:
+            return name
+        if title and appid not in title:
+            return title
+        return "Steam App " + appid
+    if cls and (any(char.isupper() for char in cls) or " " in cls):
+        return cls
+    if title and title.lower() != cls.lower():
+        return title
     return (cls[:1].upper() + cls[1:]) if cls else ""
 
 client = None

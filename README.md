@@ -311,7 +311,7 @@ Alacritty, the terminal-first launcher actions, and the compact OSD make this a 
 | `XF86MonBrightness*` | Display brightness |
 | `XF86KbdBrightness*` | Keyboard brightness |
 
-Screenshots use `hyprshot`; recordings use `wf-recorder`. Replay clips are assembled with `ffmpeg` from a rolling buffer kept in `XDG_RUNTIME_DIR`.
+Screenshots use `hyprshot`; recordings use `wf-recorder`. Video encoding prefers NVIDIA NVENC, then VAAPI, with `libx264` only as a fallback. Replay clips are assembled with `ffmpeg` from a rolling buffer kept in `XDG_RUNTIME_DIR`.
 
 ---
 
