@@ -73,11 +73,10 @@ The installer:
 ### New features
 
 - Color picker: `Super + Alt + C` picks a color and copies its hex value (`hyprpicker -a`).
-- Keyboard layout switching: `Super + Alt + K` cycles layouts through `us` and `fr`.
 - Idle inhibitor: `Super + Alt + I` toggles the idle inhibitor.
 - Theme toggle: `Super + Alt + T` toggles light/dark.
 - Screen recording: `Super + Alt + R` starts and stops an MP4 recording. Desktop sound and the real microphone are mixed from separate, independently adjustable capture channels; without audio support it falls back to video only.
-- Replay clips: a rolling buffer runs in the background; `Super + Alt + V` saves the last minute to an MP4 clip. A small gray pill beside Bluetooth shows the configured buffer length while it is active.
+- Replay clips: a rolling buffer runs in the background; `Super + Alt + V` saves the last minute to an MP4 clip. The action section has a small status cluster before Bluetooth with the gray replay pill, the red recording chip, and a coffee icon while the idle inhibitor is active.
 - Screen Capturing settings: control recording and clip folders, display, resolution, frame rate, quality, separate desktop/microphone levels and mutes, clip length, screenshot behavior, and optional app-name subfolders in one page.
 5. Copies `config/hypr` and `config/quickshell` into `~/.config`.
 6. Makes all shipped Quickshell helper scripts executable.
@@ -305,7 +304,6 @@ Alacritty, the terminal-first launcher actions, and the compact OSD make this a 
 | `Super + Alt + R` | Toggle screen recording |
 | `Super + Alt + V` | Save a clip |
 | `Super + Alt + C` | Pick color and copy hex |
-| `Super + Alt + K` | Cycle keyboard layout |
 | `Super + Alt + I` | Toggle idle inhibitor |
 | `Super + Alt + T` | Toggle light/dark theme |
 | `Super + M` | Toggle power/session menu |

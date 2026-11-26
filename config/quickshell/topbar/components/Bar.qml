@@ -461,9 +461,11 @@ PanelWindow {
             case "clock": return Theme.showClock;
             case "tray": return Theme.showTray && SystemTray.items.values.length > 0;
             case "bluetooth": return Theme.showBluetooth;
-            // One slot after Bluetooth: the red chip wins while recording,
-            // otherwise a small gray icon marks the rolling replay buffer.
-            case "recording": return RecordingState.active || ReplayState.active;
+            // One status slot before Bluetooth. All active symbols are drawn
+            // together: replay, recording, and the idle inhibitor.
+            case "status":
+                return RecordingState.active || ReplayState.active
+                    || IdleState.active;
             case "network": return Theme.showNetwork;
             case "volume": return Theme.showVolume;
             case "brightness":
@@ -527,7 +529,7 @@ PanelWindow {
         if (key === "clock") return bar.vertical ? clockVerticalComponent : clockComponent;
         if (key === "tray") return trayComponent;
         if (key === "bluetooth") return bluetoothComponent;
-        if (key === "recording") return recordingComponent;
+        if (key === "status") return statusComponent;
         if (key === "network") return networkComponent;
         if (key === "volume") return volumeComponent;
         if (key === "brightness") return brightnessComponent;
@@ -565,6 +567,21 @@ PanelWindow {
             const idx = list.indexOf("power");
             if (idx <= 0) continue;
             for (let i = 0; i < idx; i++) {
+                if (bar.elementVisible(list[i]))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    function statusHasTrailing() {
+        const layout = Theme.elementLayout || ({});
+        const sections = ["left", "center", "right"];
+        for (let s = 0; s < sections.length; s++) {
+            const list = layout[sections[s]] || [];
+            const idx = list.indexOf("status");
+            if (idx < 0) continue;
+            for (let i = idx + 1; i < list.length; i++) {
                 if (bar.elementVisible(list[i]))
                     return true;
             }
@@ -1227,11 +1244,11 @@ PanelWindow {
     }
 
     Component {
-        id: recordingComponent
+        id: statusComponent
 
-        RecordingIndicator {
+        StatusIndicators {
             vertical: bar.vertical
-            replayMode: !RecordingState.active
+            showSeparator: bar.statusHasTrailing()
         }
     }
 

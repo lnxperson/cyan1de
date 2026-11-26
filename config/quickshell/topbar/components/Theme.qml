@@ -50,19 +50,20 @@ QtObject {
                 out[sectionOf[key]].push(key);
         }
 
-        // The live recording chip always sits directly after Bluetooth. It is
-        // transient, so it is injected here instead of being a saved setting.
-        let recordingSection = "right";
+        // Live status symbols always sit directly before Bluetooth. The slot
+        // is transient, so it is injected here instead of being a saved
+        // setting; the trailing rule is drawn by StatusIndicators.
+        let statusSection = "right";
         for (let s = 0; s < sections.length; s++) {
             if (out[sections[s]].indexOf("bluetooth") >= 0) {
-                recordingSection = sections[s];
+                statusSection = sections[s];
                 break;
             }
         }
-        const recordingList = out[recordingSection];
-        const bluetoothIndex = recordingList.indexOf("bluetooth");
-        recordingList.splice(bluetoothIndex >= 0 ? bluetoothIndex + 1 : 0,
-            0, "recording");
+        const statusList = out[statusSection];
+        const bluetoothIndex = statusList.indexOf("bluetooth");
+        statusList.splice(bluetoothIndex >= 0 ? bluetoothIndex : 0,
+            0, "status");
         return out;
     }
     property var hyprData: data.hypr || ({})

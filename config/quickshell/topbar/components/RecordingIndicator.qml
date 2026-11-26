@@ -1,9 +1,9 @@
 import QtQuick
 import Quickshell
 
-// Compact status chip shown after Bluetooth. While recording it is red with a
-// timer and click-to-stop; otherwise the same pill is gray and shows the
-// configured replay-buffer length in the exact same slot.
+// Compact status chip used inside the action status cluster before Bluetooth.
+// While recording it is red with a timer and click-to-stop; in replay mode it
+// is gray and shows the configured replay-buffer length instead.
 Item {
     id: root
 

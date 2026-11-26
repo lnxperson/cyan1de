@@ -75,6 +75,7 @@ ShellRoot {
         onTriggered: {
             Quickshell.execDetached([root.replayScript, "ensure"]);
             ReplayState.refresh();
+            IdleState.refresh();
         }
     }
 
@@ -103,6 +104,7 @@ ShellRoot {
         cursorDimProcess.running = true;
         Quickshell.execDetached([root.replayScript, "ensure"]);
         ReplayState.refresh();
+        IdleState.refresh();
     }
 
     readonly property var panelScreens: {

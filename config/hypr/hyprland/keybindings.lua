@@ -51,7 +51,6 @@ hl.bind(mainMod .. " + CTRL + P", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config
 hl.bind("SUPER + ALT + R", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/recorder/toggle.sh"), { description = "Toggle screen recording" })
 hl.bind("SUPER + ALT + V", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/recorder/replay.sh clip"), { description = "Save a clip" })
 hl.bind("SUPER + ALT + C", hl.dsp.exec_cmd("hyprpicker -a"), { description = "Pick a color and copy its hex value" })
-hl.bind("SUPER + ALT + K", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/input/layout.sh"), { description = "Cycle keyboard layout" })
 hl.bind("SUPER + ALT + I", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/quickshell/power/inhibit.sh"), { description = "Toggle idle inhibitor" })
 hl.bind("SUPER + ALT + T", hl.dsp.exec_cmd("qs ipc -c settings call settings toggleTheme"), { description = "Toggle light/dark theme" })
 
