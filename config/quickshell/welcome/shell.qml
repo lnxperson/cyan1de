@@ -52,12 +52,14 @@ ShellRoot {
             ]
         },
         {
-            title: "SCRATCHPAD & SCREENSHOTS",
+            title: "SCRATCHPAD & SCREEN CAPTURE",
             items: [
                 { keys: "SUPER + S", text: "Toggle the scratchpad; SHIFT + S sends a window there." },
-                { keys: "PRINT", text: "Region to clipboard." },
+                { keys: "PRINT", text: "Region screenshot to clipboard." },
                 { keys: "CTRL + PRINT", text: "Screenshot the active display." },
-                { keys: "SHIFT + PRINT", text: "Region to a file." }
+                { keys: "SHIFT + PRINT", text: "Region screenshot to a file." },
+                { keys: "SUPER + ALT + R", text: "Start or stop a screen recording." },
+                { keys: "SUPER + ALT + V", text: "Save the last minute as a replay clip." }
             ]
         },
         {

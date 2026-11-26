@@ -9,6 +9,9 @@ import "components"
 ShellRoot {
     id: root
 
+    readonly property string replayScript: (Quickshell.env("HOME") || "")
+        + "/.config/quickshell/recorder/replay.sh"
+
     // Global cursor position from Hyprland, used only by the island layout's
     // edge-reveal behaviour. -1 means unknown, which keeps the bar visible.
     property int cursorX: -1
@@ -62,6 +65,16 @@ ShellRoot {
         onTriggered: PowerProfileControl.refresh()
     }
 
+    // The rolling replay buffer is a detached process so it survives bar
+    // restarts. The helper is idempotent and restarts only when capture
+    // settings change.
+    Timer {
+        interval: 10000
+        repeat: true
+        running: true
+        onTriggered: Quickshell.execDetached([root.replayScript, "ensure"])
+    }
+
     // One-shot-per-cycle low battery warnings, independent of any screen.
     BatteryMonitor { id: batteryMonitor }
 
@@ -83,7 +96,10 @@ ShellRoot {
         }
     }
 
-    Component.onCompleted: cursorDimProcess.running = true
+    Component.onCompleted: {
+        cursorDimProcess.running = true;
+        Quickshell.execDetached([root.replayScript, "ensure"]);
+    }
 
     readonly property var panelScreens: {
         const screens = Quickshell.screens;

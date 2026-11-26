@@ -84,7 +84,9 @@ ShellRoot {
         { icon: "󰫧", title: "Environment",
             subtitle: "Variables exported to every application" },
         { icon: "󰰞", title: "Rules",
-            subtitle: "Window rules and per-app overrides" }
+            subtitle: "Window rules and per-app overrides" },
+        { icon: "󰄄", title: "Screen Capturing",
+            subtitle: "Recordings, replay clips and screenshots" }
     ]
     readonly property var currentPage: pages[page] || pages[0]
 
@@ -292,6 +294,26 @@ ShellRoot {
             add(String(rule.name || ("Rule " + (i + 1))), 11, "",
                 String(rule.match || ""), String(rule.match || ""));
         }
+
+        // Screen Capturing
+        add("Recording folder", 12, "", "recording video directory save", "Folder used for full recordings.");
+        add("Recording display", 12, "", "monitor output focused screen", "Monitor used for full recordings.");
+        add("Recording refresh rate", 12, "", "fps framerate capture", "Constant frame rate for recordings; 0 uses variable timing.");
+        add("Recording resolution", 12, "", "size scale native", "Output resolution for recordings.");
+        add("Record audio", 12, "", "sound microphone audio", "Attempt to include desktop audio; falls back to video only.");
+        add("Recording quality", 12, "", "crf bitrate size", "Encoder quality preset for recordings.");
+        add("Replay clips", 12, "", "replay buffer rolling clip last minute", "Keep a rolling buffer so a key press can save recent footage.");
+        add("Clip folder", 12, "", "clip video directory save", "Folder used for replay clips.");
+        add("Clip length", 12, "", "seconds duration replay buffer", "How many seconds a saved clip reaches back.");
+        add("Clip display", 12, "", "monitor output focused screen", "Monitor used by the replay buffer.");
+        add("Clip refresh rate", 12, "", "fps framerate replay", "Frame rate used while recording the rolling buffer.");
+        add("Clip resolution", 12, "", "size scale native", "Output resolution for replay clips.");
+        add("Clip audio", 12, "", "sound microphone audio", "Attempt to include audio in the rolling buffer.");
+        add("Clip quality", 12, "", "crf bitrate size", "Encoder quality preset for replay clips.");
+        add("Screenshot folder", 12, "", "images pictures capture", "Folder used for screenshots saved to disk.");
+        add("Screenshot format", 12, "", "png jpg image", "File format for screenshots saved to disk.");
+        add("Copy screenshots", 12, "", "clipboard image", "Also copy file screenshots to the clipboard.");
+        add("Screenshot command", 12, "", "hyprshot utility", "Screenshot utility shared with the Programs page.");
 
         return out;
     }
@@ -672,6 +694,84 @@ ShellRoot {
     property string progPdfViewer: "\"papers\""
     property string progScreenshot: "\"hyprshot\""
 
+    // Screen capturing. Paths stay portable (~/...) and scripts expand them.
+    property string captureRecDir: "~/Videos"
+    property string captureRecDisplay: "focused"
+    property int captureRecFps: 60
+    property string captureRecResolution: "native"
+    property bool captureRecAudio: true
+    property string captureRecQuality: "balanced"
+    property bool captureClipEnabled: true
+    property string captureClipDir: "~/Videos"
+    property int captureClipSeconds: 60
+    property string captureClipDisplay: "focused"
+    property int captureClipFps: 30
+    property string captureClipResolution: "1280x720"
+    property bool captureClipAudio: false
+    property string captureClipQuality: "small"
+    property string captureShotDir: "~/Pictures"
+    property string captureShotFormat: "png"
+    property bool captureShotCopy: true
+
+    readonly property var captureDisplayOptions: {
+        const out = ["focused"];
+        for (let i = 0; i < monitorList.count; i++) {
+            const mon = monitorAt(i);
+            const name = mon ? (mon.output || mon.name || "") : "";
+            if (name && out.indexOf(name) < 0)
+                out.push(name);
+        }
+        if (out.indexOf(captureRecDisplay) < 0)
+            out.push(captureRecDisplay);
+        if (out.indexOf(captureClipDisplay) < 0)
+            out.push(captureClipDisplay);
+        return out;
+    }
+    readonly property var captureDisplayLabels: ({ focused: "Focused monitor" })
+    readonly property var captureResolutionOptions: [
+        "native", "1920x1080", "1600x900", "1280x720", "960x540", "640x360"
+    ]
+    readonly property var captureResolutionLabels: ({ native: "Native display resolution" })
+    readonly property var captureQualityOptions: ["high", "balanced", "small"]
+    readonly property var captureQualityLabels: ({
+        high: "High quality", balanced: "Balanced", small: "Smaller files"
+    })
+    readonly property var captureFormatOptions: ["png", "jpg"]
+    readonly property var captureFormatLabels: ({ png: "PNG (lossless)", jpg: "JPG (smaller)" })
+
+    function captureValidResolution(value, fallback) {
+        const text = String(value || "");
+        return text === "native" || /^[0-9]+x[0-9]+$/.test(text) ? text : fallback;
+    }
+
+    function setCapturePath(which, value) {
+        const path = portablePath(value);
+        switch (which) {
+            case "recording": captureRecDir = path; break;
+            case "clip": captureClipDir = path; break;
+            case "screenshot": captureShotDir = path; break;
+        }
+        queueSave();
+    }
+
+    function openCapturePath(path) {
+        const resolved = resolveWallpaperPath(path);
+        if (resolved !== "")
+            Quickshell.execDetached(["xdg-open", resolved]);
+    }
+
+    function restartReplay() {
+        Quickshell.execDetached([home + "/.config/quickshell/recorder/replay.sh", "restart"]);
+        status = "Restarting replay buffer";
+        statusColor = Theme.accent;
+    }
+
+    function saveClipNow() {
+        Quickshell.execDetached([home + "/.config/quickshell/recorder/replay.sh", "clip"]);
+        status = "Saving a replay clip";
+        statusColor = Theme.accent;
+    }
+
     // monitors.lua - autodetected outputs and the draggable arrangement.
     // A ListModel keeps Repeater delegates alive when a value changes; a
     // plain JS array made every update destroy the delegate under the cursor
@@ -816,6 +916,31 @@ ShellRoot {
                 calendarNotifications: true,
                 lowBatteryEnabled: true,
                 lowBatteryThreshold: 20
+            },
+            capture: {
+                recordings: {
+                    directory: "~/Videos",
+                    display: "focused",
+                    framerate: 60,
+                    resolution: "native",
+                    audio: true,
+                    quality: "balanced"
+                },
+                clips: {
+                    enabled: true,
+                    directory: "~/Videos",
+                    seconds: 60,
+                    display: "focused",
+                    framerate: 30,
+                    resolution: "1280x720",
+                    audio: false,
+                    quality: "small"
+                },
+                screenshots: {
+                    directory: "~/Pictures",
+                    format: "png",
+                    copy: true
+                }
             }
         };
     }
@@ -954,6 +1079,10 @@ ShellRoot {
         const idle = (s && s.idle) || ({});
         const n = (s && s.notifications) || ({});
         const c = (s && s.cursor) || ({});
+        const cap = (s && s.capture) || ({});
+        const cr = cap.recordings || ({});
+        const cc = cap.clips || ({});
+        const cs = cap.screenshots || ({});
 
         wallpaperPath = asText(s && s.wallpaper, d.wallpaper);
         wallpaperMode = (s && s.wallpaperMode === "fit")
@@ -1083,6 +1212,36 @@ ShellRoot {
         lowBatteryEnabled = asBool(n.lowBatteryEnabled, d.notifications.lowBatteryEnabled);
         lowBatteryThreshold = Math.max(5, Math.min(50,
             asInt(n.lowBatteryThreshold, d.notifications.lowBatteryThreshold)));
+
+        captureRecDir = portablePath(asText(cr.directory, d.capture.recordings.directory));
+        captureRecDisplay = captureDisplayOptions.indexOf(cr.display) >= 0
+            ? cr.display : d.capture.recordings.display;
+        captureRecFps = Math.max(0, Math.min(240,
+            asInt(cr.framerate, d.capture.recordings.framerate)));
+        captureRecResolution = root.captureValidResolution(
+            cr.resolution, d.capture.recordings.resolution);
+        captureRecAudio = asBool(cr.audio, d.capture.recordings.audio);
+        captureRecQuality = captureQualityOptions.indexOf(cr.quality) >= 0
+            ? cr.quality : d.capture.recordings.quality;
+
+        captureClipEnabled = asBool(cc.enabled, d.capture.clips.enabled);
+        captureClipDir = portablePath(asText(cc.directory, d.capture.clips.directory));
+        captureClipSeconds = Math.max(10, Math.min(600,
+            asInt(cc.seconds, d.capture.clips.seconds)));
+        captureClipDisplay = captureDisplayOptions.indexOf(cc.display) >= 0
+            ? cc.display : d.capture.clips.display;
+        captureClipFps = Math.max(1, Math.min(240,
+            asInt(cc.framerate, d.capture.clips.framerate)));
+        captureClipResolution = root.captureValidResolution(
+            cc.resolution, d.capture.clips.resolution);
+        captureClipAudio = asBool(cc.audio, d.capture.clips.audio);
+        captureClipQuality = captureQualityOptions.indexOf(cc.quality) >= 0
+            ? cc.quality : d.capture.clips.quality;
+
+        captureShotDir = portablePath(asText(cs.directory, d.capture.screenshots.directory));
+        captureShotFormat = captureFormatOptions.indexOf(cs.format) >= 0
+            ? cs.format : d.capture.screenshots.format;
+        captureShotCopy = asBool(cs.copy, d.capture.screenshots.copy);
     }
 
     function buildSettings() {
@@ -1175,6 +1334,31 @@ ShellRoot {
                 calendarNotifications: calendarNotifications,
                 lowBatteryEnabled: lowBatteryEnabled,
                 lowBatteryThreshold: lowBatteryThreshold
+            },
+            capture: {
+                recordings: {
+                    directory: captureRecDir,
+                    display: captureRecDisplay,
+                    framerate: captureRecFps,
+                    resolution: captureRecResolution,
+                    audio: captureRecAudio,
+                    quality: captureRecQuality
+                },
+                clips: {
+                    enabled: captureClipEnabled,
+                    directory: captureClipDir,
+                    seconds: captureClipSeconds,
+                    display: captureClipDisplay,
+                    framerate: captureClipFps,
+                    resolution: captureClipResolution,
+                    audio: captureClipAudio,
+                    quality: captureClipQuality
+                },
+                screenshots: {
+                    directory: captureShotDir,
+                    format: captureShotFormat,
+                    copy: captureShotCopy
+                }
             }
         };
     }
@@ -3035,6 +3219,7 @@ ShellRoot {
             case 9: return programsPage;
             case 10: return environmentPage;
             case 11: return rulesPage;
+            case 12: return screenCapturingPage;
         }
         return barPage;
     }
@@ -3988,5 +4173,10 @@ ShellRoot {
     Component {
         id: notificationsPage
         NotificationsPage { app: root }
+    }
+
+    Component {
+        id: screenCapturingPage
+        ScreenCapturingPage { app: root }
     }
 }

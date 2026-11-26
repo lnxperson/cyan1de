@@ -109,5 +109,30 @@
     "calendarNotifications": true,
     "lowBatteryEnabled": true,
     "lowBatteryThreshold": 20
+  },
+  "capture": {
+    "recordings": {
+      "directory": "~/Videos",
+      "display": "focused",
+      "framerate": 60,
+      "resolution": "native",
+      "audio": true,
+      "quality": "balanced"
+    },
+    "clips": {
+      "enabled": true,
+      "directory": "~/Videos",
+      "seconds": 60,
+      "display": "focused",
+      "framerate": 30,
+      "resolution": "1280x720",
+      "audio": false,
+      "quality": "small"
+    },
+    "screenshots": {
+      "directory": "~/Pictures",
+      "format": "png",
+      "copy": true
+    }
   }
 }

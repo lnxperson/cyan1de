@@ -113,6 +113,7 @@ PACKAGES=(
     wl-clipboard
     hyprpicker
     wf-recorder
+    ffmpeg
 )
 
 privileged() {

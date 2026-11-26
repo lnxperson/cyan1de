@@ -46,7 +46,7 @@ The installer handles packages such as:
 - `qt6ct`, `adw-gtk-theme`
 - `ttf-jetbrains-mono-nerd`, `noto-fonts-emoji`
 - `python`, `xdg-utils`, `ripgrep`, `wl-clipboard`
-- `hyprpicker`, `wf-recorder`
+- `hyprpicker`, `wf-recorder`, `ffmpeg`
 
 You can decline package installation and install them yourself.
 
@@ -76,7 +76,9 @@ The installer:
 - Keyboard layout switching: `Super + Alt + K` cycles layouts through `us` and `fr`.
 - Idle inhibitor: `Super + Alt + I` toggles the idle inhibitor.
 - Theme toggle: `Super + Alt + T` toggles light/dark.
-- Screen recording: `Super + Alt + R` starts and stops an MP4 recording of the focused monitor in `~/Videos`. Audio is included when a default source is available; without audio support it falls back to video only.
+- Screen recording: `Super + Alt + R` starts and stops an MP4 recording. Audio is included when a default source is available; without audio support it falls back to video only.
+- Replay clips: a rolling buffer runs in the background; `Super + Alt + V` saves the last minute to an MP4 clip.
+- Screen Capturing settings: control recording and clip folders, display, resolution, frame rate, quality, audio, clip length, and screenshot behavior in one page.
 5. Copies `config/hypr` and `config/quickshell` into `~/.config`.
 6. Makes all shipped Quickshell helper scripts executable.
 
@@ -203,6 +205,8 @@ Hover any setting name for a short explanation of what it does. Ambiguous names 
 
 Settings live in `~/.config/quickshell/settings.json` for Quickshell and in Hyprland Lua files for compositor behavior.
 
+**Screen Capturing** settings are read directly by the capture helpers, so changes to folders, displays, resolution, frame rate, quality and clip length take effect on the next capture without pressing Apply. Apply is only needed for Hyprland/Quickshell appearance and keybinding changes.
+
 Files managed by the settings app are rewritten when you press **Apply**:
 
 - `input.lua`
@@ -285,15 +289,17 @@ Alacritty, the terminal-first launcher actions, and the compact OSD make this a 
 | `Super + Ctrl + P` | Toggle performance mode |
 | `Super + 1` … `Super + 0` | Focus workspace 1–10 |
 | `Super + Shift + 1` … `Shift + 0` | Move window to workspace 1–10 |
-| `Super + F` | Toggle scratchpad |
-| `Super + Shift + F` | Move window to scratchpad |
+| `Super + F` | Toggle true fullscreen |
+| `Super + S` | Toggle scratchpad |
+| `Super + Shift + S` | Move window to scratchpad |
 | `Super + Arrow keys` | Focus neighboring window |
 | `Super + mouse_down` / `mouse_up` | Cycle workspaces |
 | `Super + left click` / `right click` | Drag or resize floating window |
 | `Print` | Region screenshot to clipboard |
 | `Ctrl + Print` | Full monitor screenshot |
 | `Shift + Print` | Region screenshot to file |
-| `Super + Alt + R` | Toggle screen recording (focused monitor) |
+| `Super + Alt + R` | Toggle screen recording |
+| `Super + Alt + V` | Save the last minute as a clip |
 | `Super + Alt + C` | Pick color and copy hex |
 | `Super + Alt + K` | Cycle keyboard layout |
 | `Super + Alt + I` | Toggle idle inhibitor |
@@ -303,7 +309,7 @@ Alacritty, the terminal-first launcher actions, and the compact OSD make this a 
 | `XF86MonBrightness*` | Display brightness |
 | `XF86KbdBrightness*` | Keyboard brightness |
 
-Screenshots use `hyprshot`; recordings use `wf-recorder`.
+Screenshots use `hyprshot`; recordings use `wf-recorder`. Replay clips are assembled with `ffmpeg` from a rolling buffer kept in `XDG_RUNTIME_DIR`.
 
 ---
 
@@ -321,6 +327,7 @@ cyan1de/
     │   └── hyprland/
     └── quickshell/
         ├── background/
+        ├── capture/
         ├── emoji/
         ├── input/
         ├── launcher/

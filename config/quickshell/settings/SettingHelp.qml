@@ -103,6 +103,24 @@ QtObject {
         "Text editor": "Default text editor.",
         "Image viewer": "Default image viewer.",
         "PDF viewer": "Default PDF viewer.",
-        "Screenshot": "Default screenshot utility."
+        "Screenshot": "Default screenshot utility.",
+        "Recording folder": "Folder where full recordings started with SUPER + ALT + R are saved.",
+        "Recording display": "Monitor used for full recordings. Focused monitor follows the active window.",
+        "Recording resolution": "Output size for recordings. Native keeps the monitor resolution.",
+        "Recording refresh rate": "Constant capture frame rate. Zero uses variable frame timing.",
+        "Recording quality": "Encoder preset for recordings. Smaller files use more compression.",
+        "Record audio": "Try to include desktop audio. Hyprshot-style video-only fallback is automatic.",
+        "Replay clips": "Keep a rolling buffer running so recent footage can be saved on demand.",
+        "Clip folder": "Folder where SUPER + ALT + V saves replay clips.",
+        "Clip length": "How many seconds of footage a saved clip reaches back.",
+        "Clip display": "Monitor used by the rolling replay buffer.",
+        "Clip resolution": "Output size for replay clips. Smaller sizes keep the buffer light.",
+        "Clip refresh rate": "Frame rate used while recording the rolling replay buffer.",
+        "Clip quality": "Encoder preset for saved replay clips.",
+        "Clip audio": "Include audio in the rolling replay buffer.",
+        "Screenshot folder": "Folder where screenshots saved to disk are written.",
+        "Screenshot format": "File format for screenshots saved to disk. JPG files are converted after capture.",
+        "Copy screenshots": "Also copy screenshots saved to disk to the clipboard.",
+        "Screenshot command": "Screenshot utility used by the PRINT keybindings. Shared with the Programs page."
     })
 }

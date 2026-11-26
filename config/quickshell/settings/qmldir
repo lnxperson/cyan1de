@@ -25,3 +25,4 @@ NotificationsPage 1.0 NotificationsPage.qml
 WindowsPage 1.0 WindowsPage.qml
 EffectsPage 1.0 EffectsPage.qml
 SessionPage 1.0 SessionPage.qml
+ScreenCapturingPage 1.0 ScreenCapturingPage.qml
