@@ -77,7 +77,7 @@ The installer:
 - Idle inhibitor: `Super + Alt + I` toggles the idle inhibitor.
 - Theme toggle: `Super + Alt + T` toggles light/dark.
 - Screen recording: `Super + Alt + R` starts and stops an MP4 recording. Audio is included when a default source is available; without audio support it falls back to video only.
-- Replay clips: a rolling buffer runs in the background; `Super + Alt + V` saves the last minute to an MP4 clip.
+- Replay clips: a rolling buffer runs in the background; `Super + Alt + V` saves the last minute to an MP4 clip. A small gray icon appears beside Bluetooth while the buffer is active.
 - Screen Capturing settings: control recording and clip folders, display, resolution, frame rate, quality, audio, clip length, screenshot behavior, and optional app-name subfolders in one page.
 5. Copies `config/hypr` and `config/quickshell` into `~/.config`.
 6. Makes all shipped Quickshell helper scripts executable.

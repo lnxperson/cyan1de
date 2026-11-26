@@ -72,7 +72,10 @@ ShellRoot {
         interval: 10000
         repeat: true
         running: true
-        onTriggered: Quickshell.execDetached([root.replayScript, "ensure"])
+        onTriggered: {
+            Quickshell.execDetached([root.replayScript, "ensure"]);
+            ReplayState.refresh();
+        }
     }
 
     // One-shot-per-cycle low battery warnings, independent of any screen.
@@ -99,6 +102,7 @@ ShellRoot {
     Component.onCompleted: {
         cursorDimProcess.running = true;
         Quickshell.execDetached([root.replayScript, "ensure"]);
+        ReplayState.refresh();
     }
 
     readonly property var panelScreens: {

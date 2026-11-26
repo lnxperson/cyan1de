@@ -3,6 +3,7 @@ singleton Brightness 1.0 Brightness.qml
 singleton NightLight 1.0 NightLight.qml
 singleton PowerProfileControl 1.0 PowerProfileControl.qml
 singleton RecordingState 1.0 RecordingState.qml
+singleton ReplayState 1.0 ReplayState.qml
 ActionButton 1.0 ActionButton.qml
 ActionPopupHost 1.0 ActionPopupHost.qml
 Bar 1.0 Bar.qml

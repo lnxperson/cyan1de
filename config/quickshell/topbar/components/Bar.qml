@@ -461,7 +461,9 @@ PanelWindow {
             case "clock": return Theme.showClock;
             case "tray": return Theme.showTray && SystemTray.items.values.length > 0;
             case "bluetooth": return Theme.showBluetooth;
-            case "recording": return RecordingState.active;
+            // One slot after Bluetooth: the red chip wins while recording,
+            // otherwise a small gray icon marks the rolling replay buffer.
+            case "recording": return RecordingState.active || ReplayState.active;
             case "network": return Theme.showNetwork;
             case "volume": return Theme.showVolume;
             case "brightness":
@@ -1227,7 +1229,10 @@ PanelWindow {
     Component {
         id: recordingComponent
 
-        RecordingIndicator { vertical: bar.vertical }
+        RecordingIndicator {
+            vertical: bar.vertical
+            replayMode: !RecordingState.active
+        }
     }
 
     Component {

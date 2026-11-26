@@ -14,6 +14,7 @@ mkdir -p "$state_dir" || exit 0
 buffer_dir="$state_dir/replay-buffer"
 pid_file="$state_dir/replay.pid"
 sig_file="$state_dir/replay.sig"
+state_file="$state_dir/replay.state"
 list_file="$state_dir/replay.list"
 log_file="$state_dir/replay.log"
 lock_file="$state_dir/replay.lock"
@@ -51,6 +52,12 @@ running_pid() {
     printf '%s\n' "$pid"
 }
 
+# The topbar panel watches this file to show the small replay-buffer icon.
+write_state() {
+    local pid="$1"
+    printf 'v1\n%s\n' "$pid" > "$state_file"
+}
+
 stop_replay() {
     local pid pgid i target
     pid="$(running_pid 2>/dev/null || true)"
@@ -72,7 +79,7 @@ stop_replay() {
             kill -KILL "$pid" 2>/dev/null || true
         fi
     fi
-    rm -f "$pid_file" "$sig_file"
+    rm -f "$pid_file" "$sig_file" "$state_file"
 }
 
 config_signature() {
@@ -101,6 +108,8 @@ ensure_replay() {
     current=""
     [[ -s "$sig_file" ]] && IFS= read -r current < "$sig_file"
     if running_pid >/dev/null 2>&1 && [[ "$current" == "$signature" ]]; then
+        # Refresh the panel state if a previous run left it stale.
+        write_state "$(< "$pid_file")"
         exit 0
     fi
 
@@ -119,6 +128,7 @@ ensure_replay() {
     fi
     pid="$!"
     printf '%s\n' "$pid" > "$pid_file"
+    write_state "$pid"
 }
 
 run_replay() {
@@ -152,7 +162,7 @@ run_replay() {
         [[ -n "$wfpid" ]] && kill "$wfpid" 2>/dev/null || true
         [[ -n "$ffpid" ]] && wait "$ffpid" 2>/dev/null || true
         [[ -n "$wfpid" ]] && wait "$wfpid" 2>/dev/null || true
-        rm -f "$fifo" "$pid_file" "$sig_file"
+        rm -f "$fifo" "$pid_file" "$sig_file" "$state_file"
     }
     trap cleanup EXIT INT TERM
 
