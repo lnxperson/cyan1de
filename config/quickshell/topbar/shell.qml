@@ -83,38 +83,7 @@ ShellRoot {
         }
     }
 
-    // The optional update indicator is driven from here rather than from a
-    // singleton Timer, which does not tick reliably on this Quickshell build.
-    property bool updatesEnabled: false
-
-    Timer {
-        interval: 1000
-        repeat: true
-        running: true
-        onTriggered: {
-            if (Theme.showUpdates !== root.updatesEnabled) {
-                root.updatesEnabled = Theme.showUpdates;
-                if (root.updatesEnabled)
-                    UpdateMonitor.refresh();
-                else
-                    UpdateMonitor.clear();
-            }
-        }
-    }
-
-    Timer {
-        interval: 600000
-        repeat: true
-        running: Theme.showUpdates
-        onTriggered: UpdateMonitor.refresh()
-    }
-
-    Component.onCompleted: {
-        cursorDimProcess.running = true;
-        root.updatesEnabled = Theme.showUpdates;
-        if (root.updatesEnabled)
-            UpdateMonitor.refresh();
-    }
+    Component.onCompleted: cursorDimProcess.running = true
 
     readonly property var panelScreens: {
         const screens = Quickshell.screens;
@@ -194,7 +163,6 @@ ShellRoot {
                 bar.closePopup();
         }
 
-        function refreshUpdates(): void { UpdateMonitor.refresh() }
     }
 
     // The wrap lives on its own full-screen surface so it can hug the display

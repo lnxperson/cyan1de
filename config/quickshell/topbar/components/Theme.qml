@@ -187,7 +187,6 @@ QtObject {
     readonly property bool showBrightness: elementData.brightness !== false
     readonly property bool showBattery: elementData.battery !== false
     readonly property bool showPower: elementData.power !== false
-    readonly property bool showUpdates: elementData.updates === true
 
     readonly property bool calendarMedia: barData.calendarMedia !== undefined ? barData.calendarMedia : true
     readonly property string calendarMediaPosition: {

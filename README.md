@@ -46,7 +46,7 @@ The installer handles packages such as:
 - `qt6ct`, `adw-gtk-theme`
 - `ttf-jetbrains-mono-nerd`, `noto-fonts-emoji`
 - `python`, `xdg-utils`, `ripgrep`, `wl-clipboard`
-- `swappy`, `hyprpicker`, `pacman-contrib`
+- `swappy`, `hyprpicker`, `wf-recorder`
 
 You can decline package installation and install them yourself.
 
@@ -77,7 +77,7 @@ The installer:
 - Keyboard layout switching: `Super + Alt + K` cycles layouts through `us` and `fr`.
 - Idle inhibitor: `Super + Alt + I` toggles the idle inhibitor.
 - Theme toggle: `Super + Alt + T` toggles light/dark.
-- Update indicator: **Settings → Appearance → Panel → Update indicator** adds an optional Arch package count to the panel and calendar. It uses `checkupdates` when available, falls back to `pacman -Qu`, and refreshes every 10 minutes or when the calendar opens. Off by default.
+- Screen recording: `Super + Alt + R` starts and stops an MP4 recording of the focused monitor in `~/Videos`. Audio is included when a default source is available; without audio support it falls back to video only.
 5. Copies `config/hypr` and `config/quickshell` into `~/.config`.
 6. Makes all shipped Quickshell helper scripts executable.
 
@@ -295,6 +295,7 @@ Alacritty, the terminal-first launcher actions, and the compact OSD make this a 
 | `Ctrl + Print` | Full monitor screenshot |
 | `Shift + Print` | Region screenshot to file |
 | `Super + Shift + Print` | Region screenshot with annotation |
+| `Super + Alt + R` | Toggle screen recording (focused monitor) |
 | `Super + Alt + C` | Pick color and copy hex |
 | `Super + Alt + K` | Cycle keyboard layout |
 | `Super + Alt + I` | Toggle idle inhibitor |
@@ -304,7 +305,7 @@ Alacritty, the terminal-first launcher actions, and the compact OSD make this a 
 | `XF86MonBrightness*` | Display brightness |
 | `XF86KbdBrightness*` | Keyboard brightness |
 
-Screenshots use `hyprshot`.
+Screenshots use `hyprshot`; recordings use `wf-recorder`.
 
 ---
 
@@ -323,11 +324,15 @@ cyan1de/
     └── quickshell/
         ├── background/
         ├── emoji/
+        ├── input/
         ├── launcher/
         ├── lockscreen/
         ├── notifications/
         ├── osd/
         ├── performance/
+        ├── power/
+        ├── recorder/
+        ├── screenshot/
         ├── settings/
         ├── topbar/
         ├── welcome/

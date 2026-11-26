@@ -112,7 +112,7 @@ PACKAGES=(
     ripgrep
     wl-clipboard
     hyprpicker
-    pacman-contrib
+    wf-recorder
 )
 
 privileged() {

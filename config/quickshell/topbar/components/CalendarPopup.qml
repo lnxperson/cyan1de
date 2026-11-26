@@ -29,12 +29,7 @@ PopupWindow {
     function open() { surface.open(); }
     function close() { surface.close(); }
 
-    onVisibleChanged: {
-        if (!visible)
-            surface.reset();
-        else if (Theme.showUpdates)
-            UpdateMonitor.refresh();
-    }
+    onVisibleChanged: if (!visible) surface.reset()
 
     function shiftMonth(delta) {
         viewMonth = new Date(viewYear, viewMonthIndex + delta, 1);
@@ -316,96 +311,13 @@ PopupWindow {
                 Layout.preferredWidth: 1
                 Layout.fillHeight: true
                 color: Theme.border
-                visible: Theme.calendarNotifications || Theme.showUpdates
+                visible: Theme.calendarNotifications
             }
 
-            ColumnLayout {
+            NotificationHistory {
                 Layout.preferredWidth: 280
-                Layout.maximumWidth: 280
                 Layout.alignment: Qt.AlignTop
-                visible: Theme.calendarNotifications || Theme.showUpdates
-                spacing: 10
-
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 86
-                    visible: Theme.showUpdates
-                    radius: Theme.controlRadius
-                    color: Theme.surfaceAlt
-                    border.width: 1
-                    border.color: Theme.border
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 9
-                        spacing: 4
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 6
-
-                            Text {
-                                text: "↑"
-                                font.family: Theme.font
-                                font.pixelSize: Theme.iconSize
-                                color: Theme.accent
-                            }
-
-                            Text {
-                                text: "Updates"
-                                font.family: Theme.mono
-                                font.pixelSize: 12
-                                font.weight: Font.DemiBold
-                                color: Theme.text
-                            }
-
-                            Item { Layout.fillWidth: true }
-
-                            Text {
-                                text: UpdateMonitor.count < 0
-                                    ? "…" : String(UpdateMonitor.count)
-                                font.family: Theme.mono
-                                font.pixelSize: 13
-                                font.weight: Font.DemiBold
-                                color: UpdateMonitor.count > 0
-                                    ? Theme.accent : Theme.dim
-                            }
-
-                            PillButton {
-                                label: "Refresh"
-                                onClicked: UpdateMonitor.refresh()
-                            }
-                        }
-
-                        Text {
-                            Layout.fillWidth: true
-                            text: {
-                                if (UpdateMonitor.count < 0 && !UpdateMonitor.available)
-                                    return "No update tool available.";
-                                if (UpdateMonitor.count < 0)
-                                    return "Checking for updates…";
-                                if (UpdateMonitor.count === 0)
-                                    return "System is up to date.";
-                                const list = UpdateMonitor.packages.slice(0, 3).join("\n");
-                                return list + (UpdateMonitor.count > 3
-                                    ? "\n+" + (UpdateMonitor.count - 3) + " more" : "");
-                            }
-                            font.family: Theme.mono
-                            font.pixelSize: 9
-                            color: Theme.subtext
-                            wrapMode: Text.WrapAnywhere
-                            maximumLineCount: 3
-                            elide: Text.ElideRight
-                        }
-                    }
-                }
-
-                NotificationHistory {
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: 280
-                    Layout.alignment: Qt.AlignTop
-                    visible: Theme.calendarNotifications
-                }
+                visible: Theme.calendarNotifications
             }
         }
 

@@ -86,7 +86,6 @@ Rectangle {
             case "brightness": return app.barShowBrightness;
             case "battery": return app.barShowBattery;
             case "power": return app.barShowPower;
-            case "updates": return app.barShowUpdates;
         }
         return false;
     }
@@ -209,7 +208,6 @@ Rectangle {
             case "brightness": return "󰃠";
             case "battery": return "󰂂";
             case "power": return "⏻";
-            case "updates": return "↑";
         }
         return "•";
     }
@@ -223,7 +221,6 @@ Rectangle {
             case "appMenu": return "󰀻";
             case "workspaces": return "1 2 3 4 5 6 7 8 9 10";
             case "clock": return "󰥔  Tue 17 Nov  19:42";
-            case "updates": return "↑ 12";
         }
         return key;
     }
@@ -303,7 +300,7 @@ Rectangle {
         claim("workspace", ["workspaces"], "left");
         claim("notification", ["clock"], "center");
         claim("action", ["tray", "bluetooth", "network", "volume",
-            "brightness", "battery", "updates", "power"], "right");
+            "brightness", "battery", "power"], "right");
         return out;
     }
 
