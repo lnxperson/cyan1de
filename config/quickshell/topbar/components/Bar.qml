@@ -149,9 +149,13 @@ PanelWindow {
     }
 
     readonly property bool fullscreenHere: bar.fullscreenOnThisScreen()
+    // A maximized game hides only the bar on its own display. Fullscreen
+    // windows are still handled by the workspace check above.
+    readonly property bool gameMaximizedHere: GameWindows.maximizedOn(bar.screen)
+    readonly property bool hiddenHere: bar.fullscreenHere || bar.gameMaximizedHere
 
-    onFullscreenHereChanged: {
-        if (!bar.fullscreenHere)
+    onHiddenHereChanged: {
+        if (!bar.hiddenHere)
             return;
         bar.closePopup();
         if (TrayMenuState.current)
@@ -243,9 +247,9 @@ PanelWindow {
     implicitHeight: !vertical
         ? Theme.barHeight
         : (island ? islandHeight : 0)
-    exclusiveZone: (bar.fullscreenHere || island) ? 0 : Theme.barHeight
+    exclusiveZone: (bar.hiddenHere || island) ? 0 : Theme.barHeight
     color: "transparent"
-    visible: !bar.fullscreenHere
+    visible: !bar.hiddenHere
         && (!island || bar.islandRevealed || bar.islandReveal > 0.001)
     // OnDemand focus lets the QtWidgets tray menu receive keyboard input.
     focusable: true

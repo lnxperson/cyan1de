@@ -75,6 +75,9 @@ ShellRoot {
         onTriggered: {
             ReplayState.refresh();
             IdleState.refresh();
+            // Keep window geometry fresh for maximized-game detection. The
+            // event socket can freeze, and Hyprland does not signal every move.
+            Hyprland.refreshToplevels();
         }
     }
 

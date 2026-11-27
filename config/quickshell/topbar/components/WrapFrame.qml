@@ -23,7 +23,8 @@ PanelWindow {
         }
     }
 
-    // Match the bar: a fullscreen workspace should not get a frame either.
+    // Match the bar: fullscreen workspaces and maximized games should not get
+    // a frame either.
     readonly property bool fullscreenHere: {
         const workspaces = Hyprland.workspaces.values;
         const monitor = screen ? Hyprland.monitorFor(screen) : null;
@@ -45,6 +46,8 @@ PanelWindow {
         return false;
     }
 
+    readonly property bool gameMaximizedHere: GameWindows.maximizedOn(frame.screen)
+
     screen: modelData
     anchors {
         top: true
@@ -53,6 +56,7 @@ PanelWindow {
         bottom: true
     }
     visible: (active || reveal > 0.001) && !fullscreenHere
+        && !gameMaximizedHere
     // The Canvas may not have painted while the window was hidden, so paint
     // once more whenever the frame is shown.
     onVisibleChanged: if (visible) surface.requestPaint()

@@ -5,6 +5,7 @@ singleton PowerProfileControl 1.0 PowerProfileControl.qml
 singleton RecordingState 1.0 RecordingState.qml
 singleton ReplayState 1.0 ReplayState.qml
 singleton IdleState 1.0 IdleState.qml
+singleton GameWindows 1.0 GameWindows.qml
 ActionButton 1.0 ActionButton.qml
 ActionPopupHost 1.0 ActionPopupHost.qml
 Bar 1.0 Bar.qml
