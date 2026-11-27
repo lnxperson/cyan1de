@@ -662,6 +662,8 @@ ShellRoot {
 
     // Lists
     property var autostart: []
+    property bool autostartLoaded: false
+    property bool settingsLoaded: false
     property var envVars: []
 
     // Raw contents of the managed Lua files. Kept verbatim so comments,
@@ -1506,7 +1508,17 @@ ShellRoot {
         Quickshell.execDetached([root.gtkAccentHelper, barAccent, mode]);
     }
 
+    function reloadAutostart() {
+        reloadFile(autostartFile);
+        parseAutostart();
+    }
+
     function updateAutostartTheme(mode) {
+        // A theme toggle can arrive before the UI has ever opened. Never write
+        // autostart.lua from the empty default list in that case, or the
+        // generated file silently loses every launch entry.
+        if (!root.shown || !root.autostartLoaded)
+            root.reloadAutostart();
         autostart = themedAutostart(mode);
         const encoded = b64Utf8(generateAutostart());
         Quickshell.execDetached(["sh", "-c",
@@ -1514,6 +1526,11 @@ ShellRoot {
     }
 
     function setThemeMode(mode) {
+        // IPC calls can reach this before the UI has ever loaded settings.json.
+        // Populate from disk first, otherwise saving the toggle would replace
+        // every user preference with the in-memory defaults.
+        if (!root.shown && !root.settingsLoaded)
+            root.loadAll();
         const next = (mode === "light") ? "light" : "dark";
         if (themeMode === next)
             return;
@@ -1873,6 +1890,7 @@ ShellRoot {
             console.log("settings: unable to read settings.json:", e);
         }
         applySettings(parsed || defaults());
+        settingsLoaded = true;
         parseAutostart();
         autostart = themedAutostart(themeMode);
         parseEnv();
@@ -1924,6 +1942,7 @@ ShellRoot {
         while ((m = re.exec(t)) !== null)
             list.push(m[1].replace(/\\"/g, "\"").replace(/\\\\/g, "\\"));
         autostart = list;
+        autostartLoaded = true;
     }
 
     function parseEnv() {
