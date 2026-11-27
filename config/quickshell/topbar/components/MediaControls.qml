@@ -31,6 +31,7 @@ ColumnLayout {
     property real dragProgress: 0
     property bool seekHold: false
     property var trackId: null
+    property real pressProgress: 0
 
     spacing: 9
     visible: Theme.calendarMedia
@@ -107,26 +108,39 @@ ColumnLayout {
         return root.player.positionSupported ? root.player.position : root.position;
     }
 
+    function holdPosition(target) {
+        root.position = target;
+        if (root.hasDuration)
+            root.progress = Math.max(0, Math.min(1, target / root.length));
+        root.seekHold = true;
+        seekHoldTimer.restart();
+    }
+
+    // Relative Seek is reliable for small steps (wheel). Some players ignore
+    // the magnitude of Seek and jump by a fixed amount, so absolute jumps use
+    // SetPosition through Quickshell's writable position property instead.
     function seekDelta(delta) {
         if (!root.seekEnabled || Math.abs(delta) < 0.01)
             return;
+        const target = Math.max(0, Math.min(root.length,
+            currentPosition() + delta));
         root.player.seek(delta);
-        root.seekHold = true;
-        seekHoldTimer.restart();
-
-        if (root.hasDuration) {
-            const target = Math.max(0, Math.min(root.length,
-                currentPosition() + delta));
-            root.position = target;
-            root.progress = target / root.length;
-        }
+        holdPosition(target);
     }
 
     // Absolute seek is only meaningful when the player publishes a duration.
     function seekTo(seconds) {
-        if (!root.hasDuration)
+        if (!root.seekEnabled)
             return;
-        seekDelta(seconds - currentPosition());
+        const target = Math.max(0, Math.min(root.length, seconds));
+        if (root.player.positionSupported) {
+            // Uses MPRIS SetPosition with the current track id, which is the
+            // spec-compliant way to jump to an exact point.
+            root.player.position = target;
+        } else {
+            root.player.seek(target - root.player.position);
+        }
+        holdPosition(target);
     }
 
     function seekBy(seconds) {
@@ -253,11 +267,11 @@ ColumnLayout {
                         visible: root.player !== null
                     }
 
-                    // Wheel seeks by five seconds per notch. Clicking or
-                    // dragging moves the dot and commits the seek on release,
-                    // which avoids flooding the player with DBus calls. The
-                    // hit area is taller than the 3px bar so the dot stays
-                    // comfortable to grab without changing the layout.
+                    // Wheel seeks by five seconds per notch. Clicking jumps
+                    // straight to that point; dragging previews the dot and
+                    // commits the final position on release. The hit area is
+                    // taller than the 3px bar so the dot stays comfortable to
+                    // grab without changing the layout.
                     MouseArea {
                         id: seekArea
                         anchors.fill: parent
@@ -292,12 +306,14 @@ ColumnLayout {
                         }
 
                         onPressed: {
-                            if (!root.hasDuration)
+                            if (!root.seekEnabled)
                                 return;
                             root.dragging = true;
                             root.dragProgress = Math.max(0, Math.min(1,
                                 mouseX / Math.max(1, width)));
+                            root.pressProgress = root.dragProgress;
                             root.progress = root.dragProgress;
+                            root.seekTo(root.dragProgress * root.length);
                         }
 
                         onPositionChanged: if (root.dragging) {
@@ -310,11 +326,13 @@ ColumnLayout {
                             if (!root.dragging)
                                 return;
                             root.dragging = false;
-                            root.seekTo(root.dragProgress * root.length);
+                            if (Math.abs(root.dragProgress - root.pressProgress) > 0.001)
+                                root.seekTo(root.dragProgress * root.length);
                         }
 
                         onCanceled: {
                             root.dragging = false;
+                            root.seekHold = false;
                             root.refresh();
                         }
                     }
