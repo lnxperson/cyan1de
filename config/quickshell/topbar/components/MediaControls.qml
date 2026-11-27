@@ -15,8 +15,18 @@ ColumnLayout {
     property bool playing: false
     property real position: 0
     property real length: 0
-    property bool seekEnabled: root.player && root.player.canSeek && root.length > 0
+    property bool seekEnabled: root.player && root.player.canSeek
+    // Browsers often publish no mpris:length. In that case Quickshell reports
+    // length == position, so a plain position/length calculation would pin the
+    // bar to the end. Treat that as indeterminate instead.
+    property bool hasDuration: root.player && root.player.lengthSupported
+        && root.length > 0
+    property real progress: 0
     property real wheelRemainder: 0
+    property bool dragging: false
+    property real dragProgress: 0
+    property bool seekHold: false
+    property var trackId: null
 
     spacing: 9
     visible: Theme.calendarMedia
@@ -42,9 +52,15 @@ ColumnLayout {
             }
         }
 
-        if (chosen !== root.player)
+        const changed = chosen !== root.player
+            || (chosen && chosen.uniqueId !== root.trackId);
+        if (changed) {
             root.wheelRemainder = 0;
+            root.dragging = false;
+            root.seekHold = false;
+        }
         root.player = chosen;
+        root.trackId = chosen ? chosen.uniqueId : null;
         root.title = chosen
             ? (chosen.trackTitle || chosen.identity || "Media")
             : "";
@@ -60,6 +76,14 @@ ColumnLayout {
         root.playing = chosen ? chosen.isPlaying : false;
         root.position = chosen ? (chosen.position || 0) : 0;
         root.length = chosen ? (chosen.length || 0) : 0;
+
+        // While dragging or just after a seek, keep the handle where the user
+        // put it instead of letting the 500ms poll snap it back.
+        if (!root.dragging && !root.seekHold) {
+            root.progress = root.hasDuration
+                ? Math.max(0, Math.min(1, root.position / root.length))
+                : 0;
+        }
     }
 
     function activate(action) {
@@ -79,19 +103,38 @@ ColumnLayout {
         return root.player.positionSupported ? root.player.position : root.position;
     }
 
+    function seekDelta(delta) {
+        if (!root.seekEnabled || Math.abs(delta) < 0.01)
+            return;
+        root.player.seek(delta);
+        root.seekHold = true;
+        seekHoldTimer.restart();
+
+        if (root.hasDuration) {
+            const target = Math.max(0, Math.min(root.length,
+                currentPosition() + delta));
+            root.position = target;
+            root.progress = target / root.length;
+        }
+    }
+
+    // Absolute seek is only meaningful when the player publishes a duration.
     function seekTo(seconds) {
-        if (!root.seekEnabled)
+        if (!root.hasDuration)
             return;
-        const target = Math.max(0, Math.min(root.length, seconds));
-        const current = currentPosition();
-        if (Math.abs(target - current) < 0.01)
-            return;
-        root.player.seek(target - current);
-        root.position = target;
+        seekDelta(seconds - currentPosition());
     }
 
     function seekBy(seconds) {
-        seekTo(currentPosition() + seconds);
+        // With no known duration we can still send a relative Seek, which is
+        // how browser MPRIS players expose YouTube scrubbing.
+        seekDelta(seconds);
+    }
+
+    Timer {
+        id: seekHoldTimer
+        interval: 700
+        onTriggered: root.seekHold = false
     }
 
     Timer {
@@ -182,19 +225,37 @@ ColumnLayout {
                     Layout.preferredHeight: 3
                     radius: Math.min(1.5, Theme.controlRadius)
                     color: Theme.border
-                    visible: root.player !== null && root.length > 0
+                    visible: root.player !== null
 
                     Rectangle {
-                        width: parent.width * Math.min(1, root.position / root.length)
+                        width: parent.width * root.progress
                         height: parent.height
                         radius: parent.radius
                         color: Theme.accent
+                        visible: root.hasDuration
+                    }
+
+                    // The dot is the seek handle. It sits at the left edge for
+                    // players with no duration (YouTube in Firefox) but wheel
+                    // seeking still works there via relative MPRIS Seek.
+                    Rectangle {
+                        width: 9
+                        height: 9
+                        radius: 4.5
+                        color: Theme.accent
+                        border.width: 1
+                        border.color: Theme.surface
+                        anchors.verticalCenter: parent.verticalCenter
+                        x: Math.max(0, Math.min(parent.width - width,
+                            parent.width * root.progress - width / 2))
+                        visible: root.player !== null
                     }
 
                     // Wheel seeks by five seconds per notch. Clicking or
-                    // dragging the bar jumps straight to that point in the
-                    // track. The hit area is taller than the 3px bar so it
-                    // stays comfortable to use without changing the layout.
+                    // dragging moves the dot and commits the seek on release,
+                    // which avoids flooding the player with DBus calls. The
+                    // hit area is taller than the 3px bar so the dot stays
+                    // comfortable to grab without changing the layout.
                     MouseArea {
                         id: seekArea
                         anchors.fill: parent
@@ -204,6 +265,7 @@ ColumnLayout {
                         enabled: root.seekEnabled
                         cursorShape: root.seekEnabled
                             ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        preventStealing: true
 
                         onWheel: event => {
                             if (!root.seekEnabled)
@@ -227,10 +289,32 @@ ColumnLayout {
                             event.accepted = true;
                         }
 
-                        onPressed: root.seekTo(
-                            mouseX / Math.max(1, width) * root.length)
-                        onPositionChanged: if (pressed) root.seekTo(
-                            mouseX / Math.max(1, width) * root.length)
+                        onPressed: {
+                            if (!root.hasDuration)
+                                return;
+                            root.dragging = true;
+                            root.dragProgress = Math.max(0, Math.min(1,
+                                mouseX / Math.max(1, width)));
+                            root.progress = root.dragProgress;
+                        }
+
+                        onPositionChanged: if (root.dragging) {
+                            root.dragProgress = Math.max(0, Math.min(1,
+                                mouseX / Math.max(1, width)));
+                            root.progress = root.dragProgress;
+                        }
+
+                        onReleased: {
+                            if (!root.dragging)
+                                return;
+                            root.dragging = false;
+                            root.seekTo(root.dragProgress * root.length);
+                        }
+
+                        onCanceled: {
+                            root.dragging = false;
+                            root.refresh();
+                        }
                     }
                 }
             }
