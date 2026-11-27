@@ -15,7 +15,11 @@ ColumnLayout {
     property bool playing: false
     property real position: 0
     property real length: 0
+    // Some players (notably Firefox for YouTube) claim CanSeek but silently
+    // ignore Seek/SetPosition and expose no duration. Only allow scrubbing
+    // when a real duration exists, otherwise wheel input just fires no-ops.
     property bool seekEnabled: root.player && root.player.canSeek
+        && root.hasDuration
     // Browsers often publish no mpris:length. In that case Quickshell reports
     // length == position, so a plain position/length calculation would pin the
     // bar to the end. Treat that as indeterminate instead.
@@ -126,8 +130,6 @@ ColumnLayout {
     }
 
     function seekBy(seconds) {
-        // With no known duration we can still send a relative Seek, which is
-        // how browser MPRIS players expose YouTube scrubbing.
         seekDelta(seconds);
     }
 
@@ -235,14 +237,14 @@ ColumnLayout {
                         visible: root.hasDuration
                     }
 
-                    // The dot is the seek handle. It sits at the left edge for
-                    // players with no duration (YouTube in Firefox) but wheel
-                    // seeking still works there via relative MPRIS Seek.
+                    // The dot is the seek handle. For players with no usable
+                    // duration it stays dim at the left edge as an indicator
+                    // only; Firefox/YouTube does not implement MPRIS seeking.
                     Rectangle {
                         width: 9
                         height: 9
                         radius: 4.5
-                        color: Theme.accent
+                        color: root.hasDuration ? Theme.accent : Theme.dim
                         border.width: 1
                         border.color: Theme.surface
                         anchors.verticalCenter: parent.verticalCenter
