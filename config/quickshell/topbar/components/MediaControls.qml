@@ -15,6 +15,8 @@ ColumnLayout {
     property bool playing: false
     property real position: 0
     property real length: 0
+    property bool seekEnabled: root.player && root.player.canSeek && root.length > 0
+    property real wheelRemainder: 0
 
     spacing: 9
     visible: Theme.calendarMedia
@@ -40,6 +42,8 @@ ColumnLayout {
             }
         }
 
+        if (chosen !== root.player)
+            root.wheelRemainder = 0;
         root.player = chosen;
         root.title = chosen
             ? (chosen.trackTitle || chosen.identity || "Media")
@@ -67,6 +71,27 @@ ColumnLayout {
             root.player.togglePlaying();
         else if (action === "next")
             root.player.next();
+    }
+
+    function currentPosition() {
+        if (!root.player)
+            return 0;
+        return root.player.positionSupported ? root.player.position : root.position;
+    }
+
+    function seekTo(seconds) {
+        if (!root.seekEnabled)
+            return;
+        const target = Math.max(0, Math.min(root.length, seconds));
+        const current = currentPosition();
+        if (Math.abs(target - current) < 0.01)
+            return;
+        root.player.seek(target - current);
+        root.position = target;
+    }
+
+    function seekBy(seconds) {
+        seekTo(currentPosition() + seconds);
     }
 
     Timer {
@@ -164,6 +189,48 @@ ColumnLayout {
                         height: parent.height
                         radius: parent.radius
                         color: Theme.accent
+                    }
+
+                    // Wheel seeks by five seconds per notch. Clicking or
+                    // dragging the bar jumps straight to that point in the
+                    // track. The hit area is taller than the 3px bar so it
+                    // stays comfortable to use without changing the layout.
+                    MouseArea {
+                        id: seekArea
+                        anchors.fill: parent
+                        anchors.topMargin: -5
+                        anchors.bottomMargin: -5
+                        hoverEnabled: true
+                        enabled: root.seekEnabled
+                        cursorShape: root.seekEnabled
+                            ? Qt.PointingHandCursor : Qt.ArrowCursor
+
+                        onWheel: event => {
+                            if (!root.seekEnabled)
+                                return;
+                            let delta = event.angleDelta.y;
+                            if (delta === 0)
+                                delta = event.angleDelta.x;
+                            if (delta === 0)
+                                delta = event.pixelDelta.y * 4;
+                            if (delta === 0)
+                                delta = event.pixelDelta.x * 4;
+
+                            root.wheelRemainder += delta;
+                            const notches = Math.trunc(root.wheelRemainder / 120);
+                            root.wheelRemainder -= notches * 120;
+                            if (notches !== 0) {
+                                const step = (event.modifiers & Qt.ShiftModifier)
+                                    ? 1 : 5;
+                                root.seekBy(notches * step);
+                            }
+                            event.accepted = true;
+                        }
+
+                        onPressed: root.seekTo(
+                            mouseX / Math.max(1, width) * root.length)
+                        onPositionChanged: if (pressed) root.seekTo(
+                            mouseX / Math.max(1, width) * root.length)
                     }
                 }
             }
