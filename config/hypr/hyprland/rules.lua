@@ -11,6 +11,21 @@ local suppressMaximizeRule = hl.window_rule({
     suppress_event = "maximize",
 })
 
+-- Games own their display from the moment they open. Request fullscreen for
+-- both Hyprland's state and the game client's state so titles that manage
+-- their own mode do not need a manual Super + F press to cover the screen.
+local gameClassPattern = table.concat({
+    "^steam_app_[0-9]+$",
+    "^(lutris|heroic|bottles|wine|proton|dosbox|retroarch|rpcs3|yuzu|ryujinx|pcsx2|dolphin|citra|ppsspp|duckstation|melonds|mgba)$",
+    "^(geometrydash|geometry dash|minecraft|terraria|balatro|stardew valley|osu!?|roblox)$",
+}, "|")
+
+hl.window_rule({
+    name  = "fullscreen-games",
+    match = { class = gameClassPattern },
+    fullscreen_state = "2 2",
+})
+
 -- Fix drag-and-drop focus issues for unassigned XWayland utility windows
 hl.window_rule({
     name  = "fix-xwayland-drags",

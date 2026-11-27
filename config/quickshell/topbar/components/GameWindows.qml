@@ -120,7 +120,9 @@ QtObject {
 
         const at = ipc.at;
         const size = ipc.size;
-        if (!Array.isArray(at) || !Array.isArray(size) || at.length < 2
+        // Hyprland IPC lists are array-like QJSValues, not JS arrays.
+        if (!at || !size || typeof at.length !== "number"
+            || typeof size.length !== "number" || at.length < 2
             || size.length < 2)
             return false;
 
