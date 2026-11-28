@@ -11,6 +11,8 @@ ShellRoot {
 
     readonly property string replayScript: (Quickshell.env("HOME") || "")
         + "/.config/quickshell/recorder/replay.sh"
+    readonly property string discordPresenceScript: (Quickshell.env("HOME") || "")
+        + "/.config/quickshell/discord/game-presence.py"
 
     // Global cursor position from Hyprland, used only by the island layout's
     // edge-reveal behaviour. -1 means unknown, which keeps the bar visible.
@@ -112,8 +114,27 @@ ShellRoot {
         }
     }
 
+    // Mirror the running game into Discord activity. The helper uses local RPC
+    // IPC and exits its activity when no game window remains, so it follows
+    // games that Discord cannot detect on its own.
+    Process {
+        id: discordPresenceProcess
+        command: [root.discordPresenceScript]
+    }
+
+    Timer {
+        interval: 5000
+        repeat: true
+        running: true
+        onTriggered: {
+            if (!discordPresenceProcess.running)
+                discordPresenceProcess.running = true;
+        }
+    }
+
     Component.onCompleted: {
         cursorDimProcess.running = true;
+        discordPresenceProcess.running = true;
         Quickshell.execDetached([root.replayScript, "ensure"]);
         ReplayState.refresh();
         IdleState.refresh();

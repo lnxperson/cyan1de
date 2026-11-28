@@ -15,6 +15,7 @@ The shipped defaults use JetBrainsMono Nerd Font, a dark surface palette, and a 
 - Floating **pills**, continuous **unified**, or edge-reveal **island** panel modes
 - Panel on **top / bottom / left / right**, on **all displays** or one selected monitor
 - Ten workspaces, scratchpad, floating-window controls, and per-monitor fullscreen bar hiding
+- Discord activity for the running game, including Steam, Proton, Wine and games Discord cannot identify on its own
 - Centered clock, system tray, Bluetooth, network, volume, brightness, battery, and power controls
 - On left/right bars, the clock stacks the date and time and the unread notification badge floats just above the calendar element
 - Software-brightness monitors dim the panel, topbar popups, other popups and cursor without affecting DDC-controlled displays
@@ -331,6 +332,7 @@ cyan1de/
     └── quickshell/
         ├── background/
         ├── capture/
+        ├── discord/
         ├── emoji/
         ├── input/
         ├── launcher/
@@ -357,4 +359,5 @@ Quickshell runs as separate named sessions: `topbar`, `osd`, `launcher`, `emoji`
 - Quickshell panels are intentionally opaque. The available blur options are **Hyprland blur** and **Alacritty blur** in Settings.
 - If a panel looks wrong after upgrading, remove the old `~/.config/quickshell` and `~/.config/hypr` directories and reinstall; the installer backs them up first.
 - Popup content uses a shared fixed size; the calendar has its own fixed height to keep month switching stable.
+- Discord activity uses `~/.config/quickshell/discord/game-presence.conf`; set `enabled=false` to turn it off or replace `client_id` with your own Discord application.
 - Demo screenshots live in `demopics/`.

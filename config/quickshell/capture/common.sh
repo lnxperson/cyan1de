@@ -354,7 +354,9 @@ capture_resolve_display() {
 # Geometry Dash is not named "steam app 322170". Generic Proton/UMU classes are
 # resolved from the window title or the game executable path in the process
 # tree; the install directory and Steam installdir metadata provide the name,
-# so no per-game alias list is needed.
+# so no per-game alias list is needed. A monitor name selects that display's
+# most recently focused window; "address:<hex>" or "pid:<number>" selects an
+# exact window for helpers such as Discord presence.
 capture_app_name() {
     local wanted="${1:-}" name
     command -v python3 >/dev/null 2>&1 || return 1
@@ -711,7 +713,26 @@ def name_for(client):
     return name
 
 client = None
-if wanted and wanted != "focused":
+if wanted and wanted.startswith("address:"):
+    address = wanted.split(":", 1)[1].strip().lower()
+    clients = run_json(["hyprctl", "clients", "-j"]) or []
+    client = next((c for c in clients if isinstance(c, dict)
+                   and str(c.get("address") or "").lower() == address), None)
+elif wanted and wanted.startswith("pid:"):
+    try:
+        pid = int(wanted.split(":", 1)[1].strip())
+    except Exception:
+        pid = 0
+    clients = run_json(["hyprctl", "clients", "-j"]) or []
+    matches = [c for c in clients if isinstance(c, dict)
+               and int(c.get("pid") or 0) == pid]
+    if matches:
+        try:
+            client = min(matches,
+                         key=lambda c: int(c.get("focusHistoryID", 999)))
+        except Exception:
+            client = matches[0]
+elif wanted and wanted != "focused":
     monitors = run_json(["hyprctl", "monitors", "-j"]) or []
     clients = run_json(["hyprctl", "clients", "-j"]) or []
     index = next((i for i, mon in enumerate(monitors)
