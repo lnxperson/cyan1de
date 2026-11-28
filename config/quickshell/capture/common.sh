@@ -351,7 +351,9 @@ capture_resolve_display() {
 # window. CamelCase classes are split into words, reverse-DNS GNOME app ids are
 # shortened to readable names, lowercase classes fall back to the window title,
 # and steam_app_<id> classes are resolved from local Steam manifests so
-# Geometry Dash is not named "steam app 322170".
+# Geometry Dash is not named "steam app 322170". Generic Proton/UMU classes are
+# resolved from the window title or game executable in the process tree, so a
+# Proton Rocket League window is not named "steam proton".
 capture_app_name() {
     local wanted="${1:-}" name
     command -v python3 >/dev/null 2>&1 || return 1
@@ -455,6 +457,81 @@ def title_name(client):
             return candidate
     return ""
 
+# Proton/UMU windows often report a generic class such as "steam proton". The
+# real game is usually visible in the window title or in an ancestor process's
+# command line (for example RocketLeague.exe), so use those before the class.
+generic_window_classes = {
+    "steam", "steamproton", "proton", "wine", "wine64", "umu", "umurun",
+    "lutris", "heroic", "bottles", "dosbox", "retroarch",
+}
+
+def is_generic_window_class(raw_cls):
+    normalized = re.sub(r"[^a-z0-9]", "", str(raw_cls or "").lower())
+    return normalized in generic_window_classes
+
+def generic_process_name(name):
+    low = clean(name).lower()
+    if not low:
+        return True
+    if low in {
+        "steam", "steamwebhelper", "proton", "wine", "wine64",
+        "wine preloader", "umu", "umu run", "launcher", "updater",
+        "bootstrap", "steamworks", "steamcmd", "easyanticheat",
+        "epic games launcher", "galaxy client",
+    }:
+        return True
+    return any(token in low for token in (
+        " easy anti cheat", " anti cheat", "eac", "crash", "launcher",
+        "updater", "bootstrap", "steamwebhelper",
+    ))
+
+def process_game_names(pid):
+    try:
+        pid = int(pid)
+    except Exception:
+        return []
+    names = []
+    seen = set()
+    for _ in range(16):
+        if not pid or pid in seen:
+            break
+        seen.add(pid)
+        try:
+            with open("/proc/%d/cmdline" % pid, "rb") as fh:
+                args = [part.decode("utf-8", "ignore")
+                        for part in fh.read().split(b"\0") if part]
+        except Exception:
+            args = []
+        for arg in args:
+            base = os.path.basename(arg)
+            if base.lower().endswith(".exe"):
+                names.append(base[:-4])
+        try:
+            with open("/proc/%d/status" % pid, "r", encoding="utf-8",
+                      errors="ignore") as fh:
+                match = re.search(r"^PPid:\s*(\d+)", fh.read(), re.M)
+            pid = int(match.group(1)) if match else 0
+        except Exception:
+            pid = 0
+    return names
+
+def process_app_name(client, title):
+    candidates = []
+    for raw in process_game_names(client.get("pid")):
+        name = clean(camel(raw))
+        if name and not generic_process_name(name):
+            candidates.append(name)
+    if not candidates:
+        return ""
+    compact_title = re.sub(r"\s+", "", (title or "").lower())
+    for name in candidates:
+        if re.sub(r"\s+", "", name.lower()) == compact_title:
+            return name
+    for name in candidates:
+        if compact_title and re.sub(r"\s+", "", name.lower()) in compact_title:
+            return name
+    return max(candidates, key=len)
+
 def name_for(client):
     if not isinstance(client, dict):
         return ""
@@ -470,6 +547,12 @@ def name_for(client):
         if title and appid not in title:
             return title
         return "Steam App " + appid
+    if is_generic_window_class(raw_cls):
+        name = process_app_name(client, title)
+        if name:
+            return name
+        if title:
+            return title
     app_id = re.sub(r"\.desktop$", "", raw_cls, flags=re.I)
     known = known_app_name(app_id)
     if known:
