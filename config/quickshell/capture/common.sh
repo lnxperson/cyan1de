@@ -503,7 +503,10 @@ def process_game_names(pid):
         except Exception:
             args = []
         for arg in args:
-            base = os.path.basename(arg)
+            # Proton passes Windows-style paths such as
+            # Z:\home\fish\Games\...\RocketLeague.exe; POSIX basename does not
+            # split on backslashes, so handle both separator styles here.
+            base = re.split(r"[\\/]", arg)[-1]
             if base.lower().endswith(".exe"):
                 names.append(base[:-4])
         try:
