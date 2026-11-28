@@ -23,8 +23,8 @@ PanelWindow {
         }
     }
 
-    // Match the bar: fullscreen workspaces and maximized games should not get
-    // a frame either.
+    // Match the bar: fullscreen workspaces and maximized games on the currently
+    // shown workspace should not get a frame either.
     readonly property bool fullscreenHere: {
         const workspaces = Hyprland.workspaces.values;
         const monitor = screen ? Hyprland.monitorFor(screen) : null;

@@ -149,8 +149,8 @@ PanelWindow {
     }
 
     readonly property bool fullscreenHere: bar.fullscreenOnThisScreen()
-    // A maximized game hides only the bar on its own display. Fullscreen
-    // windows are still handled by the workspace check above.
+    // A maximized game hides only the bar on the active workspace of its own
+    // display. Fullscreen windows are handled by the workspace check above.
     readonly property bool gameMaximizedHere: GameWindows.maximizedOn(bar.screen)
     readonly property bool hiddenHere: bar.fullscreenHere || bar.gameMaximizedHere
 

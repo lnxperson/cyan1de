@@ -4,8 +4,9 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 
-// Detects maximized game windows so the bar can hide only on the display that
-// owns them. Detection is intentionally conservative: Steam titles publish a
+// Detects maximized game windows so the bar can hide only on the active
+// workspace of the display that owns them. Detection is intentionally
+// conservative: Steam titles publish a
 // steam_app_<id> class, and the common standalone launchers/emulators have
 // stable app ids. Known desktop apps are excluded before title matching so a
 // folder named after a game does not hide the bar. Extra app ids or class names
@@ -41,6 +42,55 @@ QtObject {
             if (patterns[i].test(text))
                 return true;
         }
+        return false;
+    }
+
+    // Each monitor has its own active workspace. Returning it lets the bar hide
+    // only while the game's workspace is actually shown on this display.
+    function activeWorkspaceOn(screen) {
+        if (!screen)
+            return null;
+        const monitor = Hyprland.monitorFor(screen);
+        const monitorName = monitor ? monitor.name : screen.name;
+        const workspaces = Hyprland.workspaces.values || [];
+
+        for (let i = 0; i < workspaces.length; i++) {
+            const workspace = workspaces[i];
+            if (!workspace || !workspace.active)
+                continue;
+
+            const wsMonitor = workspace.monitor;
+            if (monitor && wsMonitor) {
+                if (wsMonitor.id === monitor.id || wsMonitor.name === monitor.name)
+                    return workspace;
+                continue;
+            }
+            if (wsMonitor && wsMonitor.name === monitorName)
+                return workspace;
+        }
+        return null;
+    }
+
+    function workspaceParts(workspace) {
+        if (!workspace || typeof workspace !== "object")
+            return null;
+        const id = workspace.id;
+        const name = workspace.name;
+        return {
+            id: id !== undefined && id !== null ? String(id) : null,
+            name: typeof name === "string" && name ? name : null
+        };
+    }
+
+    function sameWorkspace(first, second) {
+        const a = root.workspaceParts(first);
+        const b = root.workspaceParts(second);
+        if (!a || !b)
+            return false;
+        if (a.id !== null && b.id !== null)
+            return a.id === b.id;
+        if (a.name !== null && b.name !== null)
+            return a.name === b.name;
         return false;
     }
 
@@ -110,6 +160,9 @@ QtObject {
             return false;
         const monitor = Hyprland.monitorFor(screen);
         const monitorName = monitor ? monitor.name : screen.name;
+        const activeWorkspace = root.activeWorkspaceOn(screen);
+        if (!activeWorkspace)
+            return false;
         const toplevels = Hyprland.toplevels.values || [];
 
         for (let i = 0; i < toplevels.length; i++) {
@@ -119,6 +172,9 @@ QtObject {
                 continue;
 
             const ipc = toplevel.lastIpcObject || {};
+            if (!root.sameWorkspace(activeWorkspace,
+                                    toplevel.workspace || ipc.workspace))
+                continue;
             if (!root.coversScreen(toplevel, ipc, screen))
                 continue;
 
