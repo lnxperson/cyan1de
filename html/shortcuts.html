@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en" data-theme="cyan">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="The default cyan1de Shell keyboard shortcuts for Hyprland, screenshots, recording, and system controls.">
+        <title> cyan1de Shell — Shortcuts </title>
+        <link rel="stylesheet" href="../css/style.css">
+    </head>
+    <body>
+        <a class="skip-link" href="#main"> Skip to content </a>
+
+        <header>
+            <nav id="primary_navbar" aria-label="Primary navigation">
+                <section>
+                    <a class="brand" href="./index.html"> cyan1de Shell </a>
+                    <ul>
+                        <li> <a href="./index.html"> Home </a> </li>
+                        <li> <a href="./shortcuts.html" aria-current="page"> Shortcuts </a> </li>
+                        <li> <a href="./index.html#features"> Features </a> </li>
+                        <li> <a href="./index.html#gallery"> Gallery </a> </li>
+                        <li> <a href="./index.html#installation"> Installation </a> </li>
+                        <li> <a href="./index.html#creator"> Creator </a> </li>
+                        <li> <a href="https://github.com/lnxperson/cyan1de" target="_blank" rel="noopener"> GitHub </a> </li>
+                    </ul>
+                </section>
+            </nav>
+            <div class="palette-bar" aria-label="Color palette">
+                <span class="palette-label"> palette </span>
+                <div class="palette-swatches" role="group" aria-label="Page color palette">
+                    <button class="swatch" type="button" data-theme="cyan" aria-label="Cyan palette" aria-pressed="true" title="Cyan"></button>
+                    <button class="swatch" type="button" data-theme="violet" aria-label="Violet palette" aria-pressed="false" title="Violet"></button>
+                    <button class="swatch" type="button" data-theme="amber" aria-label="Amber palette" aria-pressed="false" title="Amber"></button>
+                    <button class="swatch" type="button" data-theme="rose" aria-label="Rose palette" aria-pressed="false" title="Rose"></button>
+                    <button class="swatch" type="button" data-theme="lime" aria-label="Lime palette" aria-pressed="false" title="Lime"></button>
+                </div>
+            </div>
+        </header>
+
+        <main id="main">
+            <section class="hero hero-compact">
+                <p class="eyebrow"> the keyboard is the fast path </p>
+                <h1> Shortcuts </h1>
+                <h3> <kbd>Super</kbd> is home base. The rest is one keystroke away. </h3>
+                <p class="hero-note">
+                    Defaults are just defaults. Change any of them in
+                    <a href="./index.html#features">Settings → Keybindings</a>, then press Apply.
+                </p>
+                <ul class="hero-actions">
+                    <li> <a class="button" href="#everyday"> Start with the basics </a> </li>
+                    <li> <a class="button button-ghost" href="#capture"> Capture controls </a> </li>
+                </ul>
+            </section>
+
+            <section class="section" id="everyday">
+                <p class="kicker"> everyday </p>
+                <h2> Open, close, and move </h2>
+
+                <div class="shortcut-grid">
+                    <div class="shortcut-card">
+                        <h2> Launching things </h2>
+                        <ul class="shortcut-list">
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>Return</kbd></span> <span class="shortcut-action">Open terminal</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>Space</kbd></span> <span class="shortcut-action">Open app launcher</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>E</kbd></span> <span class="shortcut-action">Open file manager</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>W</kbd></span> <span class="shortcut-action">Open browser</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>comma</kbd></span> <span class="shortcut-action">Open desktop settings</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>period</kbd></span> <span class="shortcut-action">Open emoji picker</span> </li>
+                        </ul>
+                    </div>
+
+                    <div class="shortcut-card">
+                        <h2> Window control </h2>
+                        <ul class="shortcut-list">
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>Q</kbd></span> <span class="shortcut-action">Close window</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>V</kbd></span> <span class="shortcut-action">Toggle floating</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>F</kbd></span> <span class="shortcut-action">True fullscreen</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>P</kbd></span> <span class="shortcut-action">Pseudo-tile window</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>J</kbd></span> <span class="shortcut-action">Toggle split direction</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>left click</kbd></span> <span class="shortcut-action">Drag floating window</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>right click</kbd></span> <span class="shortcut-action">Resize floating window</span> </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <figure class="shortcut-figure">
+                    <img src="../pics/keybind_settings.png" alt="The keybinding settings page" width="1143" height="754" loading="lazy">
+                    <figcaption> Every shortcut here can be rebound without editing a file by hand </figcaption>
+                </figure>
+            </section>
+
+            <section class="section" id="workspaces">
+                <p class="kicker"> workspaces </p>
+                <h2> Ten desktops, no mouse required </h2>
+
+                <div class="shortcut-grid">
+                    <div class="shortcut-card">
+                        <h2> Moving around </h2>
+                        <ul class="shortcut-list">
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>1</kbd> … <kbd>0</kbd></span> <span class="shortcut-action">Focus workspace 1–10</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>Arrow keys</kbd></span> <span class="shortcut-action">Focus neighboring window</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>scroll</kbd></span> <span class="shortcut-action">Cycle through workspaces</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>S</kbd></span> <span class="shortcut-action">Toggle scratchpad view</span> </li>
+                        </ul>
+                    </div>
+
+                    <div class="shortcut-card">
+                        <h2> Sending windows </h2>
+                        <ul class="shortcut-list">
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>1</kbd> … <kbd>0</kbd></span> <span class="shortcut-action">Move window to workspace</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd></span> <span class="shortcut-action">Move window to scratchpad</span> </li>
+                        </ul>
+                    </div>
+
+                    <div class="shortcut-card">
+                        <h2> Session and panel </h2>
+                        <ul class="shortcut-list">
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>L</kbd></span> <span class="shortcut-action">Lock screen</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>M</kbd></span> <span class="shortcut-action">Power and session menu</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>A</kbd></span> <span class="shortcut-action">Cycle action popups</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>C</kbd></span> <span class="shortcut-action">Toggle calendar popup</span> </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section" id="capture">
+                <p class="kicker"> capture </p>
+                <h2> Screenshots, clips, and color </h2>
+
+                <div class="shortcut-grid">
+                    <div class="shortcut-card">
+                        <h2> Screenshots </h2>
+                        <ul class="shortcut-list">
+                            <li> <span class="keys"><kbd>Print</kbd></span> <span class="shortcut-action">Region screenshot to clipboard</span> </li>
+                            <li> <span class="keys"><kbd>Ctrl</kbd> + <kbd>Print</kbd></span> <span class="shortcut-action">Full active display</span> </li>
+                            <li> <span class="keys"><kbd>Shift</kbd> + <kbd>Print</kbd></span> <span class="shortcut-action">Region screenshot to file</span> </li>
+                        </ul>
+                    </div>
+
+                    <div class="shortcut-card">
+                        <h2> Recording </h2>
+                        <ul class="shortcut-list">
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>R</kbd></span> <span class="shortcut-action">Start or stop recording</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>V</kbd></span> <span class="shortcut-action">Save the last minute as a clip</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>B</kbd></span> <span class="shortcut-action">Toggle replay buffer</span> </li>
+                        </ul>
+                    </div>
+
+                    <div class="shortcut-card">
+                        <h2> Small utilities </h2>
+                        <ul class="shortcut-list">
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>C</kbd></span> <span class="shortcut-action">Pick a color and copy its hex</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>I</kbd></span> <span class="shortcut-action">Toggle idle inhibitor</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>T</kbd></span> <span class="shortcut-action">Toggle light/dark theme</span> </li>
+                            <li> <span class="keys"><kbd>Super</kbd> + <kbd>Ctrl</kbd> + <kbd>P</kbd></span> <span class="shortcut-action">Toggle performance mode</span> </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section" id="hardware">
+                <p class="kicker"> hardware keys </p>
+                <h2> The keys already on your keyboard </h2>
+
+                <div class="shortcut-grid">
+                    <div class="shortcut-card">
+                        <h2> Sound and media </h2>
+                        <ul class="shortcut-list">
+                            <li> <span class="keys"><kbd>Volume up</kbd> / <kbd>Volume down</kbd></span> <span class="shortcut-action">Speaker volume</span> </li>
+                            <li> <span class="keys"><kbd>Mute</kbd></span> <span class="shortcut-action">Mute the default output</span> </li>
+                            <li> <span class="keys"><kbd>Mic mute</kbd></span> <span class="shortcut-action">Mute the default microphone</span> </li>
+                            <li> <span class="keys"><kbd>Play</kbd> / <kbd>Pause</kbd></span> <span class="shortcut-action">Toggle the active player</span> </li>
+                            <li> <span class="keys"><kbd>Next</kbd> / <kbd>Previous</kbd></span> <span class="shortcut-action">Skip track</span> </li>
+                        </ul>
+                    </div>
+
+                    <div class="shortcut-card">
+                        <h2> Brightness </h2>
+                        <ul class="shortcut-list">
+                            <li> <span class="keys"><kbd>Display up</kbd> / <kbd>Display down</kbd></span> <span class="shortcut-action">Screen brightness</span> </li>
+                            <li> <span class="keys"><kbd>Keyboard up</kbd> / <kbd>Keyboard down</kbd></span> <span class="shortcut-action">Keyboard backlight</span> </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <aside class="tip">
+                    <p>
+                        Media, volume, and brightness keys keep working while the screen is locked. Floating-window
+                        drag and resize use <kbd>Super</kbd> with the left and right mouse buttons.
+                    </p>
+                </aside>
+            </section>
+        </main>
+
+        <footer>
+            <p> cyan1de Shell — a clean and portable Hyprland + Quickshell configuration. </p>
+            <p> <a href="#main"> Back to top </a> </p>
+        </footer>
+        <div class="pointer-pulse" aria-hidden="true"></div>
+        <script src="../js/palette.js"></script>
+        <script src="../js/pointer-glow.js"></script>
+    </body>
+</html>

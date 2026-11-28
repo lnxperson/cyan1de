@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en" data-theme="cyan">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="cyan1de Shell: a beginner-friendly, feature rich Hyprland and Quickshell configuration.">
+        <title> cyan1de Shell </title>
+        <link rel="stylesheet" href="../css/style.css">
+    </head>
+    <body>
+        <a class="skip-link" href="#main"> Skip to content </a>
+
+        <header>
+            <nav id="primary_navbar" aria-label="Primary navigation">
+                <section>
+                    <a class="brand" href="./index.html"> cyan1de Shell </a>
+                    <ul>
+                        <li> <a href="./index.html" aria-current="page"> Home </a> </li>
+                        <li> <a href="./shortcuts.html"> Shortcuts </a> </li>
+                        <li> <a href="#features"> Features </a> </li>
+                        <li> <a href="#gallery"> Gallery </a> </li>
+                        <li> <a href="#installation"> Installation </a> </li>
+                        <li> <a href="#creator"> Creator </a> </li>
+                        <li> <a href="https://github.com/lnxperson/cyan1de" target="_blank" rel="noopener"> GitHub </a> </li>
+                    </ul>
+                </section>
+            </nav>
+            <div class="palette-bar" aria-label="Color palette">
+                <span class="palette-label"> palette </span>
+                <div class="palette-swatches" role="group" aria-label="Page color palette">
+                    <button class="swatch" type="button" data-theme="cyan" aria-label="Cyan palette" aria-pressed="true" title="Cyan"></button>
+                    <button class="swatch" type="button" data-theme="violet" aria-label="Violet palette" aria-pressed="false" title="Violet"></button>
+                    <button class="swatch" type="button" data-theme="amber" aria-label="Amber palette" aria-pressed="false" title="Amber"></button>
+                    <button class="swatch" type="button" data-theme="rose" aria-label="Rose palette" aria-pressed="false" title="Rose"></button>
+                    <button class="swatch" type="button" data-theme="lime" aria-label="Lime palette" aria-pressed="false" title="Lime"></button>
+                </div>
+            </div>
+        </header>
+
+        <main id="main">
+            <section class="hero">
+                <p class="eyebrow"> hyprland + quickshell, already put together </p>
+                <h1> cyan<span class="hero-accent">1</span>de </h1>
+                <h3> Beginner-friendly feature rich configuration for Hyprland </h3>
+                <p class="hero-note">
+                    Hyprland with the annoying parts already handled. Every setting still lives in a file you can open.
+                </p>
+                <ul class="hero-actions">
+                    <li> <a class="button" href="#features"> Learn More </a> </li>
+                    <li> <a class="button button-ghost" href="#installation"> Install </a> </li>
+                </ul>
+                <p class="hero-hint"> Press <kbd>Super</kbd> + <kbd>Space</kbd> to find anything. </p>
+            </section>
+
+            <section class="section section-intro" id="features">
+                <p class="kicker"> why this exists </p>
+                <h2> A desktop filled with features, made for literally everybody </h2>
+                <p class="lead">
+                    No scavenger hunt through dotfiles. The panel, launcher, settings, notifications, lockscreen,
+                    media controls, and the small details are already wired together — and still editable.
+                </p>
+                <p class="margin-note"> no account, no cloud, no mystery daemon </p>
+            </section>
+
+            <section class="section">
+                <p class="kicker"> casual </p>
+                <h3> For the casual user </h3>
+
+                <div class="story-grid">
+                    <div class="story-copy">
+                        <p>
+                            A user friendly settings menu to customize all aspects of your desktop. Make cyan1de look however you want.
+                        </p>
+                    </div>
+                    <figure>
+                        <img src="../pics/easy_to_configure_settings.png" alt="The settings menu" width="1920" height="1080" loading="lazy">
+                        <figcaption> The control panel </figcaption>
+                    </figure>
+                </div>
+
+                <div class="story-grid story-grid-reverse">
+                    <div class="story-copy">
+                        <p>
+                            Customize your keyboard shortcuts to maximize your <sub>un</sub>productivity.
+                        </p>
+                    </div>
+                    <figure>
+                        <img src="../pics/keybind_settings.png" alt="Keybinding Settings" width="1143" height="754" loading="lazy">
+                        <figcaption> Keybinding settings </figcaption>
+                    </figure>
+                </div>
+
+                <div class="story-grid">
+                    <div class="story-copy">
+                        <p>
+                            Place your monitors wherever you want. Change the resolution, refresh rate, scale and orientation right inside the settings.
+                        </p>
+                    </div>
+                    <figure>
+                        <img src="../pics/monitor_settings.png" alt="Monitor settings" width="1127" height="748" loading="lazy">
+                        <figcaption> The monitor settings, made as easy to use as possible </figcaption>
+                    </figure>
+                </div>
+
+                <div class="story-grid story-grid-reverse">
+                    <div class="story-copy">
+                        <p>
+                            Emojis and clipboard history, right at your fingertips
+                        </p>
+                    </div>
+                    <figure>
+                        <img src="../pics/emoji_picker_clipboard_history.png" alt="Emoji picker and clipboard history" width="578" height="492" loading="lazy">
+                        <figcaption> Press <kbd>SUPER</kbd> + <kbd>PERIOD</kbd> to access this menu </figcaption>
+                    </figure>
+                </div>
+
+                <div class="story-grid">
+                    <div class="story-copy">
+                        <p>
+                            A panel on the top to see and access quick actions
+                        </p>
+                    </div>
+                    <figure>
+                        <img src="../pics/calendar_element.png" alt="The caledar element" width="731" height="571" loading="lazy">
+                        <figcaption> Look at the time, the date, control your media and take a peek at your messages </figcaption>
+                    </figure>
+                </div>
+            </section>
+
+            <section class="section section-tinted">
+                <p class="kicker"> gamer </p>
+                <h3> For the <em> Gamer </em> </h3>
+
+                <div class="story-grid">
+                    <div class="story-copy">
+                        <p>
+                            Finally, a native way to clip and record your best<sub>or worst</sub> moments
+                        </p>
+                        <p>
+                            The replay buffer keeps the last minute ready to save. Desktop audio and your microphone
+                            live on separate channels, so a clip sounds the way you meant it to.
+                        </p>
+                    </div>
+                    <figure>
+                        <img src="../pics/clipping.png" alt="The clip settings" width="835" height="380" loading="lazy">
+                        <img src="../pics/recording.png" alt="The recording settings" width="894" height="603" loading="lazy">
+                        <figcaption> Prove to your friends that you <em>can</em> beat Sans </figcaption>
+                    </figure>
+                </div>
+
+                <aside class="callout">
+                    <p> Discord rich presence also works out of the box. </p>
+                    <p class="callout-note"> Almost all games get their real Discord name and icon. </p>
+                </aside>
+            </section>
+
+            <section class="section">
+                <p class="kicker"> developer </p>
+                <h3> For the <em> developer </em> </h3>
+
+                <div class="story-grid story-grid-reverse">
+                    <div class="story-copy">
+                        <p>
+                            Alacritty, terminal-first launcher actions, and a compact OSD make this a comfortable
+                            daily driver for development. The configuration stays readable: Lua for Hyprland, QML
+                            for Quickshell, and a graphical settings app when you do not feel like opening either.
+                        </p>
+                    </div>
+                    <figure>
+                        <img src="../pics/great_for_developers.png" alt="A development workspace on cyan1de" width="1920" height="1080" loading="lazy">
+                        <figcaption> A terminal-focused desktop with the full panel and window effects available </figcaption>
+                    </figure>
+                </div>
+
+                <ul class="feature-list">
+                    <li> Ten workspaces, a scratchpad, and keyboard-driven window control </li>
+                    <li> Visual settings for appearance, windows, input, monitors, and rules </li>
+                    <li> Launcher actions for apps, files, calculator results, and web searches </li>
+                    <li> Plain config files that are easy to read, diff, and back up </li>
+                </ul>
+            </section>
+
+            <section class="section" id="gallery">
+                <p class="kicker"> screenshots </p>
+                <h2> A close-up of the little things </h2>
+                <p class="lead">
+                    Every screenshot below comes from the real config. No mockups, no imaginary widgets.
+                </p>
+
+                <div class="gallery-grid">
+                    <figure class="gallery-wide">
+                        <img src="../pics/default_apps.png" alt="The default cyan1de desktop" width="1920" height="1080" loading="lazy">
+                        <figcaption> The default desktop: panel, workspace, and sensible apps </figcaption>
+                    </figure>
+                    <figure>
+                        <img src="../pics/eye_candy_window_management.png" alt="Window management with cyan1de borders and gaps" width="1920" height="1080" loading="lazy">
+                        <figcaption> Workspaces, borders, gaps, and window layout in use </figcaption>
+                    </figure>
+                    <figure>
+                        <img src="../pics/action_section.png" alt="The top bar action section" width="437" height="383" loading="lazy">
+                        <figcaption> Quick controls with popups anchored to the panel </figcaption>
+                    </figure>
+                    <figure class="gallery-third">
+                        <img src="../pics/launcher.png" alt="The cyan1de launcher" width="669" height="534" loading="lazy">
+                        <figcaption> Launcher </figcaption>
+                    </figure>
+                    <figure class="gallery-third">
+                        <img src="../pics/workspace_switcher.png" alt="The workspace switcher" width="351" height="56" loading="lazy">
+                        <figcaption> Workspace switcher </figcaption>
+                    </figure>
+                    <figure class="gallery-third">
+                        <img src="../pics/calendar_element.png" alt="Calendar and media controls" width="731" height="571" loading="lazy">
+                        <figcaption> Clock, calendar, and media controls </figcaption>
+                    </figure>
+                </div>
+            </section>
+
+            <section class="section section-install" id="installation">
+                <p class="kicker"> setup </p>
+                <h2> Get cyan1de </h2>
+                <p class="lead">
+                    Made for Arch-based systems. The installer backs up what you had, offers to install the packages
+                    you need, then hands you a complete config.
+                </p>
+
+                <div class="install-card">
+                    <div class="install-title"> terminal </div>
+<pre><code>git clone https://github.com/lnxperson/cyan1de
+cd cyan1de
+chmod +x install.sh
+./install.sh</code></pre>
+                </div>
+
+                <ul class="check-list">
+                    <li> Timestamped backups of existing <code>~/.config/hypr</code> and <code>~/.config/quickshell</code> </li>
+                    <li> Optional <code>pacman</code> package installation, with defaults set only when apps are present </li>
+                    <li> Best-effort setup for Bluetooth, NetworkManager, power profiles, fingerprint, and PipeWire services </li>
+                    <li> Reload Hyprland or log out and back in when the installer finishes </li>
+                </ul>
+
+                <p class="install-link">
+                    Want the full package list and notes? Read the
+                    <a href="https://github.com/lnxperson/cyan1de#readme" target="_blank" rel="noopener">README</a>.
+                </p>
+            </section>
+
+            <section class="section section-creator" id="creator">
+                <p class="kicker"> maker </p>
+                <h2> I actually use it </h2>
+                <p class="lead">
+                    cyan1de is maintained by <a href="https://github.com/lnxperson" target="_blank" rel="noopener">lnxperson</a>.
+                    It is a portable desktop config, not a distro and not a locked-in ecosystem. Fork it, break it,
+                    put it back together, and make it yours.
+                </p>
+                <a class="button button-ghost" href="https://github.com/lnxperson/cyan1de" target="_blank" rel="noopener"> View the repository </a>
+            </section>
+        </main>
+
+        <footer>
+            <p> cyan1de Shell — a clean and portable Hyprland + Quickshell configuration. </p>
+            <p> <a href="#main"> Back to top </a> </p>
+        </footer>
+        <div class="pointer-pulse" aria-hidden="true"></div>
+        <script src="../js/palette.js"></script>
+        <script src="../js/pointer-glow.js"></script>
+    </body>
+</html>
