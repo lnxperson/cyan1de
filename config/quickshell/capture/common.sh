@@ -352,8 +352,9 @@ capture_resolve_display() {
 # shortened to readable names, lowercase classes fall back to the window title,
 # and steam_app_<id> classes are resolved from local Steam manifests so
 # Geometry Dash is not named "steam app 322170". Generic Proton/UMU classes are
-# resolved from the window title or game executable in the process tree, so a
-# Proton Rocket League window is not named "steam proton".
+# resolved from the window title or the game executable path in the process
+# tree; the install directory and Steam installdir metadata provide the name,
+# so no per-game alias list is needed.
 capture_app_name() {
     local wanted="${1:-}" name
     command -v python3 >/dev/null 2>&1 || return 1
@@ -389,7 +390,7 @@ def clean(value):
     value = value[:80].strip(" .")
     return "" if value.lower() in ("", ".", "..") else value
 
-def steam_name(appid):
+def steam_roots():
     home = os.path.expanduser("~")
     roots = [
         os.path.join(home, ".steam", "steam", "steamapps"),
@@ -405,7 +406,10 @@ def steam_name(appid):
             continue
         for path in re.findall(r'"path"\s+"([^"]+)"', text):
             roots.append(os.path.join(path, "steamapps"))
-    for root in roots:
+    return roots
+
+def steam_name(appid):
+    for root in steam_roots():
         manifest = os.path.join(root, "appmanifest_%s.acf" % appid)
         try:
             with open(manifest, "r", encoding="utf-8", errors="ignore") as fh:
@@ -416,6 +420,35 @@ def steam_name(appid):
         if match:
             return clean(match.group(1))
     return ""
+
+def steam_install_names():
+    # installdir -> name from Steam's own manifests. Proton command lines use
+    # these directory names in Windows paths, so this resolves games we have no
+    # static alias for.
+    mapping = {}
+    for root in steam_roots():
+        try:
+            manifests = [name for name in os.listdir(root)
+                         if name.startswith("appmanifest_")
+                         and name.endswith(".acf")]
+        except Exception:
+            continue
+        for name in manifests:
+            try:
+                with open(os.path.join(root, name), "r", encoding="utf-8",
+                          errors="ignore") as fh:
+                    text = fh.read()
+            except Exception:
+                continue
+            install = re.search(r'"installdir"\s+"([^"]+)"', text)
+            title = re.search(r'"name"\s+"([^"]+)"', text)
+            if not install or not title:
+                continue
+            key = re.sub(r"[^a-z0-9]", "", install.group(1).lower())
+            value = clean(title.group(1))
+            if key and value:
+                mapping[key] = value
+    return mapping
 
 def known_app_name(app_id):
     aliases = {
@@ -471,25 +504,73 @@ def is_generic_window_class(raw_cls):
     normalized = re.sub(r"[^a-z0-9]", "", str(raw_cls or "").lower())
     return normalized in generic_window_classes
 
-# Game executables are more reliable than Proton window titles. Keys are
-# normalized (lowercase, alphanumeric only), so gta5_enhanced.exe and
-# "GTA5 Enhanced" resolve the same way.
-exe_name_aliases = {
-    "gta5enhanced": "Grand Theft Auto V Enhanced",
-    "gta5": "Grand Theft Auto V",
-    "gtav": "Grand Theft Auto V",
-    "rocketleague": "Rocket League",
-    "fallguysclientgame": "Fall Guys",
-    "deltarune": "Deltarune",
-    "undertale": "Undertale",
-    "geometrydash": "Geometry Dash",
-    "stardewvalley": "Stardew Valley",
-    "minecraft": "Minecraft",
+# Directories that describe a launcher/wine layout rather than the game itself.
+generic_path_keys = {
+    "bin", "binaries", "win32", "win64", "x64", "x86", "release", "retail",
+    "shipping", "game", "games", "exe", "build", "builds", "drive_c",
+    "windows", "programfiles", "programfilesx86", "steamapps", "common",
+    "steam", "proton", "wine", "umu", "prefix", "pfx", "users", "user",
+    "appdata", "local", "roaming", "temp", "tmp", "rockstargames",
+    "epicgames", "ubisoft", "activision", "bethesda", "launcher", "launchers",
 }
 
-def friendly_exe_name(raw):
-    key = re.sub(r"[^a-z0-9]", "", str(raw or "").lower())
-    return clean(exe_name_aliases.get(key, ""))
+def normalize_key(value):
+    return re.sub(r"[^a-z0-9]", "", str(value or "").lower())
+
+def humanize_name(value):
+    value = re.sub(r"[_-]+", " ", str(value or ""))
+    value = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", value)
+    value = re.sub(r"(?<=[A-Za-z])(?=[0-9])", " ", value)
+    words = [part for part in re.sub(r"\s+", " ", value).strip().split() if part]
+    result = []
+    for word in words:
+        lower = word.lower()
+        if re.fullmatch(r"(?:i|ii|iii|iv|v|vi|vii|viii|ix|x)", lower):
+            result.append(lower.upper())
+        elif word.isupper() and len(word) <= 4:
+            result.append(word)
+        else:
+            result.append(word[:1].upper() + word[1:].lower())
+    return clean(" ".join(result))
+
+def game_name_from_exe(stem, raw_path):
+    # Steam's installdir is authoritative when the executable path contains it.
+    installs = steam_install_names()
+    for part in re.split(r"[\\/]", raw_path or ""):
+        name = installs.get(normalize_key(part))
+        if name:
+            return name
+
+    parts = [part for part in re.split(r"[\\/]", raw_path or "") if part]
+    if parts and parts[-1].lower().endswith(".exe"):
+        parts = parts[:-1]
+    if parts and re.fullmatch(r"[a-zA-Z]:", parts[0]):
+        parts = parts[1:]
+
+    directory_name = ""
+    structured_directory = False
+    for part in reversed(parts):
+        key = normalize_key(part)
+        if not key or key in generic_path_keys:
+            continue
+        if re.fullmatch(r"[0-9._v-]+", part):
+            continue
+        directory_name = humanize_name(part)
+        structured_directory = bool(
+            re.search(r"[ _-]", part)
+            or re.search(r"(?<=[a-z0-9])(?=[A-Z])", part))
+        break
+
+    stem_name = ""
+    if re.search(r"[ _-]", stem or "") \
+        or re.search(r"(?<=[a-z0-9])(?=[A-Z])", stem or ""):
+        stem_name = humanize_name(stem)
+
+    if directory_name and structured_directory:
+        return directory_name
+    if stem_name:
+        return stem_name
+    return directory_name or humanize_name(stem)
 
 def generic_process_name(name):
     low = clean(name).lower()
@@ -507,35 +588,35 @@ def generic_process_name(name):
         "updater", "bootstrap", "steamwebhelper",
     ))
 
-def exe_stems_from_cmdline(pid):
+def exe_paths_from_cmdline(pid):
     try:
         with open("/proc/%s/cmdline" % pid, "rb") as fh:
             args = [part.decode("utf-8", "ignore")
                     for part in fh.read().split(b"\0") if part]
     except Exception:
         return []
-    stems = []
+    paths = []
     for arg in args:
         # Proton passes Windows-style paths such as
         # Z:\Games\SomeGame\Game.exe; POSIX basename does not split on
         # backslashes, so handle both separator styles here.
         base = re.split(r"[\\/]", arg)[-1]
         if base.lower().endswith(".exe") and base[:-4]:
-            stems.append(base[:-4])
-    return stems
+            paths.append((base[:-4], arg))
+    return paths
 
-def process_game_names(pid):
+def process_game_paths(pid):
     try:
         pid = int(pid)
     except Exception:
         return []
-    names = []
+    paths = []
     seen = set()
     for _ in range(16):
         if not pid or pid in seen:
             break
         seen.add(pid)
-        names.extend(exe_stems_from_cmdline(pid))
+        paths.extend(exe_paths_from_cmdline(pid))
         try:
             with open("/proc/%d/status" % pid, "r", encoding="utf-8",
                       errors="ignore") as fh:
@@ -543,12 +624,14 @@ def process_game_names(pid):
             pid = int(match.group(1)) if match else 0
         except Exception:
             pid = 0
-    return names
+    return paths
 
 def process_app_name(client, title):
     candidates = []
-    for raw in process_game_names(client.get("pid")):
-        name = friendly_exe_name(raw) or clean(camel(raw))
+    for stem, path in process_game_paths(client.get("pid")):
+        if generic_process_name(stem):
+            continue
+        name = game_name_from_exe(stem, path)
         if name and not generic_process_name(name):
             candidates.append(name)
     if not candidates:
@@ -603,7 +686,7 @@ def generic_app_name(name):
 
 def running_game_name():
     # Last resort for Wine/Proton windows whose title and class are both bare:
-    # look for a known game executable anywhere in the process table.
+    # derive a name from the game executable path in the process table.
     try:
         entries = os.listdir("/proc")
     except Exception:
@@ -611,9 +694,11 @@ def running_game_name():
     for entry in entries:
         if not entry.isdigit():
             continue
-        for raw in exe_stems_from_cmdline(entry):
-            name = friendly_exe_name(raw)
-            if name:
+        for stem, path in exe_paths_from_cmdline(entry):
+            if generic_process_name(stem):
+                continue
+            name = game_name_from_exe(stem, path)
+            if name and not generic_process_name(name):
                 return name
     return ""
 
