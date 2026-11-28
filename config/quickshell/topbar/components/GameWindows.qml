@@ -7,8 +7,10 @@ import Quickshell.Io
 // Detects maximized game windows so the bar can hide only on the display that
 // owns them. Detection is intentionally conservative: Steam titles publish a
 // steam_app_<id> class, and the common standalone launchers/emulators have
-// stable app ids. Extra app ids or class names can be added, one regular
-// expression per line, to ~/.config/quickshell/game-apps.txt.
+// stable app ids. Known desktop apps are excluded before title matching so a
+// folder named after a game does not hide the bar. Extra app ids or class names
+// can be added, one regular expression per line, to
+// ~/.config/quickshell/game-apps.txt.
 QtObject {
     id: root
 
@@ -19,6 +21,28 @@ QtObject {
         /^(lutris|heroic|bottles|wine|proton|dosbox|retroarch|rpcs3|yuzu|ryujinx|pcsx2|dolphin|citra|ppsspp|duckstation|melonds|mgba)$/i,
         /^(geometrydash|geometry dash|minecraft|terraria|balatro|stardew valley|osu!?|roblox)$/i
     ]
+
+    // A window title alone is not enough: a file manager showing a folder named
+    // "Geometry Dash" would otherwise hide the bar. Exclude known desktop apps
+    // before any title matching is attempted.
+    readonly property var nonGamePatterns: [
+        /^(org\.)?(gnome\.)?(nautilus|nemo|thunar|pcmanfm|dolphin|caja|thunar)$/i,
+        /^(firefox|zen|chromium|google-chrome|chrome|brave|vivaldi)$/i,
+        /^(alacritty|kitty|konsole|gnome-terminal|xterm|wezterm|foot)$/i,
+        /^(discord|telegram|signal|whatsapp|slack)$/i,
+        /^(code|gedit|org\.gnome\.texteditor|org\.gnome\.gedit)$/i
+    ]
+
+    function matchesAny(patterns, value) {
+        if (typeof value !== "string" || !value)
+            return false;
+        const text = value.toLowerCase();
+        for (let i = 0; i < patterns.length; i++) {
+            if (patterns[i].test(text))
+                return true;
+        }
+        return false;
+    }
 
     function loadCustomPatterns() {
         let patterns = [];
@@ -51,11 +75,16 @@ QtObject {
             return false;
         const wayland = toplevel.wayland;
         const ipc = toplevel.lastIpcObject || {};
-        const values = [
-            wayland ? wayland.appId : "",
-            toplevel.title || "",
-            ipc.class || ipc.initialClass || ""
-        ];
+        const appId = wayland ? wayland.appId : "";
+        const className = ipc.class || ipc.initialClass || "";
+
+        // An app id/class that belongs to a normal desktop application wins
+        // over any coincidental title match, including folder names.
+        if (root.matchesAny(root.nonGamePatterns, appId)
+            || root.matchesAny(root.nonGamePatterns, className))
+            return false;
+
+        const values = [appId, className, toplevel.title || ""];
 
         // Match each field separately: anchored patterns must not be defeated
         // by other fields (title, class) appended to the same string.
