@@ -460,6 +460,8 @@ def title_name(client):
 # Proton/UMU windows often report a generic class such as "steam proton". The
 # real game is usually visible in the window title or in an ancestor process's
 # command line (for example RocketLeague.exe), so use those before the class.
+# Some Wine games report a bare class/title of "exe"; those are handled by the
+# executable alias map and the running-process fallback below.
 generic_window_classes = {
     "steam", "steamproton", "proton", "wine", "wine64", "umu", "umurun",
     "lutris", "heroic", "bottles", "dosbox", "retroarch",
@@ -468,6 +470,26 @@ generic_window_classes = {
 def is_generic_window_class(raw_cls):
     normalized = re.sub(r"[^a-z0-9]", "", str(raw_cls or "").lower())
     return normalized in generic_window_classes
+
+# Game executables are more reliable than Proton window titles. Keys are
+# normalized (lowercase, alphanumeric only), so gta5_enhanced.exe and
+# "GTA5 Enhanced" resolve the same way.
+exe_name_aliases = {
+    "gta5enhanced": "Grand Theft Auto V Enhanced",
+    "gta5": "Grand Theft Auto V",
+    "gtav": "Grand Theft Auto V",
+    "rocketleague": "Rocket League",
+    "fallguysclientgame": "Fall Guys",
+    "deltarune": "Deltarune",
+    "undertale": "Undertale",
+    "geometrydash": "Geometry Dash",
+    "stardewvalley": "Stardew Valley",
+    "minecraft": "Minecraft",
+}
+
+def friendly_exe_name(raw):
+    key = re.sub(r"[^a-z0-9]", "", str(raw or "").lower())
+    return clean(exe_name_aliases.get(key, ""))
 
 def generic_process_name(name):
     low = clean(name).lower()
@@ -485,6 +507,23 @@ def generic_process_name(name):
         "updater", "bootstrap", "steamwebhelper",
     ))
 
+def exe_stems_from_cmdline(pid):
+    try:
+        with open("/proc/%s/cmdline" % pid, "rb") as fh:
+            args = [part.decode("utf-8", "ignore")
+                    for part in fh.read().split(b"\0") if part]
+    except Exception:
+        return []
+    stems = []
+    for arg in args:
+        # Proton passes Windows-style paths such as
+        # Z:\Games\SomeGame\Game.exe; POSIX basename does not split on
+        # backslashes, so handle both separator styles here.
+        base = re.split(r"[\\/]", arg)[-1]
+        if base.lower().endswith(".exe") and base[:-4]:
+            stems.append(base[:-4])
+    return stems
+
 def process_game_names(pid):
     try:
         pid = int(pid)
@@ -496,19 +535,7 @@ def process_game_names(pid):
         if not pid or pid in seen:
             break
         seen.add(pid)
-        try:
-            with open("/proc/%d/cmdline" % pid, "rb") as fh:
-                args = [part.decode("utf-8", "ignore")
-                        for part in fh.read().split(b"\0") if part]
-        except Exception:
-            args = []
-        for arg in args:
-            # Proton passes Windows-style paths such as
-            # Z:\home\fish\Games\...\RocketLeague.exe; POSIX basename does not
-            # split on backslashes, so handle both separator styles here.
-            base = re.split(r"[\\/]", arg)[-1]
-            if base.lower().endswith(".exe"):
-                names.append(base[:-4])
+        names.extend(exe_stems_from_cmdline(pid))
         try:
             with open("/proc/%d/status" % pid, "r", encoding="utf-8",
                       errors="ignore") as fh:
@@ -521,7 +548,7 @@ def process_game_names(pid):
 def process_app_name(client, title):
     candidates = []
     for raw in process_game_names(client.get("pid")):
-        name = clean(camel(raw))
+        name = friendly_exe_name(raw) or clean(camel(raw))
         if name and not generic_process_name(name):
             candidates.append(name)
     if not candidates:
@@ -535,7 +562,7 @@ def process_app_name(client, title):
             return name
     return max(candidates, key=len)
 
-def name_for(client):
+def name_from_window(client):
     if not isinstance(client, dict):
         return ""
     raw_cls = str(client.get("class") or client.get("initialClass") or "")
@@ -568,6 +595,35 @@ def name_for(client):
     if title and title.lower() != cls.lower():
         return title
     return (cls[:1].upper() + cls[1:]) if cls else ""
+
+def generic_app_name(name):
+    value = re.sub(r"[^a-z0-9]", "", clean(name).lower())
+    return value in ("", "exe", "wine", "wine64", "proton", "steamproton",
+                     "umu", "umurun", "game", "launcher", "loading")
+
+def running_game_name():
+    # Last resort for Wine/Proton windows whose title and class are both bare:
+    # look for a known game executable anywhere in the process table.
+    try:
+        entries = os.listdir("/proc")
+    except Exception:
+        return ""
+    for entry in entries:
+        if not entry.isdigit():
+            continue
+        for raw in exe_stems_from_cmdline(entry):
+            name = friendly_exe_name(raw)
+            if name:
+                return name
+    return ""
+
+def name_for(client):
+    name = name_from_window(client)
+    if generic_app_name(name):
+        game = running_game_name()
+        if game:
+            return game
+    return name
 
 client = None
 if wanted and wanted != "focused":
