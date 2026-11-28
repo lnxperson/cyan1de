@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
-"""Show the running game as Discord activity using local RPC IPC.
+"""Show the running game as Discord Rich Presence using local RPC IPC.
 
 The game name comes from the same metadata-based resolver used by capture
-folders, so Steam, Proton, Wine and bare "exe" windows are all handled without
-a per-game alias list. Presence is cleared by closing the RPC socket when no
-game window remains.
+folders, so Steam, Proton, Wine and bare "exe" windows are handled without a
+per-game alias list. Native Steam games are detected from their executable
+paths and Steam environment too.
+
+When possible, the helper looks up Discord's public detectable-game list and
+uses the game's official application ID, which gives the correct name and icon.
+Unknown games and offline machines fall back to a generic application ID.
+Presence is cleared by closing the RPC socket when no game window remains.
 """
 
 import fcntl
@@ -17,10 +22,16 @@ import struct
 import subprocess
 import sys
 import time
+import urllib.request
 import uuid
 
 HOME = os.path.expanduser("~")
 CONFIG = os.path.join(HOME, ".config", "quickshell", "discord", "game-presence.conf")
+CACHE_DIR = os.path.join(
+    os.environ.get("XDG_CACHE_HOME") or os.path.join(HOME, ".cache"), "cyan1de")
+GAME_CACHE = os.path.join(CACHE_DIR, "discord-detectable.json")
+DETECTABLE_URL = "https://discord.com/api/v10/applications/detectable"
+GAME_CACHE_AGE = 7 * 24 * 60 * 60
 DEFAULT_CLIENT_ID = "1062648118375616594"
 POLL_SECONDS = 2
 
@@ -43,12 +54,14 @@ GAME_WINDOW = re.compile(
     re.I,
 )
 
+STEAM_CLASS = re.compile(r"steam[ _-]*app[ _-]*(\d+)", re.I)
 GENERIC_EXE = {
     "steam", "steamwebhelper", "proton", "wine", "wine64", "winepreloader",
     "umu", "umurun", "lutris", "heroic", "bottles", "launcher", "updater",
     "bootstrap", "steamworks", "steamcmd", "easyanticheat", "crashhandler",
 }
-
+STEAM_ENV_KEYS = ("SteamAppId", "STEAM_APP_ID", "steam_appid", "GameID", "gameid")
+DETECTABLE_INDEX = None
 STOP = False
 
 
@@ -70,6 +83,7 @@ def runtime_dir():
 def read_config():
     enabled = True
     client_id = DEFAULT_CLIENT_ID
+    use_game_ids = True
     try:
         with open(CONFIG, "r", encoding="utf-8", errors="ignore") as fh:
             for line in fh:
@@ -81,9 +95,11 @@ def read_config():
                     enabled = value.lower() not in ("0", "false", "no", "off")
                 elif key == "client_id" and value.isdigit():
                     client_id = value
+                elif key == "use_discord_game_ids":
+                    use_game_ids = value.lower() not in ("0", "false", "no", "off")
     except OSError:
         pass
-    return enabled, client_id
+    return enabled, client_id, use_game_ids
 
 
 def run_json(args):
@@ -97,27 +113,15 @@ def run_json(args):
         return None
 
 
-def exe_paths(pid):
+def iter_ancestors(pid):
     try:
         pid = int(pid)
     except Exception:
-        return []
-    paths = []
+        return
     seen = set()
-    for _ in range(16):
-        if not pid or pid in seen:
-            break
+    while pid and pid not in seen:
         seen.add(pid)
-        try:
-            with open("/proc/%d/cmdline" % pid, "rb") as fh:
-                args = [part.decode("utf-8", "ignore")
-                        for part in fh.read().split(b"\0") if part]
-        except OSError:
-            args = []
-        for arg in args:
-            base = re.split(r"[\\/]", arg)[-1]
-            if base.lower().endswith(".exe") and len(base) > 4:
-                paths.append((base[:-4], arg))
+        yield pid
         try:
             with open("/proc/%d/status" % pid, "r", encoding="utf-8",
                       errors="ignore") as fh:
@@ -125,11 +129,76 @@ def exe_paths(pid):
             pid = int(match.group(1)) if match else 0
         except Exception:
             pid = 0
+
+
+def game_paths(pid):
+    """Return (stem, path, kind) for game executables in a process tree."""
+    paths = []
+    seen = set()
+
+    def add(stem, path, kind):
+        key = (stem.lower(), str(path).lower(), kind)
+        if key not in seen and stem:
+            seen.add(key)
+            paths.append((stem, path, kind))
+
+    for ancestor in iter_ancestors(pid):
+        try:
+            with open("/proc/%d/cmdline" % ancestor, "rb") as fh:
+                args = [part.decode("utf-8", "ignore")
+                        for part in fh.read().split(b"\0") if part]
+        except OSError:
+            args = []
+        for arg in args:
+            normalized = arg.replace("\\", "/")
+            base = normalized.rsplit("/", 1)[-1]
+            if base.lower().endswith(".exe") and len(base) > 4:
+                add(base[:-4], arg, "exe")
+            if "/steamapps/common/" in normalized.lower():
+                parts = [part for part in normalized.split("/") if part]
+                keys = [part.lower() for part in parts]
+                if "common" in keys:
+                    index = keys.index("common")
+                    if index + 1 < len(parts):
+                        add(parts[-1], parts[index + 1], "steam")
+        try:
+            target = os.readlink("/proc/%d/exe" % ancestor)
+        except OSError:
+            continue
+        if "/steamapps/common/" in target.replace("\\", "/").lower():
+            add(target.rsplit("/", 1)[-1], target, "steam")
+
     return paths
 
 
+def steam_env_ids(pid):
+    ids = []
+    for ancestor in iter_ancestors(pid):
+        try:
+            with open("/proc/%d/environ" % ancestor, "rb") as fh:
+                data = fh.read()
+        except OSError:
+            continue
+        env = {}
+        for item in data.split(b"\0"):
+            if b"=" not in item:
+                continue
+            key, value = item.split(b"=", 1)
+            env[key.decode("utf-8", "ignore")] = value.decode("utf-8", "ignore")
+        for key in STEAM_ENV_KEYS:
+            raw = env.get(key)
+            if not raw:
+                continue
+            digits = re.sub(r"\D", "", raw).lstrip("0")
+            if digits and len(digits) <= 10 and digits not in ids:
+                ids.append(digits)
+    return ids
+
+
 def has_game_executable(pid):
-    for stem, path in exe_paths(pid):
+    for stem, path, kind in game_paths(pid):
+        if kind == "steam":
+            return True
         key = re.sub(r"[^a-z0-9]", "", stem.lower())
         if key in GENERIC_EXE or key in {"game", "main", "app", "bin"}:
             continue
@@ -146,7 +215,7 @@ def client_is_game(client):
     title = str(client.get("title") or "")
     if NON_GAME.search(cls.lower()):
         return False
-    if GAME_WINDOW.search(cls.lower()) or GAME_WINDOW.search(title.lower()):
+    if STEAM_CLASS.search(cls) or GAME_WINDOW.search(cls.lower()) or GAME_WINDOW.search(title.lower()):
         return True
     return has_game_executable(client.get("pid"))
 
@@ -183,6 +252,103 @@ def current_game():
 
     client = sorted(candidates, key=priority)[0]
     return client, game_name_for(client)
+
+
+def normalize(value):
+    return re.sub(r"[^a-z0-9]", "", str(value or "").lower())
+
+
+def load_detectable():
+    try:
+        age = time.time() - os.path.getmtime(GAME_CACHE)
+        with open(GAME_CACHE, "r", encoding="utf-8", errors="ignore") as fh:
+            cached = json.load(fh)
+        if isinstance(cached, list) and (age < GAME_CACHE_AGE or cached):
+            return cached
+    except Exception:
+        pass
+
+    try:
+        os.makedirs(CACHE_DIR, mode=0o700, exist_ok=True)
+        request = urllib.request.Request(
+            DETECTABLE_URL, headers={"User-Agent": "cyan1de-game-presence/1"})
+        with urllib.request.urlopen(request, timeout=30) as response:
+            payload = response.read()
+        games = json.loads(payload.decode("utf-8"))
+        if not isinstance(games, list):
+            return []
+        temporary = GAME_CACHE + ".tmp"
+        with open(temporary, "wb") as fh:
+            fh.write(payload)
+        os.replace(temporary, GAME_CACHE)
+        return games
+    except Exception:
+        return []
+
+
+def detectable_index():
+    global DETECTABLE_INDEX
+    if DETECTABLE_INDEX is None:
+        by_name = {}
+        by_exe = {}
+        by_steam = {}
+        for game in load_detectable():
+            if not isinstance(game, dict):
+                continue
+            official = normalize(game.get("name"))
+            for name in [game.get("name")] + list(game.get("aliases") or []):
+                key = normalize(name)
+                if not key:
+                    continue
+                # An official name beats another game's alias.
+                if key == official:
+                    by_name[key] = game
+                else:
+                    by_name.setdefault(key, game)
+            for executable in game.get("executables") or []:
+                if not isinstance(executable, dict):
+                    continue
+                key = normalize(os.path.basename(
+                    str(executable.get("name") or "").replace("\\", "/")))
+                if key:
+                    by_exe.setdefault(key, game)
+            for sku in game.get("third_party_skus") or []:
+                if isinstance(sku, dict) and sku.get("distributor") == "steam":
+                    appid = normalize(sku.get("id"))
+                    if appid:
+                        by_steam.setdefault(appid, game)
+        DETECTABLE_INDEX = (by_name, by_exe, by_steam)
+    return DETECTABLE_INDEX
+
+
+def discord_app_for(client, name):
+    by_name, by_exe, by_steam = detectable_index()
+    if not (by_name or by_exe or by_steam):
+        return None
+
+    game = by_name.get(normalize(name))
+    if game:
+        return game
+
+    ids = steam_env_ids(client.get("pid"))
+    cls = str(client.get("class") or client.get("initialClass") or "")
+    match = STEAM_CLASS.search(cls)
+    if match:
+        ids.append(match.group(1))
+    for appid in ids:
+        game = by_steam.get(normalize(appid))
+        if game:
+            return game
+
+    for stem, path, kind in game_paths(client.get("pid")):
+        for part in re.split(r"[\\/]", str(path)):
+            found = by_name.get(normalize(part))
+            if found:
+                return found
+        found = by_exe.get(normalize(stem))
+        if found:
+            return found
+    return None
 
 
 class DiscordRpc:
@@ -259,14 +425,17 @@ class DiscordRpc:
                 return payload.get("evt") != "ERROR"
         return False
 
-    def set_activity(self, name, started):
+    def set_activity(self, name, started, details=None):
+        activity = {
+            "name": name,
+            "type": 0,
+            "timestamps": {"start": int(started)},
+        }
+        if details:
+            activity["details"] = details
         return self.command("SET_ACTIVITY", {
             "pid": os.getpid(),
-            "activity": {
-                "name": name,
-                "type": 0,
-                "timestamps": {"start": int(started)},
-            },
+            "activity": activity,
         })
 
     def close(self):
@@ -297,8 +466,8 @@ def main():
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
 
-    enabled, client_id = read_config()
-    rpc = DiscordRpc(client_id)
+    enabled, fallback_id, use_game_ids = read_config()
+    rpc = DiscordRpc(fallback_id)
     current_name = ""
     started = 0
     last_game_seen = 0
@@ -306,7 +475,7 @@ def main():
 
     try:
         while not STOP:
-            enabled, configured_id = read_config()
+            enabled, configured_id, use_game_ids = read_config()
             if not enabled or not configured_id:
                 rpc.close()
                 current_name = ""
@@ -314,19 +483,30 @@ def main():
                 time.sleep(POLL_SECONDS)
                 continue
 
-            if configured_id != rpc.client_id:
-                rpc.close()
-                rpc = DiscordRpc(configured_id)
-                next_connect = 0
-
             client, name = current_game()
             now = time.time()
 
             if name:
                 last_game_seen = now
-                if name != current_name:
-                    current_name = name
+                target_id = configured_id
+                display_name = name
+                details = name
+
+                if use_game_ids and client is not None:
+                    official = discord_app_for(client, name)
+                    if official and str(official.get("id") or "").isdigit():
+                        target_id = str(official["id"])
+                        display_name = str(official.get("name") or name)
+                        details = ""
+
+                if display_name != current_name:
+                    current_name = display_name
                     started = int(now)
+
+                if target_id != rpc.client_id:
+                    rpc.close()
+                    rpc = DiscordRpc(target_id)
+                    next_connect = 0
 
                 if not rpc.connected and now >= next_connect:
                     if rpc.connect():
@@ -334,7 +514,7 @@ def main():
                     else:
                         next_connect = now + 5
 
-                if rpc.connected and not rpc.set_activity(current_name, started):
+                if rpc.connected and not rpc.set_activity(current_name, started, details):
                     rpc.close()
                     next_connect = now + 5
             elif current_name and now - last_game_seen > 3:

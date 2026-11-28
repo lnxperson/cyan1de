@@ -359,5 +359,5 @@ Quickshell runs as separate named sessions: `topbar`, `osd`, `launcher`, `emoji`
 - Quickshell panels are intentionally opaque. The available blur options are **Hyprland blur** and **Alacritty blur** in Settings.
 - If a panel looks wrong after upgrading, remove the old `~/.config/quickshell` and `~/.config/hypr` directories and reinstall; the installer backs them up first.
 - Popup content uses a shared fixed size; the calendar has its own fixed height to keep month switching stable.
-- Discord activity uses `~/.config/quickshell/discord/game-presence.conf`; set `enabled=false` to turn it off or replace `client_id` with your own Discord application.
+- Discord Rich Presence uses `~/.config/quickshell/discord/game-presence.conf`; set `enabled=false` to turn it off, disable `use_discord_game_ids` to always use the fallback app, or replace `client_id` with your own Discord application. Recognized games use Discord's official name and icon via its cached detectable-game list.
 - Demo screenshots live in `demopics/`.
