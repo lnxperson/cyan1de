@@ -19,6 +19,7 @@ list_file="$state_dir/replay.list"
 log_file="$state_dir/replay.log"
 lock_file="$state_dir/replay.lock"
 clip_lock="$state_dir/replay.clip.lock"
+health_file="$state_dir/replay.health"
 audio_mods="$state_dir/replay.audio.mods"
 
 # Defaults mirror Settings → Screen Capturing before the first save.
@@ -64,6 +65,54 @@ write_state() {
     printf 'v1\n%s\n%s\n' "$pid" "${clip_seconds:-60}" > "$state_file"
 }
 
+# ffmpeg and wf-recorder can both stay alive after a compositor restart while
+# wf-recorder silently stops producing video frames. The newest segment then
+# keeps only audio, so clips are assembled from the stale closed segments. The
+# topbar calls `ensure` every 10s; track the latest video timestamp there and
+# restart the ring when it stops advancing.
+replay_progress() {
+    local segment pts
+    # The newest file can be an empty segment that ffmpeg just opened, so walk
+    # backwards until a segment with readable video packets is found.
+    while IFS= read -r segment; do
+        [[ -n "$segment" ]] || continue
+        pts="$(ffprobe -v error -select_streams v:0 -show_entries packet=pts_time \
+            -of csv=p=0 "$segment" 2>/dev/null | tail -1)"
+        if [[ "$pts" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+            printf '%s %s\n' "$segment" "$pts"
+            return 0
+        fi
+    done < <(find "$buffer_dir" -maxdepth 1 -type f -name 'seg*.mkv' \
+        -printf '%T@ %p\n' 2>/dev/null | sort -nr | cut -d' ' -f2-)
+    return 1
+}
+
+replay_health_check() {
+    local progress previous seen now started
+    now="$(date +%s)"
+    progress="$(replay_progress 2>/dev/null || true)"
+    previous=""
+    seen="$now"
+    if [[ -s "$health_file" ]]; then
+        IFS= read -r previous < "$health_file" || true
+        seen="$(sed -n '2p' "$health_file" 2>/dev/null)"
+        [[ "$seen" =~ ^[0-9]+$ ]] || seen="$now"
+    fi
+    if [[ -n "$progress" && "$progress" != "$previous" ]]; then
+        printf '%s\n%s\n' "$progress" "$now" > "$health_file"
+        return 0
+    fi
+    if [[ -z "$progress" ]]; then
+        # A freshly started ring may not have a readable segment yet.
+        started="$(stat -c %Y "/proc/$(< "$pid_file")" 2>/dev/null \
+            || printf '%s' "$now")"
+        (( now - started < 25 )) && return 0
+        return 1
+    fi
+    (( now - seen < 25 )) && return 0
+    return 1
+}
+
 # Settings calls this while the clip-length slider moves so the topbar pill
 # reflects the new value immediately, without restarting the rolling buffer.
 preview_seconds() {
@@ -99,7 +148,7 @@ stop_replay() {
             kill -KILL "$pid" 2>/dev/null || true
         fi
     fi
-    rm -f "$pid_file" "$sig_file" "$state_file"
+    rm -f "$pid_file" "$sig_file" "$state_file" "$health_file"
 }
 
 config_signature() {
@@ -128,12 +177,18 @@ ensure_replay() {
     current=""
     [[ -s "$sig_file" ]] && IFS= read -r current < "$sig_file"
     if running_pid >/dev/null 2>&1 && [[ "$current" == "$signature" ]]; then
-        # Refresh the panel state and keep the live desktop/mic levels in sync
-        # without throwing away the rolling buffer.
-        write_state "$(< "$pid_file")"
-        capture_audio_mix_levels "$audio_mods" "$desktop_level" "$mic_level" \
-            "$desktop_muted" "$mic_muted"
-        exit 0
+        # A live but stalled recorder is worse than a short gap in the ring:
+        # every clip would replay the same stale footage. Fall through to the
+        # restart path when video timestamps stop moving.
+        replay_health_check || stop_replay
+        if running_pid >/dev/null 2>&1; then
+            # Refresh the panel state and keep the live desktop/mic levels in
+            # sync without throwing away the rolling buffer.
+            write_state "$(< "$pid_file")"
+            capture_audio_mix_levels "$audio_mods" "$desktop_level" "$mic_level" \
+                "$desktop_muted" "$mic_muted"
+            exit 0
+        fi
     fi
 
     stop_replay
@@ -196,7 +251,7 @@ run_replay() {
         [[ -n "$ffpid" ]] && wait "$ffpid" 2>/dev/null || true
         [[ -n "$wfpid" ]] && wait "$wfpid" 2>/dev/null || true
         capture_audio_mix_teardown "$audio_mods"
-        rm -f "$fifo" "$pid_file" "$sig_file" "$state_file"
+        rm -f "$fifo" "$pid_file" "$sig_file" "$state_file" "$health_file"
     }
     trap cleanup EXIT INT TERM
 
@@ -229,6 +284,15 @@ save_clip() {
 
     if ! running_pid >/dev/null 2>&1; then
         capture_notify "Clip not saved" "The replay buffer is not running." "low"
+        return 1
+    fi
+
+    # Do not assemble clips from a ring whose video stream has stalled. A
+    # stalled ffmpeg/wf-recorder pair stays "running" but only writes audio,
+    # which otherwise produces the same clip every time the shortcut is used.
+    if ! replay_health_check; then
+        capture_notify "Clip not saved" "Replay video stalled; restarting the buffer." "low"
+        "$0" restart >/dev/null 2>&1 || true
         return 1
     fi
 
